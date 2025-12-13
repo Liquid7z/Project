@@ -6,12 +6,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileUploader } from '@/components/file-uploader';
-import { generateAssignmentAction, extractTextAction } from '@/actions/generation';
+import { generateAssignmentAction, extractTextAction, analyzeStyleAction } from '@/actions/generation';
 import { LoadingAnimation } from '@/components/loading-animation';
 import Image from 'next/image';
-import { Download, FileText, Type } from 'lucide-react';
+import { Download, FileText, Type, UploadCloud } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import jsPDF from 'jspdf';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 type GeneratedPage = {
     pageNumber: number;
@@ -23,6 +24,8 @@ export default function GeneratePage() {
     const [loadingText, setLoadingText] = useState('Processing...');
     const [textContent, setTextContent] = useState('');
     const [generatedPages, setGeneratedPages] = useState<GeneratedPage[]>([]);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const { toast } = useToast();
 
     const handleFileUpload = async (file: File) => {
         setIsLoading(true);
@@ -36,30 +39,74 @@ export default function GeneratePage() {
                 setTextContent(result.extractedText);
             } catch (error) {
                 console.error("Failed to extract text:", error);
-                // In a real app, show a toast notification
+                toast({
+                    variant: "destructive",
+                    title: "Text Extraction Failed",
+                    description: "Could not extract text from the uploaded document."
+                })
             } finally {
                 setIsLoading(false);
             }
         };
     };
 
-    const handleGenerate = async () => {
-        if (!textContent) return;
-        setIsLoading(true);
-        setLoadingText('Generating handwriting...');
-        setGeneratedPages([]);
-        try {
-            // In a real app, you would get the user's style model ID
-            const result = await generateAssignmentAction({
-                content: textContent,
-                handwritingStyleModelId: 'placeholder-style-model-id',
+    const handleGenerateClick = () => {
+        if (!textContent) {
+            toast({
+                variant: 'destructive',
+                title: 'Input content is empty',
+                description: 'Please type, paste, or upload content before generating.',
             });
-            setGeneratedPages(result.assignmentPages);
-        } catch (error) {
-            console.error("Failed to generate assignment:", error);
-        } finally {
+            return;
+        };
+        setIsUploadModalOpen(true);
+    };
+
+    const handleHandwritingUpload = async (file: File) => {
+        setIsUploadModalOpen(false);
+        setIsLoading(true);
+        
+        // 1. Analyze handwriting
+        setLoadingText('Analyzing your handwriting...');
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            try {
+                const handwritingSampleDataUri = reader.result as string;
+                const analysisResult = await analyzeStyleAction({ handwritingSampleDataUri });
+                const styleModelId = analysisResult.styleModelId;
+
+                if (!styleModelId) {
+                    throw new Error("Handwriting analysis failed to return a model ID.");
+                }
+
+                // 2. Generate assignment with the new style
+                setLoadingText('Generating your assignment...');
+                const generationResult = await generateAssignmentAction({
+                    content: textContent,
+                    handwritingStyleModelId: styleModelId,
+                });
+                setGeneratedPages(generationResult.assignmentPages);
+
+            } catch (error) {
+                console.error("Failed to generate assignment:", error);
+                 toast({
+                    variant: "destructive",
+                    title: "Generation Failed",
+                    description: "An error occurred during the handwriting generation process."
+                })
+            } finally {
+                setIsLoading(false);
+            }
+        };
+         reader.onerror = () => {
             setIsLoading(false);
-        }
+            toast({
+                variant: "destructive",
+                title: "File Read Error",
+                description: "Could not read the uploaded handwriting sample."
+            });
+        };
     };
 
     const handleDownloadPdf = async () => {
@@ -68,7 +115,6 @@ export default function GeneratePage() {
         setIsLoading(true);
         setLoadingText('Creating PDF...');
 
-        // Using dynamic import for jspdf
         const { default: jsPDF } = await import('jspdf');
         
         const doc = new jsPDF();
@@ -82,7 +128,7 @@ export default function GeneratePage() {
             const img = document.createElement('img');
             img.src = imgData;
 
-            await new Promise((resolve) => {
+            await new Promise<void>((resolve) => {
                 img.onload = () => {
                     const pdfWidth = doc.internal.pageSize.getWidth();
                     const pdfHeight = doc.internal.pageSize.getHeight();
@@ -97,8 +143,17 @@ export default function GeneratePage() {
                     const y = (pdfHeight - newHeight) / 2;
                     
                     doc.addImage(imgData, 'PNG', x, y, newWidth, newHeight);
-                    resolve(true);
+                    resolve();
                 }
+                 img.onerror = () => {
+                    console.error(`Failed to load image for page ${i+1}`);
+                    toast({
+                        variant: 'destructive',
+                        title: 'PDF Generation Error',
+                        description: `Could not load page ${i+1} for the PDF.`,
+                    });
+                    resolve(); // Resolve to not block the process
+                };
             });
         }
         
@@ -107,7 +162,7 @@ export default function GeneratePage() {
     };
 
     return (
-        <div className="grid gap-6">
+        <>
             {isLoading && <LoadingAnimation text={loadingText} />}
             <div className="grid lg:grid-cols-2 gap-6">
                 <Card className="glass-pane">
@@ -123,7 +178,7 @@ export default function GeneratePage() {
                             </TabsList>
                             <TabsContent value="text" className="mt-4">
                                 <Textarea
-                                    placeholder="Below are *[how-to-understand notes for 'Problem Solving using C++' strictly based on your **'GTU(B.Tech CSE - 1st Sem Choice based)' syllabus(**'BTCS1101 syllabus(B.Tech CSE - 1st Sem Choice... The language is kept 'hyper-simple, exam-oriented, and beginner-friendly...*. Suitable for quick study and revision... # Problem Solving Using C ... Fairy... "
+                                    placeholder="Paste your assignment text here, or upload a document."
                                     className="min-h-[300px] bg-background/50"
                                     value={textContent}
                                     onChange={(e) => setTextContent(e.target.value)}
@@ -138,7 +193,7 @@ export default function GeneratePage() {
                         </Tabs>
                     </CardContent>
                     <CardFooter>
-                        <Button variant="glow" onClick={handleGenerate} disabled={!textContent || isLoading}>
+                        <Button variant="glow" onClick={handleGenerateClick} disabled={!textContent || isLoading}>
                             Generate Handwriting
                         </Button>
                     </CardFooter>
@@ -179,8 +234,9 @@ export default function GeneratePage() {
                                 <CarouselNext />
                             </Carousel>
                         ) : (
-                            <div className="text-center text-muted-foreground">
-                                <p>Output will be displayed here once generated.</p>
+                            <div className="text-center text-muted-foreground p-4">
+                                <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                                <p className="mt-4">Output will be displayed here once generated.</p>
                             </div>
                         )}
                     </CardContent>
@@ -189,6 +245,20 @@ export default function GeneratePage() {
                     </CardFooter>}
                 </Card>
             </div>
-        </div>
+            <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+                <DialogContent className="glass-pane">
+                    <DialogHeader>
+                        <DialogTitle className="font-headline flex items-center gap-2"><UploadCloud /> Upload Handwriting Sample</DialogTitle>
+                        <DialogDescription>
+                            To generate the assignment in your style, please upload an image of your handwriting.
+                            A clear, well-lit image on unlined paper works best.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                         <FileUploader onFileUpload={handleHandwritingUpload} />
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
