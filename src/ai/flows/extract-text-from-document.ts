@@ -10,9 +10,11 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf.mjs';
+import mammoth from 'mammoth';
 
 // WORKAROUND: In a serverless environment, the worker is not available.
-// This forces pdfjs-dist to run in a single-threaded mode.
+// This forces pdfjs-dist to run in a single-threaded mode by pointing to a CDN.
+// Note: This may have implications in environments with strict CSP.
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
 
 const ExtractTextFromDocumentInputSchema = z.object({
@@ -74,7 +76,6 @@ const extractTextTool = ai.defineTool({
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       console.log('Detected DOCX document.');
       const documentBuffer = Buffer.from(documentDataBase64, 'base64');
-      const mammoth = await import('mammoth');
       const { value: extractedText } = await mammoth.extractRawText({ buffer: documentBuffer });
       const previewDataUri = generateGenericPreview('DOCX');
       return { extractedText, previewDataUri };
