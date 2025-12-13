@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "landing-hero",
+      "description": "Abstract cyberpunk style background for the landing page hero section.",
+      "imageUrl": "https://images.unsplash.com/photo-1706705558098-12957a9dd7cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YWJzdHJhY3QlMjBjeWJlcnxlbnwwfHx8fDE3NjU0OTI5Nzd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract cyber"
+    },
+    {
+      "id": "user-avatar",
+      "description": "Avatar for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVyc29uJTIwZmFjZXxlbnwwfHx8fDE3NjU1MDA2NjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person face"
+    },
+    {
+      "id": "handwriting-sample",
+      "description": "Sample of handwriting for analysis.",
+      "imageUrl": "https://images.unsplash.com/photo-1520179432903-03d08e6ef07a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxoYW5kd3JpdGluZyUyMHNjcmlwdHxlbnwwfHx8fDE3NjU1ODQ2NzR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "handwriting script"
+    }
+  ]
 }

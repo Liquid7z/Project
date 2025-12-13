@@ -8,11 +8,18 @@ export default {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
+        headline: ['Space Grotesk', 'sans-serif'],
+        code: ['Source Code Pro', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -88,10 +95,28 @@ export default {
             height: '0',
           },
         },
+        'neon-glow': {
+          '0%, 100%': {
+            'text-shadow': '0 0 4px hsl(var(--accent)), 0 0 8px hsl(var(--accent)), 0 0 12px hsl(var(--primary))',
+          },
+          '50%': {
+            'text-shadow': '0 0 8px hsl(var(--accent)), 0 0 16px hsl(var(--accent)), 0 0 24px hsl(var(--primary))',
+          },
+        },
+        'button-glow': {
+           '0%, 100%': {
+            'box-shadow': '0 0 5px hsl(var(--accent)), 0 0 10px hsl(var(--primary)), inset 0 0 5px hsl(var(--accent) / 0.5)',
+          },
+          '50%': {
+            'box-shadow': '0 0 10px hsl(var(--accent)), 0 0 20px hsl(var(--primary)), inset 0 0 10px hsl(var(--accent) / 0.5)',
+          }
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'neon-glow': 'neon-glow 2.5s ease-in-out infinite',
+        'button-glow': 'button-glow 3s ease-in-out infinite',
       },
     },
   },
