@@ -168,6 +168,10 @@
           "type": "string",
           "description": "The ID of the user who owns this note."
         },
+        "subjectId": {
+          "type": "string",
+          "description": "The ID of the subject this note belongs to."
+        },
         "title": {
           "type": "string",
           "description": "The title of the note."
@@ -188,15 +192,64 @@
             "active",
             "archived"
           ]
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the note.",
+          "enum": [
+            "text",
+            "document"
+          ]
+        },
+        "fileURL": {
+            "type": "string",
+            "format": "uri"
+        },
+        "fileType": {
+            "type": "string"
+        },
+        "fileSize": {
+            "type": "number"
+        },
+        "originalFileName": {
+            "type": "string"
         }
       },
       "required": [
         "id",
         "userId",
+        "subjectId",
         "title",
         "lastEdited",
-        "status"
+        "status",
+        "type"
       ]
+    },
+    "Subject": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subject",
+      "type": "object",
+      "description": "Represents a subject or category for organizing notes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subject."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this subject."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the subject."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the subject was created.",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "name", "createdAt"]
     }
   },
   "auth": {
@@ -284,17 +337,41 @@
         }
       },
       {
-        "path": "/users/{userId}/notes/{noteId}",
+        "path": "/users/{userId}/subjects/{subjectId}",
+        "definition": {
+          "entityName": "Subject",
+          "schema": {
+            "$ref": "#/backend/entities/Subject"
+          },
+          "description": "Stores subjects for organizing notes.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "subjectId",
+              "description": "The unique identifier for the subject."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/subjects/{subjectId}/notes/{noteId}",
         "definition": {
           "entityName": "Note",
           "schema": {
             "$ref": "#/backend/entities/Note"
           },
-          "description": "Stores notes for a given user. Path-based ownership.",
+          "description": "Stores notes for a given subject. Path-based ownership.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier of the user."
+            },
+            {
+              "name": "subjectId",
+              "description": "The unique identifier of the subject."
             },
             {
               "name": "noteId",
@@ -307,3 +384,5 @@
     "reasoning": "The Firestore data structure is designed to support the LiqAI application's user authentication, premium subscription system, handwriting analysis, content input, and AI handwriting generation features, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC, QAPs, and Invariants.\n\n*   **Authorization Independence:** The structure avoids hierarchical authorization dependencies (`get()`) by denormalizing authorization context where necessary. For example, the `GeneratedAssignment` documents store the `userId` which allows for independent authorization checks without needing to fetch the parent `UserProfile` document.\n*   **Clarity of Intent:** The structure uses clear and consistent naming conventions to make authorization intent explicit. Path-based ownership (`/users/{userId}/...`) clearly indicates ownership, and dedicated collections (`/roles_admin/{uid}`) explicitly define global roles.\n*   **DBAC (No Custom Claims):** Authorization relies solely on `request.auth.uid`. User roles (e.g., admin) are stored in dedicated collections in the database, avoiding the use of custom claims.\n*   **QAPs (Rules are not Filters):** The structure enables secure `list` operations by ensuring that all documents in a collection share the same security requirements. This is achieved through structural segregation, separating data with different access needs into different collections.\n*   **Invariants:** The structure supports the integrity of ownership, timestamps, and denormalized data by enforcing strict naming conventions and using explicit state modeling.\n\nTo specifically support the application's core features:\n\n*   User Authentication: User profiles are stored in `/users/{userId}` with profile data. This enables simple ownership-based security rules.\n*   Premium Subscription System: Subscription data is stored in a subcollection `/users/{userId}/subscriptions/{subscriptionId}`. This allows us to control the tier that user has active at any given time.\n*   Handwriting Analysis: Handwriting models are stored in a subcollection `/users/{userId}/handwritingModels/{handwritingModelId}`. This structure ensures that handwriting models are owned by the respective user and access is controlled by path-based rules.\n*   AI Handwriting Generation: Generated assignments are stored in a subcollection `/users/{userId}/generatedAssignments/{generatedAssignmentId}`. This ensures that generated assignments are owned by the respective user. Each `GeneratedAssignment` also stores the `handwritingModelId` to ensure a handwriting model exists at the time of the assignment generation.\n"
   }
 }
+
+    

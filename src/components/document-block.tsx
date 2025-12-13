@@ -1,17 +1,39 @@
 'use client';
 
 import React from 'react';
-import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
+import { NodeViewWrapper, NodeViewProps, Node as TipTapNode } from '@tiptap/react';
 import { DocumentPreviewer } from './document-previewer';
 import { X } from 'lucide-react';
 import { Button } from './ui/button';
 
-const DocumentBlock: React.FC<NodeViewProps> = ({ node, deleteNode, editor }) => {
-  const { fileURL, fileName, fileType, fileSize } = node.attrs;
+export const DocumentBlockNode = TipTapNode.create({
+  name: 'documentBlock',
+  group: 'block',
+  atom: true,
+  draggable: true,
 
-  return (
-    <NodeViewWrapper className="my-4 p-4 rounded-lg bg-muted/50 relative group">
-        <div className="document-block not-prose">
+  addAttributes() {
+    return {
+      fileURL: { default: null },
+      fileName: { default: null },
+      fileType: { default: null },
+      fileSize: { default: null },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-type="documentBlock"]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', { 'data-type': 'documentBlock', ...HTMLAttributes }];
+  },
+
+  addNodeView() {
+    return ({ node, deleteNode, editor }) => {
+      const { fileURL, fileName, fileType, fileSize } = node.attrs;
+      return (
+        <NodeViewWrapper className="my-4 p-4 rounded-lg bg-muted/50 relative group not-prose">
             {editor.isEditable && (
                  <Button 
                     variant="ghost" 
@@ -27,9 +49,12 @@ const DocumentBlock: React.FC<NodeViewProps> = ({ node, deleteNode, editor }) =>
                 fileType={fileType}
                 fileName={fileName}
             />
-        </div>
-    </NodeViewWrapper>
-  );
-};
+        </NodeViewWrapper>
+      );
+    };
+  },
+});
 
-export default DocumentBlock;
+export default DocumentBlockNode;
+
+    

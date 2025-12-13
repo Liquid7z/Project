@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { extractTextAction } from '@/actions/generation';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import { AlertCircle, FileWarning } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const PDF_WORKER_VERSION = '4.0.379'; // from package.json
+const PDF_WORKER_VERSION = '4.0.379';
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_WORKER_VERSION}/pdf.worker.min.mjs`;
 
 interface DocumentPreviewerProps {
@@ -50,6 +50,7 @@ const PDFViewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPreview?
             if (!canvas) return;
 
             const context = canvas.getContext('2d');
+            if(!context) return;
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             
@@ -139,6 +140,7 @@ const DocxPreviewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPrev
     return <div className={`prose prose-sm dark:prose-invert p-4 rounded-md bg-muted/20 ${isCardPreview ? 'max-h-64 overflow-hidden' : ''}`} dangerouslySetInnerHTML={{ __html: content?.replace(/\n/g, '<br />') || '' }} />;
 };
 
+
 const FallbackPreview = ({ fileName }: { fileName: string }) => (
     <div className="flex flex-col items-center justify-center text-center p-4 h-full bg-muted/20 rounded-md">
         <FileWarning className="w-10 h-10 text-muted-foreground" />
@@ -150,6 +152,15 @@ const FallbackPreview = ({ fileName }: { fileName: string }) => (
 
 export const DocumentPreviewer = ({ fileURL, fileType, fileName, isCardPreview = false }: DocumentPreviewerProps) => {
     
+    if (!fileType) {
+        return <FallbackPreview fileName={fileName} />;
+    }
+
+    if (fileType.startsWith('image/')) {
+        // eslint-disable-next-line @next/next/no-img-element
+        return <img src={fileURL} alt={fileName} className="max-w-full h-auto rounded-md" />;
+    }
+
     if (fileType === 'application/pdf') {
         return <PDFViewer fileUrl={fileURL} isCardPreview={isCardPreview} />;
     }
@@ -160,3 +171,5 @@ export const DocumentPreviewer = ({ fileURL, fileType, fileName, isCardPreview =
 
     return <FallbackPreview fileName={fileName} />;
 };
+
+    

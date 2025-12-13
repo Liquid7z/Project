@@ -13,6 +13,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import DocumentBlock from '@/components/document-block';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
 
 type Note = WithId<{
   title: string;
@@ -33,6 +35,10 @@ const NoteViewer = ({ content }: { content: any }) => {
         extensions: [
             StarterKit,
             Image,
+            Underline,
+            TextAlign.configure({
+                types: ['heading', 'paragraph'],
+            }),
             DocumentBlock.configure({
                 HTMLAttributes: {
                     class: 'my-4',
@@ -103,7 +109,7 @@ export default function NoteViewPage({ params: paramsPromise }: { params: Promis
              <header className="flex justify-between items-center mb-6 p-4 border-b">
                 <div className="flex items-center gap-2 text-sm md:text-base">
                     <Button variant="outline" size="icon" className="h-8 w-8" asChild>
-                        <Link href="/dashboard/notes"><ArrowLeft /></Link>
+                        <Link href={`/dashboard/notes/${subjectId}`}><ArrowLeft /></Link>
                     </Button>
                     <Link href="/dashboard/notes" className="text-muted-foreground hover:text-foreground">Subjects</Link>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />

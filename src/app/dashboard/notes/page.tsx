@@ -1,100 +1,85 @@
 'use client';
 
-import { useState, useMemo, use } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, Search, MoreVertical, Archive, Trash2, Edit } from 'lucide-react';
+import { Plus, Folder, Search, MoreVertical, Trash2, Edit, BookOpen } from 'lucide-react';
 import Link from 'next/link';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-type Note = WithId<{
-  title: string;
-  content?: string; // JSON string from TipTap
-  lastEdited: any; // Firestore Timestamp
-  status: 'active' | 'archived';
+
+type Subject = WithId<{
+  name: string;
   userId: string;
+  createdAt: any; // Firestore Timestamp
+  noteCount?: number; // Optional, might be calculated client-side
 }>;
 
-const NotePreviewCard = ({ note }: { note: Note }) => {
+const SubjectCard = ({ subject }: { subject: Subject }) => {
     const router = useRouter();
     const firestore = useFirestore();
     const { user } = useUser();
     
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-    const lastEdited = note.lastEdited?.toDate ? formatDistanceToNow(note.lastEdited.toDate(), { addSuffix: true }) : 'just now';
+    const createdAt = subject.createdAt?.toDate ? formatDistanceToNow(subject.createdAt.toDate(), { addSuffix: true }) : 'just now';
 
     const handleDelete = async () => {
         if (!user || !firestore) return;
-        const noteDocRef = doc(firestore, 'users', user.uid, 'notes', note.id);
-        // In a real app, you might want to also delete associated images/docs from storage.
-        // This requires parsing the content, which is more complex.
-        await deleteDocumentNonBlocking(noteDocRef);
+        const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', subject.id);
+        // In a real app, you'd also want to delete all notes within this subject (or handle them otherwise)
+        // This is a complex operation and might be better handled by a Firebase Function.
+        await deleteDocumentNonBlocking(subjectDocRef);
         setIsDeleteDialogOpen(false);
     };
 
-    const handleArchive = async () => {
-         if (!user || !firestore) return;
-        const noteDocRef = doc(firestore, 'users', user.uid, 'notes', note.id);
-        await updateDocumentNonBlocking(noteDocRef, { status: 'archived', lastEdited: serverTimestamp() });
-    };
 
     return (
         <>
             <motion.div
-                layoutId={`note-card-${note.id}`}
+                layout
                 whileHover={{ y: -5 }}
                 className="h-full"
             >
-                <Card className="group glass-pane transition-all hover:border-accent overflow-hidden h-full flex flex-col">
-                    <CardHeader className="relative pb-4">
-                        <div className="absolute top-2 right-2">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="glass-pane">
-                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/notes/${note.id}/edit`)}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        <span>Edit</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleArchive}>
-                                        <Archive className="mr-2 h-4 w-4" />
-                                        <span>Archive</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        <span>Delete</span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                        <Link href={`/dashboard/notes/${note.id}`} className="cursor-pointer pr-8">
-                            <CardTitle className="font-headline text-glow truncate pr-8">{note.title || 'Untitled Note'}</CardTitle>
-                             <p className="text-xs text-muted-foreground pt-1">Edited {lastEdited}</p>
-                        </Link>
-                    </CardHeader>
-                    <Link href={`/dashboard/notes/${note.id}`} className="flex-1 cursor-pointer">
-                        <CardContent className="relative h-full">
-                            <div 
-                                className="prose prose-sm prose-invert max-w-none h-24 overflow-hidden text-ellipsis [&_p]:text-muted-foreground" 
-                                dangerouslySetInnerHTML={{ __html: note.content || '' }}
-                            />
-                            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card to-transparent" />
-                        </CardContent>
+                <Card className="group glass-pane transition-all hover:border-accent overflow-hidden h-full flex flex-col justify-between">
+                   <Link href={`/dashboard/notes/${subject.id}`} className="cursor-pointer h-full flex flex-col justify-between">
+                        <CardHeader className="relative pb-4">
+                            <div className="flex items-start justify-between">
+                                <Folder className="w-10 h-10 text-accent/70"/>
+                            </div>
+                            <CardTitle className="font-headline text-glow truncate pt-4">{subject.name || 'Untitled Subject'}</CardTitle>
+                        </CardHeader>
+                        <CardFooter>
+                           <p className="text-xs text-muted-foreground pt-1">Created {createdAt}</p>
+                        </CardFooter>
                     </Link>
+                     <div className="absolute top-2 right-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="glass-pane">
+                                 <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </Card>
             </motion.div>
              <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -102,7 +87,7 @@ const NotePreviewCard = ({ note }: { note: Note }) => {
                     <DialogHeader>
                         <DialogTitle className="font-headline">Are you sure?</DialogTitle>
                         <DialogDescription>
-                           This will permanently delete the note titled "{note.title}". This action cannot be undone.
+                           This will permanently delete the subject "{subject.name}" and all notes inside it. This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -115,133 +100,158 @@ const NotePreviewCard = ({ note }: { note: Note }) => {
     );
 };
 
-
-export default function NotesDashboardPage() {
+const NewSubjectDialog = ({ onSubjectCreated }: { onSubjectCreated: () => void }) => {
+    const [isOpen, setIsOpen] = useState(false);
     const { user } = useUser();
     const firestore = useFirestore();
-    const router = useRouter();
+
+    const formSchema = z.object({
+      name: z.string().min(1, "Subject name cannot be empty.").max(50, "Subject name is too long."),
+    });
+
+    const form = useForm<z.infer<typeof formSchema>>({
+      resolver: zodResolver(formSchema),
+      defaultValues: { name: "" },
+    });
+
+    const subjectsRef = useMemoFirebase(() =>
+        user ? collection(firestore, 'users', user.uid, 'subjects') : null
+    , [firestore, user]);
+
+    const handleCreateSubject = async (values: z.infer<typeof formSchema>) => {
+        if (!user || !subjectsRef) return;
+
+        const newSubject = {
+            userId: user.uid,
+            name: values.name,
+            createdAt: serverTimestamp(),
+        };
+
+        await addDocumentNonBlocking(subjectsRef, newSubject);
+        onSubjectCreated();
+        setIsOpen(false);
+        form.reset();
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="glow" className="w-full sm:w-auto"><Plus className="mr-2"/> New Subject</Button>
+            </DialogTrigger>
+            <DialogContent className="glass-pane">
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleCreateSubject)}>
+                        <DialogHeader>
+                            <DialogTitle className="font-headline">Create New Subject</DialogTitle>
+                            <DialogDescription>
+                               Choose a name for your new subject. You can add notes to it later.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <FormField
+                              control={form.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Subject Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="e.g., Biology 101" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>Create Subject</Button>
+                        </DialogFooter>
+                    </form>
+                 </Form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+export default function SubjectsDashboardPage() {
+    const { user } = useUser();
+    const firestore = useFirestore();
     
-    const notesRef = useMemoFirebase(() => 
-        user ? collection(firestore, 'users', user.uid, 'notes') : null, 
+    const subjectsRef = useMemoFirebase(() => 
+        user ? collection(firestore, 'users', user.uid, 'subjects') : null, 
         [firestore, user]
     );
 
-    const notesQuery = useMemoFirebase(() => 
-        notesRef ? query(notesRef, orderBy('lastEdited', 'desc')) : null, 
-        [notesRef]
+    const subjectsQuery = useMemoFirebase(() => 
+        subjectsRef ? query(subjectsRef, orderBy('createdAt', 'desc')) : null, 
+        [subjectsRef]
     );
 
-    const { data: notes, isLoading: isLoadingNotes } = useCollection<Note>(notesQuery);
+    const { data: subjects, isLoading: isLoadingSubjects, error } = useCollection<Subject>(subjectsQuery);
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState('newest');
 
-    const handleCreateNote = async () => {
-        if (!user || !notesRef) return;
-
-        const newNote = {
-            userId: user.uid,
-            title: "Untitled Note",
-            content: "", // Start with empty content
-            lastEdited: serverTimestamp(),
-            status: 'active' as const,
-        };
-
-        const newDocRef = await addDocumentNonBlocking(notesRef, newNote);
-        if(newDocRef?.id) {
-            router.push(`/dashboard/notes/${newDocRef.id}/edit`);
-        }
-    };
-
-
-    const filteredAndSortedNotes = useMemo(() => {
-        if (!notes) return [];
-        return notes
-            .filter(note => note.status === 'active')
-            .filter(note => 
-                note.title.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            .sort((a, b) => {
-                const timeA = a.lastEdited?.toDate ? a.lastEdited.toDate().getTime() : 0;
-                const timeB = b.lastEdited?.toDate ? b.lastEdited.toDate().getTime() : 0;
-                if (sortBy === 'newest') {
-                    return timeB - timeA;
-                }
-                if (sortBy === 'oldest') {
-                    return timeA - timeB;
-                }
-                if (sortBy === 'title-asc') {
-                    return a.title.localeCompare(b.title);
-                }
-                if (sortBy === 'title-desc') {
-                    return b.title.localeCompare(a.title);
-                }
-                return 0;
-            });
-    }, [notes, searchTerm, sortBy]);
-
+    const filteredSubjects = useMemo(() => {
+        if (!subjects) return [];
+        return subjects.filter(subject => 
+            subject.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [subjects, searchTerm]);
+    
     return (
         <div className="p-0">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h1 className="text-3xl font-headline">Notes</h1>
+                <h1 className="text-3xl font-headline">Subjects</h1>
                 <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
                     <div className="relative w-full sm:w-auto flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
-                            placeholder="Search notes..." 
+                            placeholder="Search subjects..." 
                             className="pl-10 w-full"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Sort by" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="newest">Last Edited (Newest)</SelectItem>
-                            <SelectItem value="oldest">Last Edited (Oldest)</SelectItem>
-                            <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-                             <SelectItem value="title-desc">Title (Z-A)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button variant="glow" onClick={handleCreateNote} className="w-full sm:w-auto"><Plus className="mr-2"/> New Note</Button>
+                    <NewSubjectDialog onSubjectCreated={() => {}} />
                 </div>
             </div>
             
-            {isLoadingNotes && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[...Array(3)].map((_, i) => (
-                        <Card key={i} className="glass-pane">
-                            <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
-                            <CardContent><Skeleton className="h-20 w-full" /></CardContent>
+            {isLoadingSubjects && (
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[...Array(4)].map((_, i) => (
+                        <Card key={i} className="glass-pane h-48">
+                            <CardHeader><Skeleton className="h-8 w-8" /></CardHeader>
+                            <CardContent><Skeleton className="h-6 w-3/4" /></CardContent>
                             <CardFooter><Skeleton className="h-4 w-1/2" /></CardFooter>
                         </Card>
                     ))}
                  </div>
             )}
+            
+            {error && <div className="text-destructive">Error loading subjects: {error.message}</div>}
 
-            {!isLoadingNotes && filteredAndSortedNotes.length === 0 && (
+            {!isLoadingSubjects && filteredSubjects.length === 0 && (
                  <div className="text-center text-muted-foreground p-12 border-2 border-dashed rounded-lg">
                     <BookOpen className="mx-auto h-12 w-12" />
-                    <h3 className="mt-4 text-lg font-semibold">No Notes Yet</h3>
-                    <p className="mt-1 text-sm">{searchTerm ? 'No notes match your search.' : 'Click "New Note" to get started.'}</p>
+                    <h3 className="mt-4 text-lg font-semibold">{searchTerm ? 'No Subjects Found' : 'No Subjects Yet'}</h3>
+                    <p className="mt-1 text-sm">{searchTerm ? 'No subjects match your search.' : 'Click "New Subject" to get started.'}</p>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAndSortedNotes.map((note, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {filteredSubjects.map((subject, index) => (
                     <motion.div
-                        key={note.id}
+                        key={subject.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                         className="h-full"
                     >
-                        <NotePreviewCard note={note} />
+                        <SubjectCard subject={subject} />
                     </motion.div>
                 ))}
             </div>
         </div>
     );
 }
+
+    

@@ -3,7 +3,7 @@
 import { useEditor, EditorContent, ReactNodeViewRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Image as ImageIcon, Paperclip, Undo, Redo, Quote, Code } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Image as ImageIcon, Paperclip, Undo, Redo, Quote, Code, Underline, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { useCallback, useRef } from 'react';
 import { useUser, useStorage } from '@/firebase';
@@ -13,17 +13,17 @@ import Image from '@tiptap/extension-image';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
-import { Node } from '@tiptap/core';
 import DocumentBlock from './document-block';
+import UnderlineExtension from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
 
 
 const EditorToolbar = ({ editor }: { editor: any }) => {
   const { user } = useUser();
   const storage = useStorage();
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const docInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const addFile = useCallback(async (file: File, type: 'image' | 'document') => {
+  const addFile = useCallback(async (file: File) => {
     if (!file || !editor || !storage || !user) return;
     
     const fileId = uuidv4();
@@ -34,7 +34,9 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
         await uploadBytes(fileStorageRef, file);
         const url = await getDownloadURL(fileStorageRef);
         
-        editor.chain().focus().insertContentAt(editor.state.selection.head, {
+        const fileType = file.type;
+        
+        editor.chain().focus().insertContentAt(editor.state.selection.to, {
             type: 'documentBlock',
             attrs: {
               fileURL: url,
@@ -49,14 +51,9 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
     }
   }, [editor, storage, user]);
   
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
      const file = event.target.files?.[0];
-     if (file) addFile(file, 'image');
-  };
-
-  const handleDocUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-     const file = event.target.files?.[0];
-     if (file) addFile(file, 'document');
+     if (file) addFile(file);
   };
 
 
@@ -71,19 +68,24 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
       <div className="w-[1px] h-6 bg-border mx-1"/>
       <Button variant={editor.isActive('bold') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBold().run()} title="Bold"><Bold className="w-4 h-4" /></Button>
       <Button variant={editor.isActive('italic') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic"><Italic className="w-4 h-4" /></Button>
+      <Button variant={editor.isActive('underline') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} title="Underline"><Underline className="w-4 h-4" /></Button>
       <Button variant={editor.isActive('strike') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} title="Strikethrough"><Strikethrough className="w-4 h-4" /></Button>
       <div className="w-[1px] h-6 bg-border mx-1"/>
       <Button variant={editor.isActive('heading', { level: 1 }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="Heading 1"><Heading1 className="w-5 h-5" /></Button>
       <Button variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading 2"><Heading2 className="w-5 h-5" /></Button>
       <Button variant={editor.isActive('heading', { level: 3 }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title="Heading 3"><Heading3 className="w-5 h-5" /></Button>
       <div className="w-[1px] h-6 bg-border mx-1"/>
+       <Button variant={editor.isActive({ textAlign: 'left' }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().setTextAlign('left').run()} title="Align Left"><AlignLeft className="w-5 h-5" /></Button>
+       <Button variant={editor.isActive({ textAlign: 'center' }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().setTextAlign('center').run()} title="Align Center"><AlignCenter className="w-5 h-5" /></Button>
+       <Button variant={editor.isActive({ textAlign: 'right' }) ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().setTextAlign('right').run()} title="Align Right"><AlignRight className="w-5 h-5" /></Button>
+      <div className="w-[1px] h-6 bg-border mx-1"/>
       <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet List"><List className="w-5 h-5" /></Button>
       <Button variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Ordered List"><ListOrdered className="w-5 h-5" /></Button>
       <Button variant={editor.isActive('blockquote') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Quote"><Quote className="w-5 h-5" /></Button>
       <Button variant={editor.isActive('codeBlock') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleCodeBlock().run()} title="Code Block"><Code className="w-5 h-5" /></Button>
       <div className="w-[1px] h-6 bg-border mx-1"/>
-      <input type="file" ref={docInputRef} onChange={handleDocUpload} accept=".pdf,.doc,.docx,.txt,.pptx" className="hidden" />
-      <Button variant={'ghost'} size="icon" onClick={() => docInputRef.current?.click()} title="Add Document"><Paperclip className="w-5 h-5" /></Button>
+      <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.ppt,.pptx,.txt" className="hidden" />
+      <Button variant={'ghost'} size="icon" onClick={() => fileInputRef.current?.click()} title="Add Image or Document"><Paperclip className="w-5 h-5" /></Button>
     </div>
   );
 };
@@ -104,7 +106,23 @@ export const NoteEditor = ({ value, onChange, onTitleChange, title }: { value: a
       Paragraph,
       Text,
       Image,
-      DocumentBlock
+      UnderlineExtension,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Placeholder.configure({
+        placeholder: ({ node }) => {
+          if (node.type.name === 'heading' && node.attrs.level === 1) {
+            return 'What’s the title?';
+          }
+          return 'Start writing your note here...';
+        },
+      }),
+      DocumentBlock.configure({
+          HTMLAttributes: {
+              class: 'my-4',
+          }
+      })
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -133,3 +151,5 @@ export const NoteEditor = ({ value, onChange, onTitleChange, title }: { value: a
     </div>
   );
 };
+
+    
