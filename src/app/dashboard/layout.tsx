@@ -65,11 +65,21 @@ export default function DashboardLayout({
     }
   }, [isUserLoading, user, userError, auth, router]);
 
-  if (isUserLoading || userError || !user) {
+  if (isUserLoading || !user) {
     // Show a loader while checking auth state or before redirecting.
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (userError) {
+    // Handle auth errors, maybe show an error message
+    // For now, we redirect which is handled by the useEffect
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-destructive">An error occurred during authentication. Redirecting...</div>
       </div>
     );
   }
@@ -125,6 +135,12 @@ export default function DashboardLayout({
                         <Link href="/dashboard/account">Profile</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Billing</DropdownMenuItem>
+                    <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+                        <div className="flex items-center justify-between w-full">
+                           <Label htmlFor="glow-mode-desktop">Glow mode</Label>
+                           <Switch id="glow-mode-desktop" />
+                        </div>
+                    </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
@@ -172,8 +188,6 @@ export default function DashboardLayout({
                 </SheetContent>
             </Sheet>
             <div className="flex flex-1 items-center justify-end gap-2">
-                <Label htmlFor="glow-mode" className="text-sm font-medium">Glow mode</Label>
-                <Switch id="glow-mode" />
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -191,6 +205,12 @@ export default function DashboardLayout({
                   <Link href="/dashboard/account">Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>Billing</DropdownMenuItem>
+                 <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+                    <div className="flex items-center justify-between w-full">
+                       <Label htmlFor="glow-mode-mobile">Glow mode</Label>
+                       <Switch id="glow-mode-mobile" />
+                    </div>
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
