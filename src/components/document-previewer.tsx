@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 // Set workerSrc for pdf.js. This is crucial for it to work with Next.js/Webpack.
 // We point it to a copy of the worker file hosted on a CDN, hardcoding the version
 // to avoid issues with dynamic version resolution in this environment.
-const PDF_JS_VERSION = '4.10.38';
+const PDF_JS_VERSION = '4.0.379';
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.worker.min.mjs`;
 
 async function fileUrlToDataUri(url: string): Promise<string> {
@@ -147,4 +147,3 @@ export const DocumentPreviewer = ({ note, isCardPreview = false }: { note: Note;
 
     return <FallbackPreview note={note} />;
 };
-    
