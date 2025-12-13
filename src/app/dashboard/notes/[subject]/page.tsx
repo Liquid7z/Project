@@ -12,8 +12,11 @@ import {
 } from "@/components/ui/accordion"
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 import { 
   FileText, 
   BookOpen, 
@@ -23,14 +26,20 @@ import {
   Download,
   Edit,
   Save,
-  FileX
+  FileX,
+  ImageIcon,
+  File as FileIcon
 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const mockData = {
   physics: {
     notes: [
-      { id: 1, title: 'Newtonian Mechanics', content: 'Newton\'s laws of motion are three physical laws that, together, laid the foundation for classical mechanics.' },
-      { id: 2, title: 'Quantum Physics Intro', content: 'Quantum mechanics is a fundamental theory in physics that provides a description of the physical properties of nature at the scale of atoms and subatomic particles.' },
+      { id: 1, title: 'Newtonian Mechanics', content: 'Newton\'s laws of motion are three physical laws that, together, laid the foundation for classical mechanics.', type: 'text' },
+      { id: 2, title: 'Quantum Physics Intro', content: 'Quantum mechanics is a fundamental theory in physics that provides a description of the physical properties of nature at the scale of atoms and subatomic particles.', type: 'text' },
+      { id: 3, title: 'Lab Setup', content: '/placeholder.jpg', type: 'image' },
+      { id: 4, title: 'Thermodynamics Paper', content: 'thermo.pdf', type: 'pdf' },
+
     ],
     syllabus: [
       { id: 1, unit: 'Unit 1: Kinematics', topics: ['Position, displacement, velocity', 'Uniformly accelerated motion'] },
@@ -45,52 +54,82 @@ const mockData = {
   history: { notes: [], syllabus: [], papers: [] },
 };
 
+const noteTypeIcons = {
+  text: <FileText className="w-6 h-6 text-primary"/>,
+  image: <ImageIcon className="w-6 h-6 text-green-400"/>,
+  pdf: <FileIcon className="w-6 h-6 text-red-400"/>,
+  doc: <FileIcon className="w-6 h-6 text-blue-400"/>,
+}
+
+
 export default function SubjectPage() {
   const params = useParams();
   const subject = params.subject as keyof typeof mockData;
   const [activeTab, setActiveTab] = useState('notes');
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [selectedPaper, setSelectedPaper] = useState<any>(null);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
 
   const subjectData = mockData[subject] || mockData.physics;
-
-  const getSubjectIcon = (subjectName: string) => {
-    // This would ideally use a more scalable approach
-    if (subjectName === 'physics') return <FileText className="w-8 h-8 text-primary" />;
-    if (subjectName === 'chemistry') return <FileText className="w-8 h-8 text-primary" />;
-    if (subjectName === 'history') return <FileText className="w-8 h-8 text-primary" />;
-    return <FileText className="w-8 h-8 text-primary" />;
-  }
 
   const tabContentVariant = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
     exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: "easeIn" } }
   };
+  
+  const getNoteCard = (note: any) => {
+    switch(note.type) {
+      case 'image':
+        return (
+          <>
+            <h3 className="font-bold font-headline">{note.title}</h3>
+            <div className="mt-2 aspect-video w-full rounded-md bg-black overflow-hidden">
+               <img src="https://picsum.photos/seed/physics-lab/400/225" alt="note image" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </>
+        )
+      case 'pdf':
+         return (
+          <>
+            <h3 className="font-bold font-headline">{note.title}</h3>
+            <div className="mt-2 text-sm text-muted-foreground flex items-center gap-2">
+              <FileIcon className="w-4 h-4"/>
+              <span>{note.content}</span>
+            </div>
+          </>
+        )
+      default:
+        return (
+          <>
+            <h3 className="font-bold font-headline">{note.title}</h3>
+            <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{note.content}</p>
+          </>
+        )
+    }
+  }
+
 
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row min-h-[calc(100vh-3.5rem)]">
       {/* Left Sidebar HUD */}
-      <aside className="fixed top-14 bottom-0 left-0 hidden md:flex flex-col w-64 glass-pane !rounded-l-none !border-t-0 !border-b-0 !border-l-0 pr-4">
-          <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-accent/50 via-accent to-accent/50"></div>
+      <aside className="w-full md:w-64 glass-pane !rounded-none md:!rounded-l-none md:!border-t-0 md:!border-b-0 md:!border-l-0 md:pr-4 shrink-0">
+          <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-accent/50 via-accent to-accent/50 hidden md:block"></div>
           <div className="p-6">
               <h2 className="text-2xl font-headline font-bold capitalize text-glow">{subject}</h2>
               <p className="text-sm text-muted-foreground">Study Hub</p>
           </div>
-          <nav className="flex-1 px-4">
-              {/* Animated indicators could go here */}
-          </nav>
           <div className="p-4 border-t border-border">
-            <Button variant="glow" className="w-full">
-              <PlusCircle className="mr-2 h-4 w-4"/> New Entry
+            <Button variant="glow" className="w-full" onClick={() => setIsNoteModalOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4"/> New Note
             </Button>
           </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64">
+      <main className="flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="border-b border-border sticky top-14 bg-background/80 backdrop-blur-lg z-30">
+          <TabsList className="border-b border-border sticky top-14 bg-background/80 backdrop-blur-lg z-30 px-4 md:px-6">
             <TabsTrigger value="notes"><FileText className="mr-2"/>Notes</TabsTrigger>
             <TabsTrigger value="syllabus"><BookOpen className="mr-2"/>Syllabus</TabsTrigger>
             <TabsTrigger value="papers"><FileQuestion className="mr-2"/>Question Papers</TabsTrigger>
@@ -107,17 +146,23 @@ export default function SubjectPage() {
                   {/* Notes Tab */}
                   {activeTab === 'notes' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {subjectData.notes.map(note => (
+                          {subjectData.notes.length > 0 ? subjectData.notes.map(note => (
                             <motion.div 
                               key={note.id} 
                               className="group relative p-4 rounded-md glass-pane cursor-pointer"
                               whileHover={{ y: -5, boxShadow: "0 0 15px hsl(var(--primary))" }}
                               onClick={() => setSelectedNote(note)}
                             >
-                                <h3 className="font-bold font-headline">{note.title}</h3>
-                                <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{note.content}</p>
+                                <div className="absolute top-3 right-3">{noteTypeIcons[note.type as keyof typeof noteTypeIcons]}</div>
+                                {getNoteCard(note)}
                             </motion.div>
-                          ))}
+                          )) : (
+                             <div className="col-span-full text-center py-20 text-muted-foreground">
+                                <FileText className="w-16 h-16 mx-auto mb-4"/>
+                                <p className="font-bold">No notes yet.</p>
+                                <p>Create your first note to get started.</p>
+                             </div>
+                          )}
                       </div>
                   )}
                   
@@ -228,12 +273,40 @@ export default function SubjectPage() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Create New Note Modal */}
+      <Dialog open={isNoteModalOpen} onOpenChange={setIsNoteModalOpen}>
+        <DialogContent className="max-w-2xl glass-pane">
+          <DialogHeader>
+            <DialogTitle className="font-headline">Create New Note</DialogTitle>
+            <DialogDescription>
+              Choose the type of content you want to add. You can combine multiple types in one note later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-6">
+              <motion.div whileHover={{y: -5, boxShadow: "0 0 15px hsl(var(--primary))"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
+                  <FileText className="w-12 h-12 mx-auto mb-2 text-primary"/>
+                  <h3 className="font-bold">Text Note</h3>
+                  <p className="text-sm text-muted-foreground">Write and format rich text.</p>
+              </motion.div>
+              <motion.div whileHover={{y: -5, boxShadow: "0 0 15px hsl(var(--accent))"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
+                  <ImageIcon className="w-12 h-12 mx-auto mb-2 text-accent"/>
+                  <h3 className="font-bold">Image Note</h3>
+                  <p className="text-sm text-muted-foreground">Upload one or more images.</p>
+              </motion.div>
+              <motion.div whileHover={{y: -5, boxShadow: "0 0 15px #f59e0b"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
+                  <FileIcon className="w-12 h-12 mx-auto mb-2 text-amber-500"/>
+                  <h3 className="font-bold">PDF Note</h3>
+                  <p className="text-sm text-muted-foreground">Upload a PDF document.</p>
+              </motion.div>
+              <motion.div whileHover={{y: -5, boxShadow: "0 0 15px #3b82f6"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
+                  <FileIcon className="w-12 h-12 mx-auto mb-2 text-blue-500"/>
+                  <h3 className="font-bold">Document Note</h3>
+                  <p className="text-sm text-muted-foreground">Upload Word, PPT, or other files.</p>
+              </motion.div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-// Dummy components to avoid errors, as these don't exist yet
-const Card = ({ className, children }: { className?: string, children: React.ReactNode }) => <div className={className}>{children}</div>;
-const CardHeader = ({ className, children }: { className?: string, children: React.ReactNode }) => <div className={className}>{children}</div>;
-const CardTitle = ({ className, children }: { className?: string, children: React.ReactNode }) => <h3 className={className}>{children}</h3>;
-const CardContent = ({ className, children }: { className?: string, children: React.ReactNode }) => <div className={className}>{children}</div>;
