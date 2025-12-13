@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -138,14 +138,15 @@ const EditNoteView = ({ note, onSave, onCancel }: { note: Note | null; onSave: (
 }
 
 
-export default function SubjectNotesPage({ params }: { params: { subjectId: string } }) {
+export default function SubjectNotesPage({ params }: { params: Promise<{ subjectId: string }> }) {
+    const { subjectId } = use(params);
     const [notes, setNotes] = useState<Note[]>(mockNotesData);
     const [selectedNote, setSelectedNote] = useState<Note | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
-    // In a real app, you would filter notes based on `params.subjectId`
-    const subjectTitle = (params.subjectId || '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    // In a real app, you would filter notes based on `subjectId`
+    const subjectTitle = (subjectId || '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
     const handleSelectNote = (note: Note) => {
         setSelectedNote(note);
