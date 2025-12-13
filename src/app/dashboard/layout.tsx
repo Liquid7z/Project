@@ -26,7 +26,7 @@ import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 
@@ -48,6 +48,7 @@ export default function DashboardLayout({
   const currentPage = navItems.find(i => pathname.startsWith(i.href));
 
   const handleLogout = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push('/');
   };
@@ -61,7 +62,9 @@ export default function DashboardLayout({
   }
 
   if (userError || !user) {
-    router.replace('/login');
+    if (auth) { // prevent router push if auth is not ready
+        router.replace('/login');
+    }
     return null;
   }
 
@@ -81,16 +84,13 @@ export default function DashboardLayout({
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
-                  <Link href={item.href} passHref>
+                  <Link href={item.href}>
                     <SidebarMenuButton
-                      asChild
                       isActive={pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
                     >
-                      <span>
                         <item.icon />
                         <span>{item.label}</span>
-                      </span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -141,6 +141,9 @@ export default function DashboardLayout({
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
+                        <SheetHeader>
+                            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                        </SheetHeader>
                         <nav className="grid gap-2 text-lg font-medium">
                             <SheetClose asChild>
                                 <Link href="/dashboard" className="mb-4">
