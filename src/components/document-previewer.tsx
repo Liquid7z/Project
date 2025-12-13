@@ -116,7 +116,7 @@ const DocxPreviewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPrev
     if (isLoading) return <Skeleton className="w-full h-64" />;
     if (error) return <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
 
-    return <div className={`prose prose-sm dark:prose-invert ${isCardPreview ? 'max-h-64 overflow-hidden' : ''}`}>{content}</div>;
+    return <div className={`prose prose-sm dark:prose-invert ${isCardPreview ? 'max-h-64 overflow-hidden' : ''}`} dangerouslySetInnerHTML={{ __html: content?.replace(/\n/g, '<br />') || '' }} />;
 };
 
 const FallbackPreview = ({ note }: { note: Note }) => (
@@ -139,7 +139,7 @@ export const DocumentPreviewer = ({ note, isCardPreview = false }: { note: Note;
         return <PDFViewer fileUrl={note.fileURL} isCardPreview={isCardPreview} />;
     }
     
-    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType.startsWith('text/')) {
         return <DocxPreviewer fileUrl={note.fileURL} isCardPreview={isCardPreview} />;
     }
 
