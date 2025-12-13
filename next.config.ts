@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    unoptimized: true,
   },
   experimental: {
     serverActions: {
