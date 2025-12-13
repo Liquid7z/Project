@@ -113,11 +113,7 @@ service cloud.firestore {
        * @principle Enforces strict path-based ownership for a user's private subcollections.
        */
       match /subscriptions/{subscriptionId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update: if isExistingOwner(userId);
-        allow delete: if isExistingOwner(userId);
+        allow list, read, write: if isOwner(userId);
       }
 
       /**
@@ -157,11 +153,11 @@ service cloud.firestore {
       
       /**
        * @description Manages a user's notes.
-       * @path /users/{userId}/notes/{noteId}
+       * @path /users/{userId}/notes
        */
       match /notes/{noteId} {
-        allow get: if isOwner(userId);
         allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
         allow create: if isOwner(userId) && hasCorrectUserIdOnCreate(userId);
         allow update: if isExistingOwner(userId) && userIdIsImmutable();
         allow delete: if isExistingOwner(userId);
