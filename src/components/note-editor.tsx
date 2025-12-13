@@ -6,70 +6,80 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ImageIcon, Paperclip, File as FileIcon } from 'lucide-react';
 import { Button } from './ui/button';
-import { useCallback } from 'react';
-import { Node } from '@tiptap/core';
+import { useCallback, useState } from 'react';
+import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { useStorage, useUser } from '@/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
+import { extractTextAction } from '@/actions/generation';
+import NextImage from 'next/image';
 
-// 1. Create a custom component for the attachment
 const AttachmentComponent = (props: any) => {
   const { node } = props;
-  const { src, title } = node.attrs;
+  const { src, title, previewSrc } = node.attrs;
 
   return (
     <NodeViewWrapper className="not-prose my-4">
       <div 
-        className="p-4 rounded-lg border border-border bg-card/50 flex items-center gap-4"
+        className="p-4 rounded-lg border border-border bg-card/50 flex flex-col gap-4"
         contentEditable={false}
       >
-        <FileIcon className="w-8 h-8 text-accent" />
-        <div className="flex-grow">
+        <div className="flex items-center gap-3">
+          <FileIcon className="w-6 h-6 text-accent flex-shrink-0" />
           <a 
             href={src} 
             download={title}
-            className="font-medium text-foreground hover:underline"
-            onClick={(e) => e.stopPropagation()} // Prevent editor focus issues
+            className="font-medium text-foreground hover:underline truncate"
+            onClick={(e) => e.stopPropagation()} 
           >
             {title}
           </a>
-          <p className="text-xs text-muted-foreground">Click to download</p>
         </div>
+        {previewSrc && (
+          <div className="relative aspect-video w-full rounded-md overflow-hidden border">
+              <NextImage
+                src={previewSrc}
+                alt={`Preview of ${title}`}
+                fill
+                className="object-contain"
+              />
+          </div>
+        )}
       </div>
     </NodeViewWrapper>
   );
 };
 
-
-// 2. Create a Tiptap Node for attachments
-const Attachment = Node.create({
+const AttachmentNode = Node.create({
   name: 'attachment',
   group: 'block',
-  atom: true, // This makes it behave like a single, non-editable unit
+  atom: true, 
   
   addAttributes() {
     return {
-      src: {
-        default: null,
-      },
-      title: {
-        default: 'attachment',
-      },
+      src: { default: null },
+      title: { default: 'attachment' },
+      previewSrc: { default: null },
     };
   },
 
   parseHTML() {
-    return [
-      {
+    return [{
         tag: 'div[data-type="attachment"]',
-      },
-    ];
+        getAttrs: (dom) => {
+            const element = dom as HTMLElement;
+            return {
+                src: element.getAttribute('data-src'),
+                title: element.getAttribute('data-title'),
+                previewSrc: element.getAttribute('data-preview-src'),
+            }
+        },
+    }];
   },
 
   renderHTML({ HTMLAttributes }) {
-    // Removed the "0" content hole to fix the "Content hole not allowed in a leaf node spec" error.
-    return ['div', { 'data-type': 'attachment', ...HTMLAttributes }];
+    return ['div', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { 'data-type': 'attachment' })];
   },
 
   addNodeView() {
@@ -81,10 +91,19 @@ const Attachment = Node.create({
 const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => {
   const storage = useStorage();
   const { user } = useUser();
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fileToDataUri = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+      });
+  }
 
   const addFile = useCallback(async (fileType: 'image' | 'doc' = 'image') => {
-    if (!storage || !user) return;
-    const currentNoteId = noteId || 'new-note';
+    if (!storage || !user || isUploading) return;
 
     const input = document.createElement('input');
     input.type = 'file';
@@ -93,33 +112,35 @@ const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => 
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        // Create a unique path for the file in Firebase Storage
+        setIsUploading(true);
         const uniqueFileName = `${uuidv4()}-${file.name}`;
-        const filePath = `notes/${user.uid}/${currentNoteId}/${uniqueFileName}`;
+        const filePath = `notes/${user.uid}/${noteId || 'new-note'}/${uniqueFileName}`;
         const fileStorageRef = storageRef(storage, filePath);
 
         try {
-          // Upload the file
           const snapshot = await uploadBytes(fileStorageRef, file);
-          // Get the public URL
           const downloadURL = await getDownloadURL(snapshot.ref);
 
           if (file.type.startsWith('image/')) {
             editor.chain().focus('end').setImage({ src: downloadURL }).run();
           } else {
+            const documentDataUri = await fileToDataUri(file);
+            const { previewDataUri } = await extractTextAction({ documentDataUri });
+
             editor.chain().focus('end').insertContent({
               type: 'attachment',
-              attrs: { src: downloadURL, title: file.name },
+              attrs: { src: downloadURL, title: file.name, previewSrc: previewDataUri },
             }).run();
           }
         } catch (error) {
           console.error("Error uploading file:", error);
-          // TODO: Add user-facing error toast
+        } finally {
+            setIsUploading(false);
         }
       }
     };
     input.click();
-  }, [editor, storage, user, noteId]);
+  }, [editor, storage, user, noteId, isUploading]);
 
   if (!editor) {
     return null;
@@ -196,6 +217,7 @@ const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => 
         size="icon"
         onClick={() => addFile('image')}
         title="Add Image"
+        disabled={isUploading}
       >
         <ImageIcon className="w-5 h-5" />
       </Button>
@@ -204,6 +226,7 @@ const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => 
         size="icon"
         onClick={() => addFile('doc')}
         title="Attach Document"
+        disabled={isUploading}
       >
         <Paperclip className="w-5 h-5" />
       </Button>
@@ -215,9 +238,7 @@ const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => 
 export const NoteEditor = ({ value, onChange, noteId }: { value: string; onChange: (value: string) => void, noteId?: string }) => {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        // Allow links
-      }),
+      StarterKit,
       Placeholder.configure({
         placeholder: 'Start writing your note here...',
       }),
@@ -225,7 +246,7 @@ export const NoteEditor = ({ value, onChange, noteId }: { value: string; onChang
         inline: false, 
         allowBase64: true,
       }),
-      Attachment, 
+      AttachmentNode, 
     ],
     content: value,
     onUpdate: ({ editor }) => {
