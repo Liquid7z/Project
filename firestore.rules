@@ -1,0 +1,159 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership security model. All
+ * user-generated data is stored within a dedicated user-specific document tree, ensuring
+ * that users can only access and modify their own information.
+ *
+ * Data Structure: The entire database is structured hierarchically under the top-level
+ * '/users' collection. Each user's data, including their profile, subscriptions, and
+ * other generated content, is nested under a document corresponding to their unique
+ * user ID (e.g., /users/{userId}/...).
+ *
+ * Key Security Decisions:
+ * - Default Deny: All access is denied by default. Permissions are explicitly granted.
+ * - No User Listing: It is not possible to list all users in the database, protecting
+ *   user privacy.
+ * - Strict Ownership: All read and write operations are gated by functions that verify
+ *   the authenticated user's ID matches the ID in the document path.
+ * - Path and Data Consistency: For collections that denormalize a `userId` or `id`
+ *   field within the document, rules enforce that this field matches the path on
+ *   creation and is immutable, ensuring relational integrity.
+ *
+ * Denormalization for Authorization: To ensure fast and simple authorization checks,
+ * certain documents (like HandwritingModel and GeneratedAssignment) contain a denormalized
+ * `userId` field. This allows security rules to validate ownership directly from the
+ * document data without needing slow and costly `get()` calls to parent documents.
+ *
+ * Structural Segregation: The data model naturally segregates each user's private data
+ * into their own document tree. This structure is inherently secure for list operations,
+ * as queries are always scoped to a single user's private collections.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for reusable logic
+    
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * For update/delete operations, checks ownership AND ensures the document exists.
+     * Prevents modifying or deleting a document that does not exist.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+    
+    /**
+     * On create, validates that the UserProfile's internal 'id' field matches the
+     * document ID, which is the user's UID. Enforces relational integrity.
+     */
+    function userProfileHasCorrectIdOnCreate(userId) {
+      return request.resource.data.id == userId;
+    }
+    
+    /**
+     * On update, ensures the UserProfile's internal 'id' field cannot be changed.
+     */
+    function userProfileIdIsImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * On create, validates that a subcollection document's internal 'userId' field
+     * matches the {userId} from the path. Enforces relational integrity.
+     */
+    function hasCorrectUserIdOnCreate(userId) {
+      return request.resource.data.userId == userId;
+    }
+    
+    /**
+     * On update, ensures a subcollection document's internal 'userId' field is immutable.
+     */
+    function userIdIsImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    /**
+     * @description Manages user profile documents. A user can create their own profile,
+     *              and can read, update, or delete it. No other user can access it.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own profile document, where
+     *        `request.auth.uid` matches `{userId}`.
+     * @deny (list) An authenticated user trying to list all documents in the `/users` collection.
+     * @principle Restricts access to a user's own data tree and allows self-creation of a root user document.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
+      allow update: if isExistingOwner(userId) && userProfileIdIsImmutable();
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Manages a user's subscription information. Only the user can access or
+       *              modify their own subscription data.
+       * @path /users/{userId}/subscriptions/{subscriptionId}
+       * @allow (get) An authenticated user with UID 'user123' reading a document at
+       *        `/users/user123/subscriptions/sub_abc`.
+       * @deny (get) A user with UID 'user456' trying to read a document at
+       *       `/users/user123/subscriptions/sub_abc`.
+       * @principle Enforces strict path-based ownership for a user's private subcollections.
+       */
+      match /subscriptions/{subscriptionId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isExistingOwner(userId);
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Manages a user's handwriting models. Only the user can manage their models.
+       *              Enforces that the `userId` field inside the document matches the path.
+       * @path /users/{userId}/handwritingModels/{handwritingModelId}
+       * @allow (create) User 'user123' creating a model at `/users/user123/handwritingModels/model_abc`
+       *        with `userId: 'user123'` in the document data.
+       * @deny (create) User 'user123' creating a model with `userId: 'user456'` in the data.
+       * @principle Enforces path-based ownership and validates relational integrity between the
+       *            document path and its internal `userId` field.
+       */
+      match /handwritingModels/{handwritingModelId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasCorrectUserIdOnCreate(userId);
+        allow update: if isExistingOwner(userId) && userIdIsImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Manages a user's generated assignments. Only the user can manage their
+       *              assignments. Enforces that the `userId` field inside the document matches the path.
+       * @path /users/{userId}/generatedAssignments/{generatedAssignmentId}
+       * @allow (update) User 'user123' updating a document at `/users/user123/generatedAssignments/asgn_abc`.
+       * @deny (update) User 'user123' trying to change the `userId` field on an existing assignment.
+       * @principle Enforces path-based ownership and validates relational integrity between the
+       *            document path and its internal `userId` field.
+       */
+      match /generatedAssignments/{generatedAssignmentId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasCorrectUserIdOnCreate(userId);
+        allow update: if isExistingOwner(userId) && userIdIsImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}
