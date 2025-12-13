@@ -154,29 +154,17 @@ service cloud.firestore {
         allow update: if isExistingOwner(userId) && userIdIsImmutable();
         allow delete: if isExistingOwner(userId);
       }
-
+      
       /**
-       * @description Manages a user's subjects for notes.
-       * @path /users/{userId}/subjects/{subjectId}
+       * @description Manages a user's notes.
+       * @path /users/{userId}/notes/{noteId}
        */
-      match /subjects/{subjectId} {
+      match /notes/{noteId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
         allow create: if isOwner(userId) && hasCorrectUserIdOnCreate(userId);
         allow update: if isExistingOwner(userId) && userIdIsImmutable();
         allow delete: if isExistingOwner(userId);
-
-        /**
-         * @description Manages a user's notes within a subject.
-         * @path /users/{userId}/subjects/{subjectId}/notes/{noteId}
-         */
-        match /notes/{noteId} {
-          allow get: if isOwner(userId);
-          allow list: if isOwner(userId);
-          allow create: if isOwner(userId) && hasCorrectUserIdOnCreate(userId);
-          allow update: if isExistingOwner(userId) && userIdIsImmutable();
-          allow delete: if isExistingOwner(userId);
-        }
       }
     }
   }

@@ -1,17 +1,24 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Note } from '@/app/dashboard/notes/[subjectId]/page';
 import { Skeleton } from '@/components/ui/skeleton';
 import { extractTextAction } from '@/actions/generation';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import { AlertCircle, FileWarning } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from './ui/button';
+import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// WORKAROUND: Force single-threaded rendering to avoid worker script fetching issues in this environment.
-GlobalWorkerOptions.workerSrc = `data:application/javascript,`;
+const PDF_WORKER_VERSION = '4.0.379'; // from package.json
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_WORKER_VERSION}/pdf.worker.min.mjs`;
 
+interface DocumentPreviewerProps {
+    fileURL: string;
+    fileType: string;
+    fileName: string;
+    isCardPreview?: boolean;
+}
 
 async function fileUrlToDataUri(url: string): Promise<string> {
     const response = await fetch(url);
@@ -31,15 +38,26 @@ const PDFViewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPreview?
     const [pdfDoc, setPdfDoc] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [scale, setScale] = useState(1.5);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const renderPage = useCallback(async (doc: any, pageNum: number, canvas: HTMLCanvasElement) => {
-        const page = await doc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
+    const renderPage = useCallback(async (doc: any, pageNum: number, currentScale: number) => {
+        try {
+            const page = await doc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: currentScale });
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+        } catch (e) {
+            console.error("Error rendering page", e);
+            setError("Could not render PDF page.");
+        }
     }, []);
 
     useEffect(() => {
@@ -61,31 +79,33 @@ const PDFViewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPreview?
         loadPdf();
     }, [fileUrl]);
     
-    const canvasRefs = useMemo(() => Array(pdfDoc?.numPages || 0).fill(0).map(() => React.createRef<HTMLCanvasElement>()), [pdfDoc]);
-
     useEffect(() => {
         if (pdfDoc) {
-            const pagesToRender = isCardPreview ? [1] : Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
-            pagesToRender.forEach(pageNum => {
-                const canvas = canvasRefs[pageNum - 1]?.current;
-                if (canvas) {
-                    renderPage(pdfDoc, pageNum, canvas);
-                }
-            });
+            renderPage(pdfDoc, currentPage, scale);
         }
-    }, [pdfDoc, renderPage, canvasRefs, isCardPreview]);
+    }, [pdfDoc, currentPage, scale, renderPage]);
 
-    if (isLoading) return <Skeleton className="w-full h-64" />;
+    if (isLoading) return <Skeleton className="w-full h-96" />;
     if (error) return <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
     if (!pdfDoc) return null;
 
+    const numPages = pdfDoc.numPages;
+
     return (
-         <div className={isCardPreview ? "overflow-hidden" : "space-y-4"}>
-            {Array.from({ length: isCardPreview ? 1 : pdfDoc.numPages }, (_, i) => i + 1).map(pageNum => (
-                <div key={pageNum} className="flex justify-center bg-muted/20">
-                    <canvas ref={canvasRefs[pageNum - 1]} />
+         <div className="space-y-2">
+            {!isCardPreview && (
+                <div className="flex items-center justify-center gap-2 p-2 rounded-md bg-muted sticky top-0 z-10">
+                    <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}><ChevronLeft/></Button>
+                    <span>Page {currentPage} of {numPages}</span>
+                    <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.min(numPages, p + 1))} disabled={currentPage >= numPages}><ChevronRight/></Button>
+                    <div className="w-[1px] h-6 bg-border mx-2" />
+                    <Button variant="ghost" size="icon" onClick={() => setScale(s => s * 1.2)}><ZoomIn/></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setScale(s => s / 1.2)}><ZoomOut/></Button>
                 </div>
-            ))}
+            )}
+            <div className="flex justify-center bg-muted/20 overflow-auto">
+                <canvas ref={canvasRef} />
+            </div>
         </div>
     );
 };
@@ -116,32 +136,27 @@ const DocxPreviewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPrev
     if (isLoading) return <Skeleton className="w-full h-64" />;
     if (error) return <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
 
-    return <div className={`prose prose-sm dark:prose-invert ${isCardPreview ? 'max-h-64 overflow-hidden' : ''}`} dangerouslySetInnerHTML={{ __html: content?.replace(/\n/g, '<br />') || '' }} />;
+    return <div className={`prose prose-sm dark:prose-invert p-4 rounded-md bg-muted/20 ${isCardPreview ? 'max-h-64 overflow-hidden' : ''}`} dangerouslySetInnerHTML={{ __html: content?.replace(/\n/g, '<br />') || '' }} />;
 };
 
-const FallbackPreview = ({ note }: { note: Note }) => (
+const FallbackPreview = ({ fileName }: { fileName: string }) => (
     <div className="flex flex-col items-center justify-center text-center p-4 h-full bg-muted/20 rounded-md">
         <FileWarning className="w-10 h-10 text-muted-foreground" />
-        <p className="mt-4 font-semibold">{note.originalFileName}</p>
+        <p className="mt-4 font-semibold">{fileName}</p>
         <p className="text-sm text-muted-foreground">Preview not available for this file type.</p>
     </div>
 );
 
 
-export const DocumentPreviewer = ({ note, isCardPreview = false }: { note: Note; isCardPreview?: boolean }) => {
-    if (!note.fileURL || !note.fileType) {
-        return <p>Document not available.</p>;
-    }
-
-    const fileType = note.fileType;
-
+export const DocumentPreviewer = ({ fileURL, fileType, fileName, isCardPreview = false }: DocumentPreviewerProps) => {
+    
     if (fileType === 'application/pdf') {
-        return <PDFViewer fileUrl={note.fileURL} isCardPreview={isCardPreview} />;
+        return <PDFViewer fileUrl={fileURL} isCardPreview={isCardPreview} />;
     }
     
-    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType.startsWith('text/')) {
-        return <DocxPreviewer fileUrl={note.fileURL} isCardPreview={isCardPreview} />;
+    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType.startsWith('text/') || fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+        return <DocxPreviewer fileUrl={fileURL} isCardPreview={isCardPreview} />;
     }
 
-    return <FallbackPreview note={note} />;
+    return <FallbackPreview fileName={fileName} />;
 };
