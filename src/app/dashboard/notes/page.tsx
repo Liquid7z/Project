@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Plus, Folder, Search, MoreVertical, Trash2, Edit, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
@@ -253,5 +254,3 @@ export default function SubjectsDashboardPage() {
         </div>
     );
 }
-
-    
