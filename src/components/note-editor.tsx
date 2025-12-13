@@ -88,7 +88,7 @@ const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => 
 
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = fileType === 'image' ? 'image/*' : 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    input.accept = fileType === 'image' ? 'image/*' : '*/*';
     
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
