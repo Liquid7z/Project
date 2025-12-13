@@ -4,26 +4,33 @@ import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/reac
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ImageIcon } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ImageIcon, Paperclip } from 'lucide-react';
 import { Button } from './ui/button';
 import { useCallback } from 'react';
 
 const EditorToolbar = ({ editor }: { editor: any }) => {
-  const addImage = useCallback(() => {
+  const addFile = useCallback((fileType: 'image' | 'doc' = 'image') => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    input.accept = fileType === 'image' ? 'image/*' : 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const url = event.target?.result;
-          if (url) {
-            editor.chain().focus().setImage({ src: url as string }).run();
-          }
-        };
-        reader.readAsDataURL(file);
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const url = event.target?.result;
+              if (url) {
+                editor.chain().focus().setImage({ src: url as string }).run();
+              }
+            };
+            reader.readAsDataURL(file);
+        } else {
+           // For non-image files, we'll represent them as a link for now.
+           // A more complex implementation could use custom nodes.
+           const url = URL.createObjectURL(file);
+           editor.chain().focus().insertContent(`<a href="${url}" download="${file.name}">${file.name}</a>`).run();
+        }
       }
     };
     input.click();
@@ -102,10 +109,18 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
       <Button
         variant='ghost'
         size="icon"
-        onClick={addImage}
+        onClick={() => addFile('image')}
         title="Add Image"
       >
         <ImageIcon className="w-5 h-5" />
+      </Button>
+      <Button
+        variant='ghost'
+        size="icon"
+        onClick={() => addFile('doc')}
+        title="Attach Document"
+      >
+        <Paperclip className="w-5 h-5" />
       </Button>
     </div>
   );
@@ -115,12 +130,14 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
 export const NoteEditor = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Allow links
+      }),
       Placeholder.configure({
         placeholder: 'Start writing your note here...',
       }),
       Image.configure({
-        inline: true,
+        inline: false, // Set to false to make images block elements
         allowBase64: true,
       }),
     ],
