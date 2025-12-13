@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -55,19 +56,22 @@ export default function DashboardLayout({
     router.push('/');
   };
 
-  if (isUserLoading) {
+  useEffect(() => {
+    // Redirect if loading is complete and there's no user or an error.
+    if (!isUserLoading && (userError || !user)) {
+      if (auth) { // prevent router push if auth is not ready
+        router.replace('/login');
+      }
+    }
+  }, [isUserLoading, user, userError, auth, router]);
+
+  if (isUserLoading || userError || !user) {
+    // Show a loader while checking auth state or before redirecting.
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (userError || !user) {
-    if (auth) { // prevent router push if auth is not ready
-        router.replace('/login');
-    }
-    return null;
   }
 
   return (
