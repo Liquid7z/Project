@@ -145,7 +145,7 @@ export default function SubjectNotesPage({ params }: { params: { subjectId: stri
     const [isCreating, setIsCreating] = useState(false);
 
     // In a real app, you would filter notes based on `params.subjectId`
-    const subjectTitle = params.subjectId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const subjectTitle = (params.subjectId || '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
     const handleSelectNote = (note: Note) => {
         setSelectedNote(note);
