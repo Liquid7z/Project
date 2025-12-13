@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Zap, GitBranch, Crosshair } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Mock data for the skill tree
 const mockSubjects = [
@@ -136,9 +137,21 @@ export default function NotesHolographicPage() {
   const [topics, setTopics] = useState(mockTopics);
   const [connections, setConnections] = useState(mockConnections);
   const [selectedSubject, setSelectedSubject] = useState<string | null>('physics');
+  const isMobile = useIsMobile();
   
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  
+  useEffect(() => {
+    // Center the view on mobile
+    if (isMobile) {
+      setPan({ x: window.innerWidth / 2 - 50, y: window.innerHeight / 4 });
+      setZoom(0.6);
+    } else {
+      setPan({ x: 0, y: 0 });
+      setZoom(1);
+    }
+  }, [isMobile]);
 
   const displayedTopics = useMemo(() => {
     if (!selectedSubject) return [];
@@ -150,7 +163,7 @@ export default function NotesHolographicPage() {
   }, [subjects, displayedTopics]);
 
   return (
-    <div className="w-full h-[calc(100vh-10rem)] rounded-lg overflow-hidden relative glass-pane">
+    <div className="w-full h-[calc(100vh-8.5rem)] md:h-[calc(100vh-4rem)] rounded-lg overflow-hidden relative glass-pane">
         <div className="absolute inset-0 bg-grid-pattern opacity-10"/>
 
         <motion.div 
