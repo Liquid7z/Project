@@ -14,6 +14,7 @@ import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
 import DocumentBlock from './document-block';
+import PdfBlock from './pdf-block';
 import UnderlineExtension from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 
@@ -36,12 +37,23 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
         
         const fileType = file.type;
         
-        const contentToInsert = fileType.startsWith('image/')
-            ? {
+        let contentToInsert;
+
+        if (fileType.startsWith('image/')) {
+            contentToInsert = {
                 type: 'image',
                 attrs: { src: url },
-              }
-            : {
+            };
+        } else if (fileType === 'application/pdf') {
+            contentToInsert = {
+                type: 'pdfBlock',
+                attrs: {
+                  fileURL: url,
+                  fileName: file.name,
+                },
+            };
+        } else {
+             contentToInsert = {
                 type: 'documentBlock',
                 attrs: {
                   fileURL: url,
@@ -50,12 +62,12 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
                   fileSize: file.size,
                 },
             };
+        }
         
-        // Move cursor to the end of the document and insert the content.
         editor.chain().focus().command(({ tr, dispatch }) => {
             if (dispatch) {
                 const endPos = tr.doc.content.size;
-                tr.insert(endPos, editor.schema.nodes.paragraph.create()); // Insert a new paragraph for spacing
+                tr.insert(endPos, editor.schema.nodes.paragraph.create());
                 tr.insert(endPos + 1, editor.schema.nodeFromJSON(contentToInsert));
             }
             return true;
@@ -140,6 +152,7 @@ export const NoteEditor = ({ value, onChange, onTitleChange, title }: { value: a
         },
       }),
       DocumentBlock,
+      PdfBlock,
     ],
     content: value,
     onUpdate: ({ editor }) => {

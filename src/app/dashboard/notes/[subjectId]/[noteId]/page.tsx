@@ -13,6 +13,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import DocumentBlock from '@/components/document-block';
+import PdfBlock from '@/components/pdf-block';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 
@@ -40,6 +41,11 @@ const NoteViewer = ({ content }: { content: any }) => {
                 types: ['heading', 'paragraph'],
             }),
             DocumentBlock.configure({
+                HTMLAttributes: {
+                    class: 'my-4',
+                }
+            }),
+             PdfBlock.configure({
                 HTMLAttributes: {
                     class: 'my-4',
                 }
