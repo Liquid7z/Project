@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+type NoteType = 'text' | 'image' | 'pdf' | 'doc';
+
 const mockData = {
   physics: {
     notes: [
@@ -61,6 +63,37 @@ const noteTypeIcons = {
   doc: <FileIcon className="w-6 h-6 text-blue-400"/>,
 }
 
+const FullScreenNoteEditor = ({ noteType, onClose }: { noteType: NoteType, onClose: () => void }) => {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="relative w-11/12 max-w-4xl h-[90vh] glass-pane rounded-lg flex flex-col"
+        initial={{ scale: 0.9, y: 50 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 50, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
+        <div className="p-6 border-b border-border flex justify-between items-center">
+            <h2 className="font-headline text-2xl font-bold capitalize">{noteType} Note</h2>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+                <Button variant="glow" size="sm">Save Note</Button>
+            </div>
+        </div>
+        <div className="p-6 flex-1 overflow-y-auto">
+            <p>Editor for {noteType} note goes here...</p>
+            {/* Here you would conditionally render the editor for text, image upload, etc. */}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 
 export default function SubjectPage() {
   const params = useParams();
@@ -69,6 +102,8 @@ export default function SubjectPage() {
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [selectedPaper, setSelectedPaper] = useState<any>(null);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
+  const [activeNoteType, setActiveNoteType] = useState<NoteType | null>(null);
 
   const subjectData = mockData[subject] || mockData.physics;
 
@@ -76,6 +111,12 @@ export default function SubjectPage() {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
     exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: "easeIn" } }
+  };
+  
+  const handleCreateNote = (type: NoteType) => {
+    setActiveNoteType(type);
+    setIsNoteModalOpen(false);
+    setIsNoteEditorOpen(true);
   };
   
   const getNoteCard = (note: any) => {
@@ -113,7 +154,7 @@ export default function SubjectPage() {
   return (
     <div className="flex flex-col md:flex-row min-h-[calc(100vh-3.5rem)]">
       {/* Left Sidebar HUD */}
-      <aside className="w-full md:w-64 glass-pane !rounded-none md:!rounded-l-none md:!border-t-0 md:!border-b-0 md:!border-l-0 md:pr-4 shrink-0">
+      <aside className="w-full md:w-64 glass-pane !rounded-none md:!rounded-l-none md:!rounded-t-0 md:!rounded-b-0 md:pr-4 shrink-0">
           <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-accent/50 via-accent to-accent/50 hidden md:block"></div>
           <div className="p-6">
               <h2 className="text-2xl font-headline font-bold capitalize text-glow">{subject}</h2>
@@ -284,22 +325,22 @@ export default function SubjectPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-6">
-              <motion.div whileHover={{y: -5, boxShadow: "0 0 15px hsl(var(--primary))"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
+              <motion.div onClick={() => handleCreateNote('text')} whileHover={{y: -5, boxShadow: "0 0 15px hsl(var(--primary))"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
                   <FileText className="w-12 h-12 mx-auto mb-2 text-primary"/>
                   <h3 className="font-bold">Text Note</h3>
                   <p className="text-sm text-muted-foreground">Write and format rich text.</p>
               </motion.div>
-              <motion.div whileHover={{y: -5, boxShadow: "0 0 15px hsl(var(--accent))"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
+              <motion.div onClick={() => handleCreateNote('image')} whileHover={{y: -5, boxShadow: "0 0 15px hsl(var(--accent))"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
                   <ImageIcon className="w-12 h-12 mx-auto mb-2 text-accent"/>
                   <h3 className="font-bold">Image Note</h3>
                   <p className="text-sm text-muted-foreground">Upload one or more images.</p>
               </motion.div>
-              <motion.div whileHover={{y: -5, boxShadow: "0 0 15px #f59e0b"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
+              <motion.div onClick={() => handleCreateNote('pdf')} whileHover={{y: -5, boxShadow: "0 0 15px #f59e0b"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
                   <FileIcon className="w-12 h-12 mx-auto mb-2 text-amber-500"/>
                   <h3 className="font-bold">PDF Note</h3>
                   <p className="text-sm text-muted-foreground">Upload a PDF document.</p>
               </motion.div>
-              <motion.div whileHover={{y: -5, boxShadow: "0 0 15px #3b82f6"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
+              <motion.div onClick={() => handleCreateNote('doc')} whileHover={{y: -5, boxShadow: "0 0 15px #3b82f6"}} className="p-6 rounded-md glass-pane cursor-pointer text-center">
                   <FileIcon className="w-12 h-12 mx-auto mb-2 text-blue-500"/>
                   <h3 className="font-bold">Document Note</h3>
                   <p className="text-sm text-muted-foreground">Upload Word, PPT, or other files.</p>
@@ -307,6 +348,15 @@ export default function SubjectPage() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Full Screen Note Editor */}
+      <AnimatePresence>
+        {isNoteEditorOpen && activeNoteType && (
+          <FullScreenNoteEditor 
+            noteType={activeNoteType} 
+            onClose={() => setIsNoteEditorOpen(false)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
-}
