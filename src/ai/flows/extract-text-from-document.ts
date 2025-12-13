@@ -10,6 +10,9 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import * as fs from 'fs';
+import * as pdfjs from 'pdfjs-dist';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
 
 const ExtractTextFromDocumentInputSchema = z.object({
   documentDataUri: z
@@ -39,7 +42,6 @@ const extractTextTool = ai.defineTool({
   async (input) => {
     
     const documentDataBase64 = input.documentDataUri.split(',')[1];
-    const documentBuffer = Buffer.from(documentDataBase64, 'base64');
     
     // This is a simplified, canvas-free SVG placeholder.
     const generateGenericPreview = (fileType: string): string => {
@@ -53,9 +55,8 @@ const extractTextTool = ai.defineTool({
 
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
       console.log('Detected PDF document.');
-      const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
-      const doc = await getDocument({ data: new Uint8Array(pdfData) }).promise;
+      const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfData) }).promise;
 
       let fullText = '';
       for (let i = 1; i <= doc.numPages; i++) {
@@ -71,6 +72,7 @@ const extractTextTool = ai.defineTool({
 
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       console.log('Detected DOCX document.');
+      const documentBuffer = Buffer.from(documentDataBase64, 'base64');
       const mammoth = await import('mammoth');
       const { value: extractedText } = await mammoth.extractRawText({ buffer: documentBuffer });
       const previewDataUri = generateGenericPreview('DOCX');
