@@ -41,18 +41,17 @@ const BlockViewer = ({ block }: { block: NoteBlock }) => {
         return <NoteEditor value={block.content} isEditable={false} />;
     }
     
-    if (block.type === 'pdf') {
+    if (block.type === 'pdf' || block.type === 'document') {
         return (
             <div className="my-4 not-prose">
-                <PdfBlock.nodeView({node: {attrs: block.content}, deleteNode: () => {}, editor: {isEditable: false}} as any)} />
-            </div>
-        )
-    }
-
-    if (block.type === 'document') {
-        return (
-            <div className="my-4 not-prose">
-                <DocumentBlock.nodeView({node: {attrs: block.content}, deleteNode: () => {}, editor: {isEditable: false}} as any)} />
+                <div className={`p-4 rounded-lg bg-card border-l-4 ${block.type === 'pdf' ? 'border-accent' : 'border-primary'} shadow-md`}>
+                    <h3 className="text-sm font-semibold mb-2 text-foreground">{block.content.fileName}</h3>
+                    <DocumentPreviewer 
+                        fileURL={block.content.fileURL}
+                        fileType={block.content.fileType}
+                        fileName={block.content.fileName}
+                    />
+                </div>
             </div>
         )
     }
