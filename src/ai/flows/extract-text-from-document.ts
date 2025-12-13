@@ -13,7 +13,7 @@ import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 // WORKAROUND: In a serverless environment, the worker is not available.
 // This forces pdfjs-dist to run in a single-threaded mode.
-GlobalWorkerOptions.workerSrc = false as any;
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
 
 const ExtractTextFromDocumentInputSchema = z.object({
   documentDataUri: z
@@ -57,7 +57,7 @@ const extractTextTool = ai.defineTool({
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
       console.log('Detected PDF document.');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
-      const doc = await getDocument({ data: new Uint8Array(pdfData) }).promise;
+      const doc = await getDocument({ data: new Uint8Array(pdfData.buffer) }).promise;
 
       let fullText = '';
       for (let i = 1; i <= doc.numPages; i++) {
