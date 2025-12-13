@@ -4,14 +4,16 @@ import { useState, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Edit, Plus, Save, X } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Save, X, MoreVertical, Archive, Trash2 } from 'lucide-react';
 import { NoteEditor } from '@/components/note-editor';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 type Note = {
   id: number;
   title: string;
   content: string; // This would be structured content in a real app (e.g., JSON)
   lastEdited: string;
+  status: 'active' | 'archived';
 };
 
 const mockNotesData: Note[] = [
@@ -19,37 +21,60 @@ const mockNotesData: Note[] = [
     id: 1, 
     title: 'Quantum Mechanics Basics', 
     content: '<h1>Quantum Mechanics</h1><p>Quantum mechanics is a fundamental theory in physics that provides a description of the physical properties of nature at the scale of atoms and subatomic particles. It is the foundation of all quantum physics including quantum chemistry, quantum field theory, quantum technology, and quantum information science.</p><p>Key concepts include quantization of energy, wave-particle duality, and the uncertainty principle.</p>', 
-    lastEdited: '2 hours ago' 
+    lastEdited: '2 hours ago' ,
+    status: 'active'
   },
   { 
     id: 2, 
     title: 'The Periodic Table', 
     content: '<h2>The Periodic Table of Elements</h2><p>The periodic table is a tabular arrangement of the chemical elements, ordered by their atomic number, electron configuration, and recurring chemical properties.</p>', 
-    lastEdited: 'Yesterday' 
+    lastEdited: 'Yesterday',
+    status: 'active'
   },
   { 
     id: 3, 
     title: 'World War II Summary', 
     content: '<h3>A Brief Overview of World War II</h3><p>World War II was a global war that lasted from 1939 to 1945. It involved the vast majority of the world\'s countries—including all of the great powers—forming two opposing military alliances: the Allies and the Axis.</p>', 
-    lastEdited: '3 days ago' 
+    lastEdited: '3 days ago',
+    status: 'active'
   },
 ];
 
 
-const NotePreviewCard = ({ note, onSelect }: { note: Note; onSelect: (note: Note) => void }) => {
+const NotePreviewCard = ({ note, onSelect, onArchive, onDelete }: { note: Note; onSelect: (note: Note) => void; onArchive: (id: number) => void; onDelete: (id: number) => void; }) => {
   return (
     <motion.div
       layoutId={`note-card-${note.id}`}
-      onClick={() => onSelect(note)}
-      className="cursor-pointer"
       whileHover={{ y: -5 }}
+      className="h-full"
     >
-      <Card className="group glass-pane transition-all hover:border-accent overflow-hidden">
-        <CardHeader>
-          <CardTitle className="font-headline text-glow truncate">{note.title}</CardTitle>
-          <p className="text-xs text-muted-foreground pt-1">Edited {note.lastEdited}</p>
+      <Card className="group glass-pane transition-all hover:border-accent overflow-hidden h-full flex flex-col">
+        <CardHeader className="relative">
+           <div className="absolute top-2 right-2">
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="glass-pane">
+                      <DropdownMenuItem onClick={() => onArchive(note.id)}>
+                          <Archive className="mr-2 h-4 w-4" />
+                          <span>Archive</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDelete(note.id)} className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                      </DropdownMenuItem>
+                  </DropdownMenuContent>
+              </DropdownMenu>
+          </div>
+          <div onClick={() => onSelect(note)} className="cursor-pointer">
+            <CardTitle className="font-headline text-glow truncate pr-8">{note.title}</CardTitle>
+            <p className="text-xs text-muted-foreground pt-1">Edited {note.lastEdited}</p>
+          </div>
         </CardHeader>
-        <CardContent className="relative h-48">
+        <CardContent onClick={() => onSelect(note)} className="cursor-pointer relative flex-1">
             <div 
                 className="prose prose-sm prose-invert max-w-none overflow-hidden text-ellipsis [&_p]:text-muted-foreground" 
                 dangerouslySetInnerHTML={{ __html: note.content }}
@@ -92,14 +117,15 @@ const FullNoteView = ({ note, onBack, onEdit }: { note: Note; onBack: () => void
 }
 
 const EditNoteView = ({ note, onSave, onCancel }: { note: Note | null; onSave: (note: Note) => void; onCancel: () => void; }) => {
-    const [currentNote, setCurrentNote] = useState<Note>(
+    const [currentNote, setCurrentNote] = useState<Omit<Note, 'status'>>(
         note || { id: Date.now(), title: '', content: '', lastEdited: new Date().toISOString() }
     );
 
     const handleSave = () => {
         onSave({
             ...currentNote,
-            lastEdited: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            lastEdited: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            status: note?.status || 'active',
         });
     }
 
@@ -148,6 +174,8 @@ export default function SubjectNotesPage({ params }: { params: Promise<{ subject
     // In a real app, you would filter notes based on `subjectId`
     const subjectTitle = (subjectId || '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
+    const activeNotes = notes.filter(note => note.status === 'active');
+
     const handleSelectNote = (note: Note) => {
         setSelectedNote(note);
         setIsEditing(false);
@@ -188,6 +216,14 @@ export default function SubjectNotesPage({ params }: { params: Promise<{ subject
         setSelectedNote(noteToSave);
     }
 
+    const handleDeleteNote = (noteId: number) => {
+        setNotes(notes.filter(n => n.id !== noteId));
+    };
+
+    const handleArchiveNote = (noteId: number) => {
+        setNotes(notes.map(n => n.id === noteId ? { ...n, status: 'archived' } : n));
+    };
+
   return (
     <div className="p-0">
         <div className="flex justify-between items-center mb-6">
@@ -197,14 +233,20 @@ export default function SubjectNotesPage({ params }: { params: Promise<{ subject
 
       <AnimatePresence>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {notes.map((note, index) => (
+            {activeNotes.map((note, index) => (
                 <motion.div
                     key={note.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
+                    className="h-full"
                 >
-                    <NotePreviewCard note={note} onSelect={handleSelectNote} />
+                    <NotePreviewCard 
+                        note={note} 
+                        onSelect={handleSelectNote}
+                        onArchive={handleArchiveNote}
+                        onDelete={handleDeleteNote}
+                    />
                 </motion.div>
             ))}
         </div>
