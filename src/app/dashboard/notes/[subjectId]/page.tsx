@@ -11,6 +11,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, addDocum
 import { collection, doc, serverTimestamp, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 
 type Note = WithId<{
   title: string;
@@ -31,7 +32,7 @@ const NotePreviewCard = ({ note, onSelect, onArchive, onDelete }: { note: Note; 
       className="h-full"
     >
       <Card className="group glass-pane transition-all hover:border-accent overflow-hidden h-full flex flex-col">
-        <CardHeader className="relative">
+        <CardHeader className="relative pb-4">
            <div className="absolute top-2 right-2">
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -51,7 +52,7 @@ const NotePreviewCard = ({ note, onSelect, onArchive, onDelete }: { note: Note; 
                   </DropdownMenuContent>
               </DropdownMenu>
           </div>
-          <div onClick={() => onSelect(note)} className="cursor-pointer">
+          <div onClick={() => onSelect(note)} className="cursor-pointer pr-8">
             <CardTitle className="font-headline text-glow truncate pr-8">{note.title || 'Untitled Note'}</CardTitle>
             <p className="text-xs text-muted-foreground pt-1">Edited {lastEdited}</p>
           </div>
@@ -127,14 +128,14 @@ const EditNoteView = ({ note, subjectId, onSave, onCancel }: { note: Partial<Not
                             value={currentNote.title}
                             onChange={(e) => setCurrentNote({...currentNote, title: e.target.value})}
                             placeholder="Note Title"
-                            className="text-2xl font-headline bg-transparent border-0 focus:ring-0 w-full"
+                            className="text-2xl font-headline bg-transparent border-0 focus:ring-0 w-full p-0"
                         />
                          <div className="flex items-center gap-2">
                              <Button variant="glow" onClick={handleSave}><Save className="mr-2"/> Save</Button>
                              <Button variant="ghost" onClick={onCancel}>Cancel</Button>
                          </div>
                     </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto">
+                    <CardContent className="flex-1 overflow-y-auto p-0">
                         <NoteEditor 
                             value={currentNote.content || ''}
                             onChange={(content) => setCurrentNote({...currentNote, content})}
@@ -207,7 +208,7 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
     }
     
     const handleSaveNote = async (noteToSave: Partial<Note>) => {
-        if (!user || !notesRef) return;
+        if (!user || !notesRef || !firestore) return;
         
         const noteData = {
             ...noteToSave,
@@ -216,10 +217,15 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
 
         if (noteToSave.id) {
             const noteDocRef = doc(notesRef, noteToSave.id);
-            await setDocumentNonBlocking(noteDocRef, noteData, { merge: true });
+            setDocumentNonBlocking(noteDocRef, noteData, { merge: true });
         } else {
-            const newDocRef = await addDocumentNonBlocking(notesRef, noteData);
-            noteToSave.id = newDocRef.id;
+            const newDoc = await addDocumentNonBlocking(notesRef, noteData);
+            noteToSave.id = newDoc.id; // Assign new ID for immediate UI update
+        }
+
+        // Update subject's lastEdited timestamp
+        if (subjectDocRef) {
+            setDocumentNonBlocking(subjectDocRef, { lastEdited: serverTimestamp() }, { merge: true });
         }
 
         setIsEditing(false);
@@ -245,13 +251,18 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
   return (
     <div className="p-0">
         <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-headline">{subject?.title || 'Notes'}</h1>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" asChild>
+                    <Link href="/dashboard/notes"><ArrowLeft /></Link>
+                </Button>
+                <h1 className="text-3xl font-headline">{subject?.title || 'Notes'}</h1>
+            </div>
             <Button variant="glow" onClick={handleCreate}><Plus className="mr-2"/> Add Note</Button>
         </div>
 
         {isLoadingNotes && <p>Loading notes...</p>}
         
-        {!isLoadingNotes && activeNotes.length === 0 && (
+        {!isLoadingNotes && activeNotes.length === 0 && !isCreating && (
             <div className="text-center text-muted-foreground p-12 border-2 border-dashed rounded-lg">
                 <Notebook className="mx-auto h-12 w-12" />
                 <h3 className="mt-4 text-lg font-semibold">No Notes in this Subject</h3>
