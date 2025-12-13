@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Edit, Plus, Save, X, MoreVertical, Archive, Trash2, Notebook } from 'lucide-react';
 import { NoteEditor } from '@/components/note-editor';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, serverTimestamp, query, where, orderBy, writeBatch } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, serverTimestamp, query, orderBy, writeBatch, runTransaction, increment } from 'firebase/firestore';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -208,44 +208,71 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
     }
     
     const handleSaveNote = async (noteToSave: Partial<Note>) => {
-        if (!user || !notesRef || !firestore) return;
+        if (!user || !firestore || !subjectDocRef) return;
         
         const noteData = {
             ...noteToSave,
             userId: user.uid,
         };
 
-        if (noteToSave.id) {
-            const noteDocRef = doc(notesRef, noteToSave.id);
-            setDocumentNonBlocking(noteDocRef, noteData, { merge: true });
-        } else {
-            const newDoc = await addDocumentNonBlocking(notesRef, noteData);
-            noteToSave.id = newDoc.id; // Assign new ID for immediate UI update
-        }
+        const batch = writeBatch(firestore);
 
-        // Update subject's lastEdited timestamp
-        if (subjectDocRef) {
-            setDocumentNonBlocking(subjectDocRef, { lastEdited: serverTimestamp() }, { merge: true });
-        }
+        // Determine if we're creating or updating a note
+        const isNewNote = !noteToSave.id;
+        const noteDocRef = isNewNote ? doc(collection(firestore, subjectDocRef.path, 'notes')) : doc(firestore, subjectDocRef.path, 'notes', noteToSave.id);
 
+        batch.set(noteDocRef, noteData, { merge: true });
+
+        // Update subject's lastEdited timestamp and noteCount
+        const subjectUpdate: any = { lastEdited: serverTimestamp() };
+        if (isNewNote) {
+            subjectUpdate.noteCount = increment(1);
+        }
+        batch.update(subjectDocRef, subjectUpdate);
+
+        await batch.commit();
+
+        if (isNewNote) {
+            noteToSave.id = noteDocRef.id; // Assign new ID for immediate UI update
+        }
+        
         setIsEditing(false);
         setIsCreating(false);
         setSelectedNote(noteToSave as Note);
     }
 
     const handleDeleteNote = async (noteId: string) => {
-        if (!notesRef) return;
-        const noteDocRef = doc(notesRef, noteId);
-        await deleteDocumentNonBlocking(noteDocRef);
+        if (!firestore || !user || !subjectDocRef) return;
+        
+        const noteDocRef = doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId);
+
+        const batch = writeBatch(firestore);
+        batch.delete(noteDocRef);
+        batch.update(subjectDocRef, { 
+            noteCount: increment(-1),
+            lastEdited: serverTimestamp() 
+        });
+
+        await batch.commit();
+        
         if (selectedNote?.id === noteId) {
             setSelectedNote(null);
         }
     };
 
     const handleArchiveNote = async (noteId: string) => {
-        if (!notesRef) return;
-        const noteDocRef = doc(notesRef, noteId);
-        await setDocumentNonBlocking(noteDocRef, { status: 'archived' }, { merge: true });
+        if (!firestore || !user || !subjectDocRef) return;
+        
+        const noteDocRef = doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId);
+
+        const batch = writeBatch(firestore);
+        batch.update(noteDocRef, { status: 'archived', lastEdited: serverTimestamp() });
+        batch.update(subjectDocRef, { 
+            noteCount: increment(-1),
+            lastEdited: serverTimestamp() 
+        });
+
+        await batch.commit();
     };
 
   return (
@@ -313,3 +340,5 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
     </div>
   );
 }
+
+    
