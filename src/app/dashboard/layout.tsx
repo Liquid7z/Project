@@ -11,7 +11,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarInset,
 } from '@/components/ui/sidebar';
 import {
   Bot,
@@ -27,7 +26,7 @@ import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
@@ -49,8 +48,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading, userError } = useUser();
-  const currentPage = navItems.find(i => pathname.startsWith(i.href));
-
+  
   const handleLogout = async () => {
     if (!auth) return;
     await signOut(auth);
@@ -77,7 +75,6 @@ export default function DashboardLayout({
       <div className="relative min-h-screen">
         {/* Desktop Sidebar */}
         <Sidebar
-          variant="inset"
           collapsible="icon"
           className="hidden md:block border-r-0 !bg-card/30"
         >
@@ -135,54 +132,73 @@ export default function DashboardLayout({
         </Sidebar>
 
         {/* Mobile Header and Sidebar */}
-        <div className="md:hidden">
-            <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/50 px-4 sm:px-6 backdrop-blur-lg">
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button size="icon" variant="outline" className="shrink-0">
-                            <Menu className="h-5 w-5" />
-                            <span className="sr-only">Toggle navigation menu</span>
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
-                        <SheetHeader>
-                            <SheetTitle>Navigation</SheetTitle>
-                        </SheetHeader>
-                        <nav className="grid gap-2 text-lg font-medium">
-                            
-                                <Link href="/dashboard" className="mb-4">
-                                    <Logo />
-                                </Link>
-                            
-                            {navItems.map(item => (
-                                
-                                <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+        <header className="sticky top-0 z-40 flex md:hidden h-14 items-center gap-4 border-b bg-background/50 px-4 sm:px-6 backdrop-blur-lg">
+            <Sheet>
+                <SheetTrigger asChild>
+                    <Button size="icon" variant="outline" className="shrink-0">
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Toggle navigation menu</span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
+                    <SheetHeader>
+                        <SheetTitle>LiqAI</SheetTitle>
+                    </SheetHeader>
+                    <nav className="grid gap-2 text-lg font-medium">
+                        <SheetClose asChild>
+                            <Link href="/dashboard" className="mb-4">
+                                <Logo />
+                            </Link>
+                        </SheetClose>
+                        {navItems.map(item => (
+                            <SheetClose key={item.href} asChild>
+                                <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                                     <item.icon className="h-4 w-4" />
                                     {item.label}
                                 </Link>
-                                
-                            ))}
-                        </nav>
-                         <div className="mt-auto">
-                            <Button variant="ghost" onClick={handleLogout} className="w-full justify-start">
-                                <LogOut className="mr-2 h-4 w-4" />
-                                Log out
-                            </Button>
-                        </div>
-                    </SheetContent>
-                </Sheet>
-                 <div className="flex-1 flex items-center gap-2">
-                    <Label htmlFor="glow-mode" className="text-sm font-medium">Glow mode</Label>
-                    <Switch id="glow-mode" />
-                </div>
-            </header>
-        </div>
+                            </SheetClose>
+                        ))}
+                    </nav>
+                     <div className="mt-auto">
+                        <Button variant="ghost" onClick={handleLogout} className="w-full justify-start">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Log out
+                        </Button>
+                    </div>
+                </SheetContent>
+            </Sheet>
+            <div className="flex flex-1 items-center justify-end gap-2">
+                <Label htmlFor="glow-mode" className="text-sm font-medium">Glow mode</Label>
+                <Switch id="glow-mode" />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar>
+                    <AvatarImage src={user?.photoURL ?? `https://avatar.vercel.sh/${user?.email}.png`} alt={user?.displayName ?? 'User'} />
+                    <AvatarFallback>{user?.displayName?.[0] ?? 'U'}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass-pane">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/account">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>Billing</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+        </header>
         
-        <SidebarInset>
-          <main className="flex-1 p-4 md:p-6">
-            {children}
-          </main>
-        </SidebarInset>
+        <main className="flex-1 p-4 md:p-6">
+          {children}
+        </main>
       </div>
     </SidebarProvider>
   );
