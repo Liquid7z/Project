@@ -37,14 +37,28 @@ const extractTextTool = ai.defineTool({
     outputSchema: ExtractTextFromDocumentOutputSchema,
   },
   async (input) => {
-    // Simulate text extraction.  In a real application, this would use a library
-    // like PDF.js or mammoth.js to extract text from the document.
     
     const documentDataBase64 = input.documentDataUri.split(',')[1];
+    const documentBuffer = Buffer.from(documentDataBase64, 'base64');
+    const canvas = await import('canvas');
+
+    const generateGenericPreview = (fileType: string): string => {
+        const { createCanvas } = canvas;
+        const previewCanvas = createCanvas(400, 500);
+        const ctx = previewCanvas.getContext('2d');
+        ctx.fillStyle = '#2d3748';
+        ctx.fillRect(0, 0, 400, 500);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 30px "Space Grotesk"';
+        ctx.textAlign = 'center';
+        ctx.fillText(fileType.toUpperCase(), 200, 230);
+        ctx.font = '20px "Inter"';
+        ctx.fillText('Preview not available', 200, 270);
+        return previewCanvas.toDataURL();
+    };
 
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
       console.log('Detected PDF document.');
-      const canvas = await import('canvas');
       const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
       const doc = await getDocument({ data: pdfData }).promise;
@@ -74,11 +88,15 @@ const extractTextTool = ai.defineTool({
 
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       console.log('Detected DOCX document.');
-      // In a real implementation, use mammoth.js to extract text from documentBuffer.
-      return { extractedText: 'Extracted text from DOCX document.' };
+      const mammoth = await import('mammoth');
+      const { value: extractedText } = await mammoth.extractRawText({ buffer: documentBuffer });
+      const previewDataUri = generateGenericPreview('DOCX');
+      return { extractedText, previewDataUri };
     } else {
       console.log('Unsupported document type.');
-      return { extractedText: 'Unsupported document type.' };
+      const fileType = input.documentDataUri.substring(input.documentDataUri.indexOf('/') + 1, input.documentDataUri.indexOf(';'));
+      const previewDataUri = generateGenericPreview(fileType);
+      return { extractedText: `Content from ${fileType} file.`, previewDataUri };
     }
   }
 );
