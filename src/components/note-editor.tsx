@@ -1,6 +1,6 @@
 'use client';
 
-import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, FloatingMenu, NodeViewWrapper } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -16,23 +16,25 @@ const AttachmentComponent = (props: any) => {
   const { src, title } = node.attrs;
 
   return (
-    <div 
-      className="not-prose my-4 p-4 rounded-lg border border-border bg-card/50 flex items-center gap-4"
-      contentEditable={false}
-    >
-      <FileIcon className="w-8 h-8 text-accent" />
-      <div className="flex-grow">
-        <a 
-          href={src} 
-          download={title}
-          className="font-medium text-foreground hover:underline"
-          onClick={(e) => e.stopPropagation()} // Prevent editor focus issues
-        >
-          {title}
-        </a>
-        <p className="text-xs text-muted-foreground">Click to download</p>
+    <NodeViewWrapper className="not-prose my-4">
+      <div 
+        className="p-4 rounded-lg border border-border bg-card/50 flex items-center gap-4"
+        contentEditable={false}
+      >
+        <FileIcon className="w-8 h-8 text-accent" />
+        <div className="flex-grow">
+          <a 
+            href={src} 
+            download={title}
+            className="font-medium text-foreground hover:underline"
+            onClick={(e) => e.stopPropagation()} // Prevent editor focus issues
+          >
+            {title}
+          </a>
+          <p className="text-xs text-muted-foreground">Click to download</p>
+        </div>
       </div>
-    </div>
+    </NodeViewWrapper>
   );
 };
 
