@@ -65,7 +65,8 @@ const Attachment = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['div', { 'data-type': 'attachment', ...HTMLAttributes }, 0];
+    // Removed the "0" content hole to fix the "Content hole not allowed in a leaf node spec" error.
+    return ['div', { 'data-type': 'attachment', ...HTMLAttributes }];
   },
 
   addNodeView() {
