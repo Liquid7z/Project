@@ -64,7 +64,7 @@ const generateAssignmentFlow = ai.defineFlow(
     // In a real application, this would involve a complex image generation model.
     // We will simulate this by creating a placeholder image with the text.
     
-    const { output } = await generateAssignmentPrompt(input);
+    const {output} = await generateAssignmentPrompt(input);
     
     // Fallback to a mock response if the AI model fails to generate a valid output
     if (!output || !output.assignmentPages || output.assignmentPages.length === 0) {
@@ -94,15 +94,27 @@ const generateAssignmentFlow = ai.defineFlow(
         const end = start + wordsPerPage;
         const pageContent = words.slice(start, end).join(' ');
         
-        let y = 50;
         const x = 50;
-        const lineheight = 30;
-        const lines = pageContent.split('\n');
+        let y = 50;
+        const maxWidth = 700;
+        const lineHeight = 30;
+        
+        const wordsInLine = pageContent.split(' ');
+        let currentLine = '';
 
-        for (const line of lines) {
-            ctx.fillText(line, x, y);
-            y += lineheight;
+        for(let n = 0; n < wordsInLine.length; n++) {
+          const testLine = currentLine + wordsInLine[n] + ' ';
+          const metrics = ctx.measureText(testLine);
+          const testWidth = metrics.width;
+          if (testWidth > maxWidth && n > 0) {
+            ctx.fillText(currentLine, x, y);
+            currentLine = wordsInLine[n] + ' ';
+            y += lineHeight;
+          } else {
+            currentLine = testLine;
+          }
         }
+        ctx.fillText(currentLine, x, y);
 
         pages.push({
           pageNumber: i + 1,
