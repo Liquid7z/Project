@@ -9,7 +9,11 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getDocument, GlobalWorkerOptions, version} from 'pdfjs-dist/legacy/build/pdf.mjs';
+import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+// WORKAROUND: In a serverless environment, the worker is not available.
+// This forces pdfjs-dist to run in a single-threaded mode.
+GlobalWorkerOptions.workerSrc = false;
 
 const ExtractTextFromDocumentInputSchema = z.object({
   documentDataUri: z
