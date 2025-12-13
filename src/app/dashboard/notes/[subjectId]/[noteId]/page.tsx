@@ -20,6 +20,8 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { GripVertical } from 'lucide-react';
+import PdfBlock from '@/components/pdf-block';
+import DocumentBlock from '@/components/document-block';
 
 type NoteBlock = {
   id: string;
@@ -39,17 +41,20 @@ const BlockViewer = ({ block }: { block: NoteBlock }) => {
         return <NoteEditor value={block.content} isEditable={false} />;
     }
     
-    if (block.type === 'document' || block.type === 'pdf') {
-        if (!block.content) return null;
+    if (block.type === 'pdf') {
         return (
-            <div className="my-4 not-prose p-4 rounded-lg bg-card/50 border">
-                 <DocumentPreviewer
-                    fileName={block.content.fileName}
-                    fileType={block.content.fileType}
-                    fileURL={block.content.fileURL}
-                 />
+            <div className="my-4 not-prose">
+                <PdfBlock.nodeView({node: {attrs: block.content}, deleteNode: () => {}, editor: {isEditable: false}} as any)} />
             </div>
-        );
+        )
+    }
+
+    if (block.type === 'document') {
+        return (
+            <div className="my-4 not-prose">
+                <DocumentBlock.nodeView({node: {attrs: block.content}, deleteNode: () => {}, editor: {isEditable: false}} as any)} />
+            </div>
+        )
     }
 
     return (
