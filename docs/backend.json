@@ -6,44 +6,15 @@
       "type": "object",
       "description": "Represents a user profile in the application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user profile.",
-          "format": "uuid"
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
-        },
-        "displayName": {
-          "type": "string",
-          "description": "Display name of the user."
-        },
-        "photoURL": {
-          "type": "string",
-          "description": "URL of the user's profile photo.",
-          "format": "uri"
-        },
-        "creationTime": {
-          "type": "string",
-          "description": "Timestamp indicating when the user profile was created.",
-          "format": "date-time"
-        },
-        "lastSignInTime": {
-          "type": "string",
-          "description": "Timestamp indicating when the user last signed in.",
-          "format": "date-time"
-        },
-        "subscriptionId": {
-          "type": "string",
-          "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the user profile.", "format": "uuid" },
+        "email": { "type": "string", "description": "Email address of the user.", "format": "email" },
+        "displayName": { "type": "string", "description": "Display name of the user." },
+        "photoURL": { "type": "string", "description": "URL of the user's profile photo.", "format": "uri" },
+        "creationTime": { "type": "string", "description": "Timestamp indicating when the user profile was created.", "format": "date-time" },
+        "lastSignInTime": { "type": "string", "description": "Timestamp indicating when the user last signed in.", "format": "date-time" },
+        "subscriptionId": { "type": "string", "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)" }
       },
-      "required": [
-        "id",
-        "email"
-      ]
+      "required": ["id", "email"]
     },
     "Subscription": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -51,223 +22,77 @@
       "type": "object",
       "description": "Represents a user's subscription status and details.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the subscription."
-        },
-        "tier": {
-          "type": "string",
-          "description": "Subscription tier (e.g., free, premium)."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "Date the subscription started.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "Date the subscription expires.",
-          "format": "date-time"
-        },
-        "isCancelled": {
-          "type": "boolean",
-          "description": "Indicates if the subscription has been cancelled."
-        }
+        "id": { "type": "string", "description": "Unique identifier for the subscription." },
+        "tier": { "type": "string", "description": "Subscription tier (e.g., free, premium)." },
+        "startDate": { "type": "string", "description": "Date the subscription started.", "format": "date-time" },
+        "endDate": { "type": "string", "description": "Date the subscription expires.", "format": "date-time" },
+        "isCancelled": { "type": "boolean", "description": "Indicates if the subscription has been cancelled." }
       },
-      "required": [
-        "id",
-        "tier",
-        "startDate",
-        "endDate"
-      ]
-    },
-    "Note": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Note",
-      "type": "object",
-      "description": "Represents a single note, which can contain rich text, images, and document attachments.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the note."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The ID of the user who owns this note."
-        },
-        "subjectId": {
-          "type": "string",
-          "description": "The ID of the subject this note belongs to."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the note."
-        },
-        "content": {
-          "type": "string",
-          "description": "The rich text content of the note, stored as a JSON string."
-        },
-        "lastEdited": {
-          "type": "string",
-          "description": "Timestamp of the last edit.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The status of the note.",
-          "enum": [
-            "active",
-            "archived"
-          ]
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of the note.",
-          "enum": [
-            "text",
-            "document"
-          ]
-        },
-        "fileURL": {
-            "type": "string",
-            "format": "uri"
-        },
-        "fileType": {
-            "type": "string"
-        },
-        "fileSize": {
-            "type": "number"
-        },
-        "originalFileName": {
-            "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "subjectId",
-        "title",
-        "lastEdited",
-        "status",
-        "type"
-      ]
+      "required": ["id", "tier", "startDate", "endDate"]
     },
     "Subject": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Subject",
       "type": "object",
-      "description": "Represents a subject or category for organizing notes.",
+      "description": "Represents a subject or category for organizing study materials.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the subject."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The ID of the user who owns this subject."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the subject."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the subject was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the subject." },
+        "userId": { "type": "string", "description": "The ID of the user who owns this subject." },
+        "name": { "type": "string", "description": "The name of the subject." },
+        "description": { "type": "string", "description": "An optional description for the subject." },
+        "createdAt": { "type": "string", "description": "Timestamp indicating when the subject was created.", "format": "date-time" }
       },
       "required": ["id", "userId", "name", "createdAt"]
+    },
+    "Note": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Note",
+      "type": "object",
+      "description": "Represents a single note within a subject, composed of multiple content blocks.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "title": { "type": "string" },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string", "enum": ["text", "document"] },
+              "content": { "type": "object" },
+              "order": { "type": "number" }
+            },
+            "required": ["id", "type", "content", "order"]
+          }
+        },
+        "lastEdited": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "subjectId", "title", "blocks", "lastEdited"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "google.com"
-    ]
+    "providers": ["password", "google.com"]
   },
   "firestore": {
     "structure": [
       {
         "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information. Path-based ownership for user data.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
-        }
+        "definition": { "entityName": "UserProfile", "schema": { "$ref": "#/backend/entities/UserProfile" }, "description": "Stores user profile information.", "params": [{ "name": "userId", "description": "The unique identifier of the user." }] }
       },
       {
         "path": "/users/{userId}/subscriptions/{subscriptionId}",
-        "definition": {
-          "entityName": "Subscription",
-          "schema": {
-            "$ref": "#/backend/entities/Subscription"
-          },
-          "description": "Stores subscription information for each user. Path-based ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "subscriptionId",
-              "description": "The unique identifier of the subscription."
-            }
-          ]
-        }
+        "definition": { "entityName": "Subscription", "schema": { "$ref": "#/backend/entities/Subscription" }, "description": "Stores subscription information for each user.", "params": [{ "name": "userId", "description": "The unique identifier of the user." }, { "name": "subscriptionId", "description": "The unique identifier of the subscription." }] }
       },
       {
         "path": "/users/{userId}/subjects/{subjectId}",
-        "definition": {
-          "entityName": "Subject",
-          "schema": {
-            "$ref": "#/backend/entities/Subject"
-          },
-          "description": "Stores subjects for organizing notes.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "subjectId",
-              "description": "The unique identifier for the subject."
-            }
-          ]
-        }
+        "definition": { "entityName": "Subject", "schema": { "$ref": "#/backend/entities/Subject" }, "description": "Stores subjects for organizing notes.", "params": [{ "name": "userId", "description": "The unique identifier of the user." }, { "name": "subjectId", "description": "The unique identifier for the subject." }] }
       },
       {
         "path": "/users/{userId}/subjects/{subjectId}/notes/{noteId}",
-        "definition": {
-          "entityName": "Note",
-          "schema": {
-            "$ref": "#/backend/entities/Note"
-          },
-          "description": "Stores notes for a given subject. Path-based ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "subjectId",
-              "description": "The unique identifier of the subject."
-            },
-            {
-              "name": "noteId",
-              "description": "The unique identifier for the note."
-            }
-          ]
-        }
+        "definition": { "entityName": "Note", "schema": { "$ref": "#/backend/entities/Note" }, "description": "Stores notes within a subject.", "params": [{ "name": "userId", "description": "The unique identifier of the user." }, { "name": "subjectId", "description": "The unique identifier of the subject." }, { "name": "noteId", "description": "The unique identifier for the note." }] }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to support the LiqAI application's user authentication, premium subscription system, and a robust notes system, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC, QAPs, and Invariants.\n\n*   **Authorization Independence:** The structure avoids hierarchical authorization dependencies (`get()`) by denormalizing authorization context where necessary. For example, the `Note` and `Subject` documents store the `userId` which allows for independent authorization checks without needing to fetch the parent `UserProfile` document.\n*   **Clarity of Intent:** The structure uses clear and consistent naming conventions to make authorization intent explicit. Path-based ownership (`/users/{userId}/...`) clearly indicates ownership.\n*   **DBAC (No Custom Claims):** Authorization relies solely on `request.auth.uid`. \n*   **QAPs (Rules are not Filters):** The structure enables secure `list` operations by ensuring that all documents in a collection share the same security requirements. This is achieved through structural segregation, separating data with different access needs into different collections.\n*   **Invariants:** The structure supports the integrity of ownership, timestamps, and denormalized data by enforcing strict naming conventions and using explicit state modeling.\n\nTo specifically support the application's core features:\n\n*   User Authentication: User profiles are stored in `/users/{userId}` with profile data. This enables simple ownership-based security rules.\n*   Premium Subscription System: Subscription data is stored in a subcollection `/users/{userId}/subscriptions/{subscriptionId}`.\n*   Notes System: Subjects are stored in `/users/{userId}/subjects/{subjectId}`. Notes are then stored in a nested subcollection `/users/{userId}/subjects/{subjectId}/notes/{noteId}`. This two-level hierarchy allows for clear organization while maintaining path-based ownership for security.\n"
+    ]
   }
 }

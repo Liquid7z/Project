@@ -19,10 +19,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from '@/components/ui/textarea';
 
 
 type Subject = WithId<{
   name: string;
+  description: string;
   userId: string;
   createdAt: any; // Firestore Timestamp
   noteCount?: number; // Optional, might be calculated client-side
@@ -55,16 +57,15 @@ const SubjectCard = ({ subject }: { subject: Subject }) => {
                 className="h-full"
             >
                 <Card className="group glass-pane transition-all hover:border-accent overflow-hidden h-full flex flex-col justify-between">
-                   <Link href={`/dashboard/notes/${subject.id}`} className="cursor-pointer h-full flex flex-col justify-between">
-                        <CardHeader className="relative pb-4">
+                   <Link href={`/dashboard/notes/${subject.id}`} className="cursor-pointer h-full flex flex-col justify-between p-6">
+                        <div>
                             <div className="flex items-start justify-between">
                                 <Folder className="w-10 h-10 text-accent/70"/>
                             </div>
                             <CardTitle className="font-headline text-glow truncate pt-4">{subject.name || 'Untitled Subject'}</CardTitle>
-                        </CardHeader>
-                        <CardFooter>
-                           <p className="text-xs text-muted-foreground pt-1">Created {createdAt}</p>
-                        </CardFooter>
+                             <CardDescription className="pt-2 text-sm text-muted-foreground line-clamp-2">{subject.description}</CardDescription>
+                        </div>
+                        <p className="text-xs text-muted-foreground pt-4">Created {createdAt}</p>
                     </Link>
                      <div className="absolute top-2 right-2">
                         <DropdownMenu>
@@ -88,7 +89,7 @@ const SubjectCard = ({ subject }: { subject: Subject }) => {
                     <DialogHeader>
                         <DialogTitle className="font-headline">Are you sure?</DialogTitle>
                         <DialogDescription>
-                           This will permanently delete the subject "{subject.name}" and all notes inside it. This action cannot be undone.
+                           This will permanently delete the subject "{subject.name}" and all notes and materials inside it. This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -108,11 +109,12 @@ const NewSubjectDialog = ({ onSubjectCreated }: { onSubjectCreated: () => void }
 
     const formSchema = z.object({
       name: z.string().min(1, "Subject name cannot be empty.").max(50, "Subject name is too long."),
+      description: z.string().max(200, "Description is too long.").optional(),
     });
 
     const form = useForm<z.infer<typeof formSchema>>({
       resolver: zodResolver(formSchema),
-      defaultValues: { name: "" },
+      defaultValues: { name: "", description: "" },
     });
 
     const subjectsRef = useMemoFirebase(() =>
@@ -125,6 +127,7 @@ const NewSubjectDialog = ({ onSubjectCreated }: { onSubjectCreated: () => void }
         const newSubject = {
             userId: user.uid,
             name: values.name,
+            description: values.description || '',
             createdAt: serverTimestamp(),
         };
 
@@ -145,10 +148,10 @@ const NewSubjectDialog = ({ onSubjectCreated }: { onSubjectCreated: () => void }
                         <DialogHeader>
                             <DialogTitle className="font-headline">Create New Subject</DialogTitle>
                             <DialogDescription>
-                               Choose a name for your new subject. You can add notes to it later.
+                               Choose a name for your new subject. All your notes and materials will live here.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="py-4">
+                        <div className="py-4 space-y-4">
                             <FormField
                               control={form.control}
                               name="name"
@@ -156,7 +159,20 @@ const NewSubjectDialog = ({ onSubjectCreated }: { onSubjectCreated: () => void }
                                 <FormItem>
                                   <FormLabel>Subject Name</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="e.g., Biology 101" {...field} />
+                                    <Input placeholder="e.g., Quantum Physics" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                             <FormField
+                              control={form.control}
+                              name="description"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (Optional)</FormLabel>
+                                  <FormControl>
+                                    <Textarea placeholder="e.g., Exam on the 24th, focus on chapters 3-5." {...field} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -231,9 +247,9 @@ export default function SubjectsDashboardPage() {
             {error && <div className="text-destructive">Error loading subjects: {error.message}</div>}
 
             {!isLoadingSubjects && filteredSubjects.length === 0 && (
-                 <div className="text-center text-muted-foreground p-12 border-2 border-dashed rounded-lg">
+                 <div className="text-center text-muted-foreground p-12 border-2 border-dashed rounded-lg bg-card/30">
                     <BookOpen className="mx-auto h-12 w-12" />
-                    <h3 className="mt-4 text-lg font-semibold">{searchTerm ? 'No Subjects Found' : 'No Subjects Yet'}</h3>
+                    <h3 className="mt-4 text-lg font-semibold">{searchTerm ? 'No Subjects Found' : 'Create a Subject to Unlock Notes'}</h3>
                     <p className="mt-1 text-sm">{searchTerm ? 'No subjects match your search.' : 'Click "New Subject" to get started.'}</p>
                 </div>
             )}

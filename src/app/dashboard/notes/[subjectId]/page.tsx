@@ -1,294 +1,228 @@
 'use client';
 
-import { useState, useMemo, use } from 'react';
+import { use, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { motion } from 'framer-motion';
-import { Plus, BookOpen, Search, MoreVertical, Archive, Trash2, Edit, ChevronRight, ArrowLeft } from 'lucide-react';
+import {
+  useUser,
+  useFirestore,
+  useCollection,
+  useDoc,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from '@/firebase';
+import { collection, doc, serverTimestamp, query, orderBy, where, writeBatch } from 'firebase/firestore';
 import Link from 'next/link';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { WithId } from '@/firebase/firestore/use-collection';
-import { formatDistanceToNow } from 'date-fns';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Book, FileText, Bot, Plus, Edit, Trash2, GripVertical, Image as ImageIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DocumentPreviewer } from '@/components/document-previewer';
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Image from '@tiptap/extension-image'
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
 import DocumentBlock from '@/components/document-block';
+import PdfBlock from '@/components/pdf-block';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { DocumentPreviewer } from '@/components/document-previewer';
+import { FileUploader } from '@/components/file-uploader';
+import { v4 as uuidv4 } from 'uuid';
+import { useStorage } from '@/firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { NoteEditor } from '@/components/note-editor';
+
+const ItemTypes = {
+  BLOCK: 'block',
+};
+
+type Subject = WithId<{
+  name: string;
+}>;
+
+type NoteBlock = {
+  id: string;
+  type: 'text' | 'document';
+  content: any; // JSON for text, or file info for document
+  order: number;
+};
 
 type Note = WithId<{
   title: string;
-  content?: any; 
+  blocks: NoteBlock[];
   lastEdited: any;
-  status: 'active' | 'archived';
-  userId: string;
-  subjectId: string;
 }>;
 
-type Subject = WithId<{
-    name: string;
-}>;
+const Block = ({ block, moveBlock, index }: { block: NoteBlock, moveBlock: (dragIndex: number, hoverIndex: number) => void; index: number }) => {
+  const ref = React.useRef<HTMLDivElement>(null);
 
+  const [, drop] = useDrop({
+    accept: ItemTypes.BLOCK,
+    hover(item: { index: number }) {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+      moveBlock(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
 
-const NoteContentPreview = ({ content }: { content: any }) => {
-    const editor = useEditor({
-        editable: false,
-        extensions: [StarterKit, Image, DocumentBlock],
-        content: content,
-        editorProps: {
-            attributes: {
-                class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none',
-            },
-        },
-    }, [content]);
+  const [{ isDragging }, drag, preview] = useDrag({
+    type: ItemTypes.BLOCK,
+    item: { index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
 
-    return <EditorContent editor={editor} />;
-}
+  drag(drop(ref));
 
-const NotePreviewCard = ({ note }: { note: Note }) => {
-    const router = useRouter();
-    const firestore = useFirestore();
-    const { user } = useUser();
-    
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-    const lastEdited = note.lastEdited?.toDate ? formatDistanceToNow(note.lastEdited.toDate(), { addSuffix: true }) : 'just now';
-
-    const handleDelete = async () => {
-        if (!user || !firestore) return;
-        const noteDocRef = doc(firestore, 'users', user.uid, 'subjects', note.subjectId, 'notes', note.id);
-        await deleteDocumentNonBlocking(noteDocRef);
-        setIsDeleteDialogOpen(false);
-    };
-
-    const handleArchive = async () => {
-         if (!user || !firestore) return;
-        const noteDocRef = doc(firestore, 'users', user.uid, 'subjects', note.subjectId, 'notes', note.id);
-        await updateDocumentNonBlocking(noteDocRef, { status: 'archived', lastEdited: serverTimestamp() });
-    };
-
-    const contentForPreview = useMemo(() => {
-        if (!note.content) return '';
-        try {
-            const parsed = typeof note.content === 'string' ? JSON.parse(note.content) : note.content;
-            return parsed;
-        } catch {
-            return { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: note.content }] }] };
-        }
-    }, [note.content]);
-
-    return (
-        <>
-            <motion.div
-                layoutId={`note-card-${note.id}`}
-                whileHover={{ y: -5 }}
-                className="h-full"
-            >
-                <Card className="group glass-pane transition-all hover:border-accent overflow-hidden h-full flex flex-col">
-                    <CardHeader className="relative pb-4">
-                        <div className="absolute top-2 right-2">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="glass-pane">
-                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/notes/${note.subjectId}/${note.id}/edit`)}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        <span>Edit</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleArchive}>
-                                        <Archive className="mr-2 h-4 w-4" />
-                                        <span>Archive</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        <span>Delete</span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                        <Link href={`/dashboard/notes/${note.subjectId}/${note.id}`} className="cursor-pointer pr-8">
-                            <CardTitle className="font-headline text-glow truncate pr-8">{note.title || 'Untitled Note'}</CardTitle>
-                             <p className="text-xs text-muted-foreground pt-1">Edited {lastEdited}</p>
-                        </Link>
-                    </CardHeader>
-                    <Link href={`/dashboard/notes/${note.subjectId}/${note.id}`} className="flex-1 cursor-pointer">
-                        <CardContent className="relative h-full">
-                           <div className="prose prose-sm prose-invert max-w-none h-24 overflow-hidden text-ellipsis [&>p]:text-muted-foreground">
-                                <NoteContentPreview content={contentForPreview} />
-                           </div>
-                            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card to-transparent" />
-                        </CardContent>
-                    </Link>
-                </Card>
-            </motion.div>
-             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent className="glass-pane">
-                    <DialogHeader>
-                        <DialogTitle className="font-headline">Are you sure?</DialogTitle>
-                        <DialogDescription>
-                           This will permanently delete the note titled "{note.title}". This action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleDelete}>Delete</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
-    );
+  return (
+    <div ref={preview} style={{ opacity: isDragging ? 0.5 : 1 }} className="relative">
+      <div ref={ref} className="p-4 my-2 rounded-lg glass-pane border border-transparent hover:border-accent transition-all">
+        <button ref={drag} className="absolute -left-8 top-1/2 -translate-y-1/2 cursor-grab p-2 text-muted-foreground hover:text-foreground">
+          <GripVertical />
+        </button>
+        {block.type === 'text' && <NoteEditor value={block.content} onChange={() => {}} />}
+        {block.type === 'document' && (
+          <DocumentPreviewer
+            fileName={block.content.fileName}
+            fileType={block.content.fileType}
+            fileURL={block.content.fileURL}
+          />
+        )}
+      </div>
+    </div>
+  );
 };
 
 
-export default function NotesDashboardPage({ params: paramsPromise }: { params: Promise<{ subjectId: string }> }) {
-    const params = use(paramsPromise);
-    const { subjectId } = params;
-    const { user } = useUser();
-    const firestore = useFirestore();
-    const router = useRouter();
-    
-    const notesRef = useMemoFirebase(() => 
-        user ? collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes') : null, 
-        [firestore, user, subjectId]
-    );
+const NotesSection = ({ subjectId }: { subjectId: string }) => {
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
-    const subjectDocRef = useMemoFirebase(() =>
-        user ? doc(firestore, 'users', user.uid, 'subjects', subjectId) : null,
-        [firestore, user, subjectId]
-    );
+  const notesQuery = useMemoFirebase(() =>
+    user ? query(collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes'), orderBy('lastEdited', 'desc')) : null,
+    [firestore, user, subjectId]
+  );
+  const { data: notes, isLoading } = useCollection<Note>(notesQuery);
 
-    const notesQuery = useMemoFirebase(() => 
-        notesRef ? query(notesRef, orderBy('lastEdited', 'desc')) : null, 
-        [notesRef]
-    );
-
-    const { data: notes, isLoading: isLoadingNotes } = useCollection<Note>(notesQuery);
-    const { data: subject, isLoading: isLoadingSubject } = useDoc<Subject>(subjectDocRef);
-
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState('newest');
-
-    const handleCreateNote = async () => {
-        if (!user || !notesRef) return;
-
-        const newNote = {
-            userId: user.uid,
-            subjectId: subjectId,
-            title: "Untitled Note",
-            content: "", 
-            lastEdited: serverTimestamp(),
-            status: 'active' as const,
-        };
-
-        const newDocRef = await addDocumentNonBlocking(notesRef, newNote);
-        if(newDocRef?.id) {
-            router.push(`/dashboard/notes/${subjectId}/${newDocRef.id}/edit`);
-        }
+  const handleCreateNote = async () => {
+    if (!user || !notesQuery) return;
+    const notesCollection = collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes');
+    const newNote = {
+      title: 'Untitled Note',
+      blocks: [{ id: uuidv4(), type: 'text', content: { type: 'doc', content: [{ type: 'paragraph' }] }, order: 0 }],
+      lastEdited: serverTimestamp(),
+      userId: user.uid,
+      subjectId: subjectId,
     };
+    const newDoc = await addDocumentNonBlocking(notesCollection, newNote);
+    if(newDoc?.id) {
+        setEditingNoteId(newDoc.id);
+    }
+  };
+  
+  if (editingNoteId) {
+      // return <NoteEditor noteId={editingNoteId} subjectId={subjectId} onBack={() => setEditingNoteId(null)} />;
+      // For now, let's just show a placeholder
+      return <div>Editing note...</div>;
+  }
 
-
-    const filteredAndSortedNotes = useMemo(() => {
-        if (!notes) return [];
-        return notes
-            .filter(note => note.status === 'active')
-            .filter(note => 
-                note.title.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            .sort((a, b) => {
-                const timeA = a.lastEdited?.toDate ? a.lastEdited.toDate().getTime() : 0;
-                const timeB = b.lastEdited?.toDate ? b.lastEdited.toDate().getTime() : 0;
-                if (sortBy === 'newest') {
-                    return timeB - timeA;
-                }
-                if (sortBy === 'oldest') {
-                    return timeA - timeB;
-                }
-                if (sortBy === 'title-asc') {
-                    return a.title.localeCompare(b.title);
-                }
-                if (sortBy === 'title-desc') {
-                    return b.title.localeCompare(a.title);
-                }
-                return 0;
-            });
-    }, [notes, searchTerm, sortBy]);
-
-    return (
-        <div className="p-0">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <div className="flex items-center gap-2">
-                    <Link href="/dashboard/notes" className="text-muted-foreground hover:text-foreground">Subjects</Link>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    {isLoadingSubject ? <Skeleton className="h-8 w-32" /> : (
-                        <h1 className="text-3xl font-headline">{subject?.name || 'Subject'}</h1>
-                    )}
+  return (
+    <div>
+      <div className="flex justify-end mb-4">
+        <Button onClick={handleCreateNote} variant="glow"><Plus className="mr-2" /> New Note</Button>
+      </div>
+       {isLoading && <Skeleton className="h-24 w-full" />}
+      {!isLoading && notes?.map(note => (
+        <Card key={note.id} className="mb-4 glass-pane hover:border-accent transition-colors">
+            <CardHeader>
+                <CardTitle>{note.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {/* Render a preview of the note content */}
+                <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3">
+                   {note.blocks.find(b => b.type === 'text')?.content?.content[0]?.content?.[0]?.text || 'No content preview.'}
                 </div>
-                <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
-                    <div className="relative w-full sm:w-auto flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search notes..." 
-                            className="pl-10 w-full"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Sort by" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="newest">Last Edited (Newest)</SelectItem>
-                            <SelectItem value="oldest">Last Edited (Oldest)</SelectItem>
-                            <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-                             <SelectItem value="title-desc">Title (Z-A)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button variant="glow" onClick={handleCreateNote} className="w-full sm:w-auto"><Plus className="mr-2"/> New Note</Button>
-                </div>
-            </div>
-            
-            {isLoadingNotes && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[...Array(3)].map((_, i) => (
-                        <Card key={i} className="glass-pane">
-                            <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
-                            <CardContent><Skeleton className="h-24 w-full" /></CardContent>
-                        </Card>
-                    ))}
-                 </div>
-            )}
+            </CardContent>
+        </Card>
+      ))}
+       {!isLoading && !notes?.length && (
+         <div className="text-center py-12 text-muted-foreground">
+             <Book className="mx-auto h-12 w-12"/>
+             <p className="mt-4">No notes created yet.</p>
+         </div>
+       )}
+    </div>
+  );
+};
 
-            {!isLoadingNotes && filteredAndSortedNotes.length === 0 && (
-                 <div className="text-center text-muted-foreground p-12 border-2 border-dashed rounded-lg">
-                    <BookOpen className="mx-auto h-12 w-12" />
-                    <h3 className="mt-4 text-lg font-semibold">No Notes Yet</h3>
-                    <p className="mt-1 text-sm">{searchTerm ? 'No notes match your search.' : 'Click "New Note" to get started.'}</p>
-                </div>
-            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAndSortedNotes.map((note, index) => (
-                    <motion.div
-                        key={note.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="h-full"
-                    >
-                        <NotePreviewCard note={note} />
-                    </motion.div>
-                ))}
-            </div>
-        </div>
-    );
+export default function SubjectPage({ params: paramsPromise }: { params: Promise<{ subjectId: string }> }) {
+  const params = use(paramsPromise);
+  const { subjectId } = params;
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const subjectDocRef = useMemoFirebase(
+    () => (user ? doc(firestore, 'users', user.uid, 'subjects', subjectId) : null),
+    [firestore, user, subjectId]
+  );
+  const { data: subject, isLoading: isLoadingSubject } = useDoc<Subject>(subjectDocRef);
+
+  if (isLoadingSubject) {
+    return <Skeleton className="h-screen w-full" />;
+  }
+
+  return (
+    <div>
+      <header className="flex items-center gap-4 mb-6">
+        <Button asChild variant="outline" size="icon">
+          <Link href="/dashboard/notes"><ArrowLeft /></Link>
+        </Button>
+        <h1 className="text-3xl font-headline text-glow">{subject?.name || 'Subject'}</h1>
+      </header>
+      
+      <Tabs defaultValue="notes">
+        <TabsList className="grid w-full grid-cols-4 bg-card/60 p-1 h-auto">
+          <TabsTrigger value="notes"><Book className="mr-2" />Notes</TabsTrigger>
+          <TabsTrigger value="exam_questions"><FileText className="mr-2" />Exam Questions</TabsTrigger>
+          <TabsTrigger value="syllabus"><Bot className="mr-2" />Syllabus</TabsTrigger>
+          <TabsTrigger value="resources"><Plus className="mr-2" />Other Resources</TabsTrigger>
+        </TabsList>
+        <TabsContent value="notes" className="py-6">
+           <NotesSection subjectId={subjectId} />
+        </TabsContent>
+        <TabsContent value="exam_questions" className="py-6">
+            <Card className="glass-pane">
+                <CardHeader><CardTitle>Exam Questions</CardTitle><CardDescription>Coming soon...</CardDescription></CardHeader>
+                <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="syllabus" className="py-6">
+            <Card className="glass-pane">
+                <CardHeader><CardTitle>Syllabus</CardTitle><CardDescription>Coming soon...</CardDescription></CardHeader>
+                <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="resources" className="py-6">
+             <Card className="glass-pane">
+                <CardHeader><CardTitle>Other Resources</CardTitle><CardDescription>Coming soon...</CardDescription></CardHeader>
+                <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
+            </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }
