@@ -4,9 +4,73 @@ import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/reac
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ImageIcon, Paperclip } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ImageIcon, Paperclip, File as FileIcon } from 'lucide-react';
 import { Button } from './ui/button';
 import { useCallback } from 'react';
+import { Node } from '@tiptap/core';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+
+// 1. Create a custom component for the attachment
+const AttachmentComponent = (props: any) => {
+  const { node } = props;
+  const { src, title } = node.attrs;
+
+  return (
+    <div 
+      className="not-prose my-4 p-4 rounded-lg border border-border bg-card/50 flex items-center gap-4"
+      contentEditable={false}
+    >
+      <FileIcon className="w-8 h-8 text-accent" />
+      <div className="flex-grow">
+        <a 
+          href={src} 
+          download={title}
+          className="font-medium text-foreground hover:underline"
+          onClick={(e) => e.stopPropagation()} // Prevent editor focus issues
+        >
+          {title}
+        </a>
+        <p className="text-xs text-muted-foreground">Click to download</p>
+      </div>
+    </div>
+  );
+};
+
+
+// 2. Create a Tiptap Node for attachments
+const Attachment = Node.create({
+  name: 'attachment',
+  group: 'block',
+  atom: true, // This makes it behave like a single, non-editable unit
+  
+  addAttributes() {
+    return {
+      src: {
+        default: null,
+      },
+      title: {
+        default: 'attachment',
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-type="attachment"]',
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', { 'data-type': 'attachment', ...HTMLAttributes }, 0];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(AttachmentComponent);
+  },
+});
+
 
 const EditorToolbar = ({ editor }: { editor: any }) => {
   const addFile = useCallback((fileType: 'image' | 'doc' = 'image') => {
@@ -26,10 +90,12 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
             };
             reader.readAsDataURL(file);
         } else {
-           // For non-image files, we'll represent them as a link for now.
-           // A more complex implementation could use custom nodes.
            const url = URL.createObjectURL(file);
-           editor.chain().focus().insertContent(`<a href="${url}" download="${file.name}">${file.name}</a>`).run();
+           // 3. Use the custom attachment node
+           editor.chain().focus().insertContent({
+             type: 'attachment',
+             attrs: { src: url, title: file.name },
+           }).run();
         }
       }
     };
@@ -140,6 +206,7 @@ export const NoteEditor = ({ value, onChange }: { value: string; onChange: (valu
         inline: false, // Set to false to make images block elements
         allowBase64: true,
       }),
+      Attachment, // 4. Add the custom node to the editor
     ],
     content: value,
     onUpdate: ({ editor }) => {
