@@ -40,21 +40,15 @@ const extractTextTool = ai.defineTool({
     
     const documentDataBase64 = input.documentDataUri.split(',')[1];
     const documentBuffer = Buffer.from(documentDataBase64, 'base64');
-    const canvas = await import('canvas');
-
+    
+    // This is a simplified, canvas-free SVG placeholder.
     const generateGenericPreview = (fileType: string): string => {
-        const { createCanvas } = canvas;
-        const previewCanvas = createCanvas(400, 500);
-        const ctx = previewCanvas.getContext('2d');
-        ctx.fillStyle = '#2d3748';
-        ctx.fillRect(0, 0, 400, 500);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 30px "Space Grotesk"';
-        ctx.textAlign = 'center';
-        ctx.fillText(fileType.toUpperCase(), 200, 230);
-        ctx.font = '20px "Inter"';
-        ctx.fillText('Preview not available', 200, 270);
-        return previewCanvas.toDataURL();
+        const svg = `<svg width="400" height="500" xmlns="http://www.w3.org/2000/svg">
+            <rect width="400" height="500" fill="#2d3748" />
+            <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="30" fill="white" font-weight="bold">${fileType.toUpperCase()}</text>
+            <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, sans-serif" font-size="20" fill="white">Preview not available</text>
+        </svg>`;
+        return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
     };
 
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
@@ -63,7 +57,6 @@ const extractTextTool = ai.defineTool({
       const pdfData = Buffer.from(documentDataBase64, 'base64');
       const doc = await getDocument({ data: pdfData }).promise;
 
-      // Extract text from all pages
       let fullText = '';
       for (let i = 1; i <= doc.numPages; i++) {
         const page = await doc.getPage(i);
@@ -71,18 +64,8 @@ const extractTextTool = ai.defineTool({
         fullText += textContent.items.map(item => (item as any).str).join(' ');
       }
 
-      // Generate preview from the first page
-      const firstPage = await doc.getPage(1);
-      const viewport = firstPage.getViewport({ scale: 1.5 });
-      const canvasFactory = new canvas.CanvasFactory();
-      const canvasAndContext = canvasFactory.create(viewport.width, viewport.height);
-      const renderContext = {
-        canvasContext: canvasAndContext.context,
-        viewport: viewport,
-        canvasFactory: canvasFactory,
-      };
-      await firstPage.render(renderContext).promise;
-      const previewDataUri = canvasAndContext.canvas.toDataURL();
+      // Since canvas is not available on the server, we generate a generic preview.
+      const previewDataUri = generateGenericPreview('PDF');
 
       return { extractedText: fullText, previewDataUri: previewDataUri };
 

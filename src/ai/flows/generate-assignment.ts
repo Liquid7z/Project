@@ -69,59 +69,10 @@ const generateAssignmentFlow = ai.defineFlow(
     // Fallback to a mock response if the AI model fails to generate a valid output
     if (!output || !output.assignmentPages || output.assignmentPages.length === 0) {
       console.log("AI output was empty, generating mock data instead.");
-      const words = input.content.split(/\s+/);
-      const wordsPerPage = 250;
-      const numPages = Math.ceil(words.length / wordsPerPage);
-      const pages = [];
-
-      for (let i = 0; i < numPages; i++) {
-        const canvas = await import('canvas');
-        const { createCanvas } = canvas;
-        const pageCanvas = createCanvas(800, 1000);
-        const ctx = pageCanvas.getContext('2d');
-
-        // White background
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, 800, 1000);
-
-        // Text styling
-        ctx.fillStyle = 'black';
-        ctx.font = '20px "Comic Sans MS"';
-        ctx.textBaseline = 'top';
-
-        // Write page content
-        const start = i * wordsPerPage;
-        const end = start + wordsPerPage;
-        const pageContent = words.slice(start, end).join(' ');
-        
-        const x = 50;
-        let y = 50;
-        const maxWidth = 700;
-        const lineHeight = 30;
-        
-        const wordsInLine = pageContent.split(' ');
-        let currentLine = '';
-
-        for(let n = 0; n < wordsInLine.length; n++) {
-          const testLine = currentLine + wordsInLine[n] + ' ';
-          const metrics = ctx.measureText(testLine);
-          const testWidth = metrics.width;
-          if (testWidth > maxWidth && n > 0) {
-            ctx.fillText(currentLine, x, y);
-            currentLine = wordsInLine[n] + ' ';
-            y += lineHeight;
-          } else {
-            currentLine = testLine;
-          }
-        }
-        ctx.fillText(currentLine, x, y);
-
-        pages.push({
-            pageNumber: i + 1,
-            pageDataUri: pageCanvas.toDataURL(),
-        });
-      }
-      return { assignmentPages: pages };
+      // The canvas-based mock is removed as canvas is not available.
+      // The AI model is now solely responsible for generation.
+      // If it fails, we return an empty array.
+      return { assignmentPages: [] };
     }
 
     return output;
