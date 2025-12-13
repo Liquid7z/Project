@@ -88,14 +88,14 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
             reader.onload = (event) => {
               const url = event.target?.result;
               if (url) {
-                editor.chain().focus().setImage({ src: url as string }).run();
+                editor.chain().focus('end').setImage({ src: url as string }).run();
               }
             };
             reader.readAsDataURL(file);
         } else {
            const url = URL.createObjectURL(file);
            // 3. Use the custom attachment node
-           editor.chain().focus().insertContent({
+           editor.chain().focus('end').insertContent({
              type: 'attachment',
              attrs: { src: url, title: file.name },
            }).run();
