@@ -12,6 +12,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import {
   Bot,
@@ -22,6 +24,7 @@ import {
   Menu,
   Loader,
   Notebook,
+  Sun,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -50,12 +53,6 @@ export default function DashboardLayout({
   const auth = useAuth();
   const { user, isUserLoading, userError } = useUser();
   
-  const handleLogout = async () => {
-    if (!auth) return;
-    await signOut(auth);
-    router.push('/');
-  };
-
   useEffect(() => {
     // Redirect if loading is complete and there's no user or an error.
     if (!isUserLoading && (userError || !user)) {
@@ -96,6 +93,18 @@ export default function DashboardLayout({
             <Logo />
           </SidebarHeader>
           <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                <Sun />
+                <span>Light</span>
+              </SidebarGroupLabel>
+              <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 group-data-[collapsible=icon]:hidden">
+                <div className="flex items-center justify-between w-full">
+                  <Label htmlFor="glow-mode-desktop">Glow mode</Label>
+                  <Switch id="glow-mode-desktop" />
+                </div>
+              </div>
+            </SidebarGroup>
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
@@ -135,14 +144,8 @@ export default function DashboardLayout({
                         <Link href="/dashboard/account">Profile</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Billing</DropdownMenuItem>
-                    <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
-                        <div className="flex items-center justify-between w-full">
-                           <Label htmlFor="glow-mode-desktop">Glow mode</Label>
-                           <Switch id="glow-mode-desktop" />
-                        </div>
-                    </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
+                    <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/') }}>
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Log out</span>
                     </DropdownMenuItem>
@@ -180,7 +183,13 @@ export default function DashboardLayout({
                         ))}
                     </nav>
                      <div className="mt-auto">
-                        <Button variant="ghost" onClick={handleLogout} className="w-full justify-start">
+                        <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+                            <div className="flex items-center justify-between w-full">
+                               <Label htmlFor="glow-mode-mobile">Glow mode</Label>
+                               <Switch id="glow-mode-mobile" />
+                            </div>
+                        </div>
+                        <Button variant="ghost" onClick={async () => { if(auth) await signOut(auth); router.push('/')}} className="w-full justify-start">
                             <LogOut className="mr-2 h-4 w-4" />
                             Log out
                         </Button>
@@ -205,14 +214,8 @@ export default function DashboardLayout({
                   <Link href="/dashboard/account">Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>Billing</DropdownMenuItem>
-                 <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
-                    <div className="flex items-center justify-between w-full">
-                       <Label htmlFor="glow-mode-mobile">Glow mode</Label>
-                       <Switch id="glow-mode-mobile" />
-                    </div>
-                </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/')}}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
