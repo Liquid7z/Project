@@ -55,7 +55,7 @@ const extractTextTool = ai.defineTool({
       console.log('Detected PDF document.');
       const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
-      const doc = await getDocument({ data: pdfData }).promise;
+      const doc = await getDocument({ data: new Uint8Array(pdfData) }).promise;
 
       let fullText = '';
       for (let i = 1; i <= doc.numPages; i++) {
