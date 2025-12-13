@@ -59,12 +59,15 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
             setTitle(note.title);
             if (note.content) {
                 try {
-                    const parsedContent = typeof note.content === 'string' ? JSON.parse(note.content) : note.content;
+                    // Content can be a string (from older versions) or an object (JSON)
+                    const parsedContent = typeof note.content === 'string' && note.content ? JSON.parse(note.content) : note.content;
                     setContent(parsedContent);
                 } catch(e) {
+                     // If parsing fails, treat it as plain text.
                      setContent({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: note.content }] }] });
                 }
             } else {
+                 // Initialize with empty content if there's none
                 setContent({ type: 'doc', content: [{ type: 'paragraph' }] });
             }
             if (note.lastEdited?.toDate) {
@@ -84,6 +87,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
         setIsSaving(true);
         const finalNoteData = {
             ...noteDataToSave,
+            content: JSON.stringify(noteDataToSave.content), // Ensure content is stored as a string
             lastEdited: serverTimestamp(),
         };
 
@@ -101,7 +105,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
 
     const debouncedSave = useDebouncedCallback(() => {
       // Don't save if initial load isn't finished, or content isn't set
-      if (!isInitialLoadDone.current || content === null || !title) {
+      if (!isInitialLoadDone.current || content === null) {
         return;
       }
       saveNote({ title, content });
@@ -131,10 +135,11 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
             );
         }
         if (lastSaved) {
+             // Show "Saved" for 3 seconds after the last save.
             const isJustSaved = new Date().getTime() - lastSaved.getTime() < 3000;
             return <span className={`text-sm text-muted-foreground transition-opacity ${isJustSaved ? 'opacity-100' : 'opacity-0'}`}>Saved</span>;
         }
-        return <span className="text-sm text-muted-foreground h-5"></span>;
+        return <span className="text-sm text-muted-foreground h-5"></span>; // Placeholder for alignment
     }
 
     if (isLoadingNote || isLoadingSubject) {
@@ -187,5 +192,3 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
         </div>
     );
 }
-
-    

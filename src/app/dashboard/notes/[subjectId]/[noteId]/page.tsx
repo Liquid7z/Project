@@ -52,7 +52,7 @@ const NoteViewer = ({ content }: { content: any }) => {
                 class: 'prose prose-sm md:prose-base dark:prose-invert max-w-none focus:outline-none p-4 h-full',
             },
         },
-    });
+    }, [content]);
 
     if (!editor) {
         return <Skeleton className="w-full h-96" />;
@@ -84,7 +84,7 @@ export default function NoteViewPage({ params: paramsPromise }: { params: Promis
 
 
     const content = useMemo(() => {
-        if (!note?.content) return '';
+        if (!note?.content) return null; // Return null if no content
         if (typeof note.content === 'string') {
             try {
                 return JSON.parse(note.content);
@@ -126,14 +126,14 @@ export default function NoteViewPage({ params: paramsPromise }: { params: Promis
                     <div className="p-4 space-y-4">
                         <Skeleton className="h-96 w-full" />
                     </div>
-                ) : note ? (
+                ) : note && content ? ( // Check for content before rendering
                     <NoteViewer content={content} />
                 ) : (
-                    <div className="p-4 text-center text-muted-foreground">Note not found.</div>
+                    <div className="p-4 text-center text-muted-foreground">
+                        {note ? 'This note is empty.' : 'Note not found.'}
+                    </div>
                 )}
             </main>
         </div>
     );
 }
-
-    

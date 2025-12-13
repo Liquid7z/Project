@@ -36,15 +36,23 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
         
         const fileType = file.type;
         
-        editor.chain().focus().insertContentAt(editor.state.selection.to, {
-            type: 'documentBlock',
-            attrs: {
-              fileURL: url,
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size,
-            },
-        }).run()
+        const contentToInsert = fileType.startsWith('image/')
+            ? {
+                type: 'image',
+                attrs: { src: url },
+              }
+            : {
+                type: 'documentBlock',
+                attrs: {
+                  fileURL: url,
+                  fileName: file.name,
+                  fileType: file.type,
+                  fileSize: file.size,
+                },
+            };
+        
+        // Insert a new line before the content block for better spacing.
+        editor.chain().focus().enter().insertContentAt(editor.state.selection.to, contentToInsert).run()
 
     } catch (error) {
         console.error("Error uploading file:", error);
@@ -63,8 +71,8 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
 
   return (
     <div className="flex flex-wrap items-center gap-1 p-2 rounded-t-md border-b bg-background/50 sticky top-0 z-10">
-      <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="w-4 h-4" /></Button>
-      <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="w-4 h-4" /></Button>
+      <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().undo().run()} title="Undo" disabled={!editor.can().undo()}><Undo className="w-4 h-4" /></Button>
+      <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().redo().run()} title="Redo" disabled={!editor.can().redo()}><Redo className="w-4 h-4" /></Button>
       <div className="w-[1px] h-6 bg-border mx-1"/>
       <Button variant={editor.isActive('bold') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBold().run()} title="Bold"><Bold className="w-4 h-4" /></Button>
       <Button variant={editor.isActive('italic') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic"><Italic className="w-4 h-4" /></Button>
@@ -95,7 +103,7 @@ export const NoteEditor = ({ value, onChange, onTitleChange, title }: { value: a
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        document: false,
+        document: false, // Required for custom document structure
         codeBlock: {
             HTMLAttributes: {
                 class: 'prose-sm p-4 my-4 rounded-md bg-muted text-muted-foreground'
@@ -105,7 +113,12 @@ export const NoteEditor = ({ value, onChange, onTitleChange, title }: { value: a
       Document,
       Paragraph,
       Text,
-      Image,
+      Image.configure({
+        inline: false,
+        HTMLAttributes: {
+            class: 'my-4 rounded-md'
+        }
+      }),
       UnderlineExtension,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -113,7 +126,8 @@ export const NoteEditor = ({ value, onChange, onTitleChange, title }: { value: a
       Placeholder.configure({
         placeholder: ({ node }) => {
           if (node.type.name === 'heading' && node.attrs.level === 1) {
-            return 'What’s the title?';
+            // This is a workaround as we are using a separate input for title
+            return ''; 
           }
           return 'Start writing your note here...';
         },
@@ -151,5 +165,3 @@ export const NoteEditor = ({ value, onChange, onTitleChange, title }: { value: a
     </div>
   );
 };
-
-    
