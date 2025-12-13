@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Plus, BookOpen, Search, MoreVertical, Archive, Trash2, Edit, ChevronRight, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
@@ -148,7 +149,8 @@ const NotePreviewCard = ({ note }: { note: Note }) => {
 };
 
 
-export default function NotesDashboardPage({ params }: { params: { subjectId: string } }) {
+export default function NotesDashboardPage({ params: paramsPromise }: { params: Promise<{ subjectId: string }> }) {
+    const params = use(paramsPromise);
     const { subjectId } = params;
     const { user } = useUser();
     const firestore = useFirestore();
@@ -290,5 +292,3 @@ export default function NotesDashboardPage({ params }: { params: { subjectId: st
         </div>
     );
 }
-
-    
