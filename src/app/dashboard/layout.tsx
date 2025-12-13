@@ -83,7 +83,7 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="relative min-h-screen">
+      <div className="flex min-h-screen w-full">
         {/* Desktop Sidebar */}
         <Sidebar
           collapsible="icon"
@@ -154,78 +154,80 @@ export default function DashboardLayout({
           </SidebarFooter>
         </Sidebar>
 
-        {/* Mobile Header and Sidebar */}
-        <header className="sticky top-0 z-40 flex md:hidden h-14 items-center gap-4 border-b bg-background/50 px-4 sm:px-6 backdrop-blur-lg">
-            <Sheet>
-                <SheetTrigger asChild>
-                    <Button size="icon" variant="outline" className="shrink-0">
-                        <Menu className="h-5 w-5" />
-                        <span className="sr-only">Toggle navigation menu</span>
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
-                    <SheetHeader>
-                        <SheetTitle>LiqAI</SheetTitle>
-                    </SheetHeader>
-                    <nav className="grid gap-2 text-lg font-medium">
-                        <SheetClose asChild>
-                            <Link href="/dashboard" className="mb-4">
-                                <Logo />
-                            </Link>
-                        </SheetClose>
-                        {navItems.map(item => (
-                            <SheetClose key={item.href} asChild>
-                                <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                                    <item.icon className="h-4 w-4" />
-                                    {item.label}
-                                </Link>
-                            </SheetClose>
-                        ))}
-                    </nav>
-                     <div className="mt-auto">
-                        <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
-                            <div className="flex items-center justify-between w-full">
-                               <Label htmlFor="glow-mode-mobile">Glow mode</Label>
-                               <Switch id="glow-mode-mobile" />
-                            </div>
-                        </div>
-                        <Button variant="ghost" onClick={async () => { if(auth) await signOut(auth); router.push('/')}} className="w-full justify-start">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Log out
-                        </Button>
-                    </div>
-                </SheetContent>
-            </Sheet>
-            <div className="flex flex-1 items-center justify-end gap-2">
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar>
-                    <AvatarImage src={user?.photoURL ?? `https://avatar.vercel.sh/${user?.email}.png`} alt={user?.displayName ?? 'User'} />
-                    <AvatarFallback>{user?.displayName?.[0] ?? 'U'}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass-pane">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/account">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>Billing</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/')}}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-        </header>
-        
-        <main className="flex-1 p-4 md:p-6">
-          {children}
-        </main>
+        <div className="flex flex-col flex-1">
+          {/* Mobile Header and Sidebar */}
+          <header className="sticky top-0 z-40 flex md:hidden h-14 items-center gap-4 border-b bg-background/50 px-4 sm:px-6 backdrop-blur-lg">
+              <Sheet>
+                  <SheetTrigger asChild>
+                      <Button size="icon" variant="outline" className="shrink-0">
+                          <Menu className="h-5 w-5" />
+                          <span className="sr-only">Toggle navigation menu</span>
+                      </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
+                      <SheetHeader>
+                          <SheetTitle>LiqAI</SheetTitle>
+                      </SheetHeader>
+                      <nav className="grid gap-2 text-lg font-medium">
+                          <SheetClose asChild>
+                              <Link href="/dashboard" className="mb-4">
+                                  <Logo />
+                              </Link>
+                          </SheetClose>
+                          {navItems.map(item => (
+                              <SheetClose key={item.href} asChild>
+                                  <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                                      <item.icon className="h-4 w-4" />
+                                      {item.label}
+                                  </Link>
+                              </SheetClose>
+                          ))}
+                      </nav>
+                       <div className="mt-auto">
+                          <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+                              <div className="flex items-center justify-between w-full">
+                                 <Label htmlFor="glow-mode-mobile">Glow mode</Label>
+                                 <Switch id="glow-mode-mobile" />
+                              </div>
+                          </div>
+                          <Button variant="ghost" onClick={async () => { if(auth) await signOut(auth); router.push('/')}} className="w-full justify-start">
+                              <LogOut className="mr-2 h-4 w-4" />
+                              Log out
+                          </Button>
+                      </div>
+                  </SheetContent>
+              </Sheet>
+              <div className="flex flex-1 items-center justify-end gap-2">
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar>
+                      <AvatarImage src={user?.photoURL ?? `https://avatar.vercel.sh/${user?.email}.png`} alt={user?.displayName ?? 'User'} />
+                      <AvatarFallback>{user?.displayName?.[0] ?? 'U'}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="glass-pane">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/account">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>Billing</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/')}}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+          </header>
+          
+          <main className="flex-1 p-4 md:p-6">
+            {children}
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );
