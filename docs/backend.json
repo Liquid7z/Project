@@ -153,6 +153,84 @@
         "generatedContentURL",
         "creationDate"
       ]
+    },
+    "Subject": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subject",
+      "type": "object",
+      "description": "Represents a subject or category for organizing notes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subject."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this subject."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the subject."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the subject."
+        },
+        "noteCount": {
+          "type": "number",
+          "description": "The number of notes within this subject."
+        },
+        "lastEdited": {
+          "type": "string",
+          "description": "Timestamp of the last edit.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the subject.",
+          "enum": ["active", "archived"]
+        }
+      },
+      "required": ["id", "userId", "title", "lastEdited", "status"]
+    },
+    "Note": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Note",
+      "type": "object",
+      "description": "Represents a single note within a subject.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the note."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this note."
+        },
+        "subjectId": {
+          "type": "string",
+          "description": "The ID of the subject this note belongs to."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the note."
+        },
+        "content": {
+          "type": "string",
+          "description": "The HTML content of the note."
+        },
+        "lastEdited": {
+          "type": "string",
+          "description": "Timestamp of the last edit.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the note.",
+          "enum": ["active", "archived"]
+        }
+      },
+      "required": ["id", "userId", "subjectId", "title", "lastEdited", "status"]
     }
   },
   "auth": {
@@ -235,6 +313,50 @@
             {
               "name": "generatedAssignmentId",
               "description": "The unique identifier of the generated assignment."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/users/{userId}/subjects/{subjectId}",
+        "definition": {
+          "entityName": "Subject",
+          "schema": {
+            "$ref": "#/backend/entities/Subject"
+          },
+          "description": "Stores note subjects for each user. Path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "subjectId",
+              "description": "The unique identifier for the subject."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/subjects/{subjectId}/notes/{noteId}",
+        "definition": {
+          "entityName": "Note",
+          "schema": {
+            "$ref": "#/backend/entities/Note"
+          },
+          "description": "Stores notes for a given subject. Path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "subjectId",
+              "description": "The unique identifier for the subject."
+            },
+            {
+              "name": "noteId",
+              "description": "The unique identifier for the note."
             }
           ]
         }

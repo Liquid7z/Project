@@ -12,69 +12,88 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, serverTimestamp, query, where, orderBy, writeBatch } from 'firebase/firestore';
+import { WithId } from '@/firebase/firestore/use-collection';
 
-type Subject = {
-  id: string;
+type Subject = WithId<{
   title: string;
   description: string;
   noteCount: number;
-  lastEdited: string;
+  lastEdited: any; // Firestore Timestamp
   status: 'active' | 'archived';
-};
-
-const mockSubjects: Subject[] = [
-  { id: 'quantum-mechanics', title: 'Quantum Mechanics', description: 'Exploring the strange world of atoms and particles.', noteCount: 3, lastEdited: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), status: 'active' },
-  { id: 'periodic-table', title: 'The Periodic Table', description: 'Elements, their properties, and chemical behaviors.', noteCount: 1, lastEdited: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), status: 'active' },
-  { id: 'world-war-2', title: 'World War II', description: 'A study of the global conflict from 1939-1945.', noteCount: 1, lastEdited: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), status: 'active' },
-  { id: 'biology-101', title: 'Biology 101', description: 'The fundamentals of life and living organisms.', noteCount: 5, lastEdited: new Date().toISOString(), status: 'active' },
-];
+  userId: string;
+}>;
 
 export default function NotesDashboardPage() {
-    const [subjects, setSubjects] = useState<Subject[]>(mockSubjects);
+    const { user } = useUser();
+    const firestore = useFirestore();
+    
+    const subjectsRef = useMemoFirebase(() => 
+        user ? collection(firestore, 'users', user.uid, 'subjects') : null, 
+        [firestore, user]
+    );
+
+    const subjectsQuery = useMemoFirebase(() => 
+        subjectsRef ? query(subjectsRef, orderBy('lastEdited', 'desc')) : null, 
+        [subjectsRef]
+    );
+
+    const { data: subjects, isLoading: isLoadingSubjects } = useCollection<Subject>(subjectsQuery);
+
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [newSubjectTitle, setNewSubjectTitle] = useState('');
     const [newSubjectDescription, setNewSubjectDescription] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('newest');
 
-    const handleCreateSubject = () => {
-        if (!newSubjectTitle) return;
+    const handleCreateSubject = async () => {
+        if (!newSubjectTitle || !user || !subjectsRef) return;
 
-        const newSubject: Subject = {
-            id: newSubjectTitle.toLowerCase().replace(/\s+/g, '-'),
+        const newSubject = {
+            userId: user.uid,
             title: newSubjectTitle,
             description: newSubjectDescription,
             noteCount: 0,
-            lastEdited: new Date().toISOString(),
-            status: 'active',
+            lastEdited: serverTimestamp(),
+            status: 'active' as const,
         };
 
-        setSubjects([newSubject, ...subjects]);
+        await addDocumentNonBlocking(subjectsRef, newSubject);
+        
         setNewSubjectTitle('');
         setNewSubjectDescription('');
         setIsCreateDialogOpen(false);
     };
 
-    const handleDeleteSubject = (subjectId: string) => {
-        setSubjects(subjects.filter(s => s.id !== subjectId));
+    const handleDeleteSubject = async (subjectId: string) => {
+        if (!user || !firestore) return;
+        const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', subjectId);
+        await deleteDocumentNonBlocking(subjectDocRef);
+        // In a real app, you might want to delete all notes under this subject as well
     };
 
-    const handleArchiveSubject = (subjectId: string) => {
-        setSubjects(subjects.map(s => s.id === subjectId ? { ...s, status: 'archived' } : s));
+    const handleArchiveSubject = async (subjectId: string) => {
+        if (!user || !firestore) return;
+        const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', subjectId);
+        await updateDocumentNonBlocking(subjectDocRef, { status: 'archived', lastEdited: serverTimestamp() });
     };
 
     const filteredAndSortedSubjects = useMemo(() => {
+        if (!subjects) return [];
         return subjects
-            .filter(subject => subject.status === 'active') // Only show active subjects
+            .filter(subject => subject.status === 'active')
             .filter(subject => 
                 subject.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 subject.description.toLowerCase().includes(searchTerm.toLowerCase())
             )
             .sort((a, b) => {
+                const timeA = a.lastEdited?.toDate ? a.lastEdited.toDate().getTime() : 0;
+                const timeB = b.lastEdited?.toDate ? b.lastEdited.toDate().getTime() : 0;
                 if (sortBy === 'newest') {
-                    return new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime();
+                    return timeB - timeA;
                 } else {
-                    return new Date(a.lastEdited).getTime() - new Date(b.lastEdited).getTime();
+                    return timeA - timeB;
                 }
             });
     }, [subjects, searchTerm, sortBy]);
@@ -105,6 +124,16 @@ export default function NotesDashboardPage() {
                     <Button variant="glow" onClick={() => setIsCreateDialogOpen(true)}><Plus className="mr-2"/> Add Subject</Button>
                 </div>
             </div>
+            
+            {isLoadingSubjects && <p>Loading subjects...</p>}
+
+            {!isLoadingSubjects && filteredAndSortedSubjects.length === 0 && (
+                 <div className="text-center text-muted-foreground p-12 border-2 border-dashed rounded-lg">
+                    <BookOpen className="mx-auto h-12 w-12" />
+                    <h3 className="mt-4 text-lg font-semibold">No Subjects Yet</h3>
+                    <p className="mt-1 text-sm">Click "Add Subject" to get started.</p>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredAndSortedSubjects.map((subject, index) => (
@@ -119,7 +148,7 @@ export default function NotesDashboardPage() {
                             <CardHeader className="relative">
                                 <Link href={`/dashboard/notes/${subject.id}`} className="block">
                                     <CardTitle className="font-headline text-glow truncate">{subject.title}</CardTitle>
-                                    <CardDescription className="mt-2">{subject.description}</CardDescription>
+                                    <CardDescription className="mt-2 h-10 overflow-hidden text-ellipsis">{subject.description}</CardDescription>
                                 </Link>
                                 <div className="absolute top-4 right-4">
                                     <DropdownMenu>
@@ -143,9 +172,12 @@ export default function NotesDashboardPage() {
                             </CardHeader>
                             <CardContent className="flex-1"></CardContent>
                             <CardFooter>
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                    <BookOpen className="w-4 h-4 mr-2"/>
-                                    <span>{subject.noteCount} {subject.noteCount === 1 ? 'Note' : 'Notes'}</span>
+                                <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
+                                    <div className="flex items-center">
+                                        <BookOpen className="w-4 h-4 mr-2"/>
+                                        <span>{subject.noteCount || 0} {subject.noteCount === 1 ? 'Note' : 'Notes'}</span>
+                                    </div>
+                                    <span>Edited {subject.lastEdited?.toDate ? new Date(subject.lastEdited.toDate()).toLocaleDateString() : 'recently'}</span>
                                 </div>
                             </CardFooter>
                         </Card>
