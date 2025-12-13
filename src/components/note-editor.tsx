@@ -9,6 +9,9 @@ import { Button } from './ui/button';
 import { useCallback } from 'react';
 import { Node } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
+import { useStorage, useUser } from '@/firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
 
 // 1. Create a custom component for the attachment
 const AttachmentComponent = (props: any) => {
@@ -75,35 +78,48 @@ const Attachment = Node.create({
 });
 
 
-const EditorToolbar = ({ editor }: { editor: any }) => {
-  const addFile = useCallback((fileType: 'image' | 'doc' = 'image') => {
+const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => {
+  const storage = useStorage();
+  const { user } = useUser();
+
+  const addFile = useCallback(async (fileType: 'image' | 'doc' = 'image') => {
+    if (!storage || !user) return;
+    const currentNoteId = noteId || 'new-note';
+
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = fileType === 'image' ? 'image/*' : 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    input.onchange = (e) => {
+    
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              const url = event.target?.result;
-              if (url) {
-                editor.chain().focus('end').setImage({ src: url as string }).run();
-              }
-            };
-            reader.readAsDataURL(file);
-        } else {
-           const url = URL.createObjectURL(file);
-           // 3. Use the custom attachment node
-           editor.chain().focus('end').insertContent({
-             type: 'attachment',
-             attrs: { src: url, title: file.name },
-           }).run();
+        // Create a unique path for the file in Firebase Storage
+        const uniqueFileName = `${uuidv4()}-${file.name}`;
+        const filePath = `notes/${user.uid}/${currentNoteId}/${uniqueFileName}`;
+        const fileStorageRef = storageRef(storage, filePath);
+
+        try {
+          // Upload the file
+          const snapshot = await uploadBytes(fileStorageRef, file);
+          // Get the public URL
+          const downloadURL = await getDownloadURL(snapshot.ref);
+
+          if (file.type.startsWith('image/')) {
+            editor.chain().focus('end').setImage({ src: downloadURL }).run();
+          } else {
+            editor.chain().focus('end').insertContent({
+              type: 'attachment',
+              attrs: { src: downloadURL, title: file.name },
+            }).run();
+          }
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          // TODO: Add user-facing error toast
         }
       }
     };
     input.click();
-  }, [editor]);
+  }, [editor, storage, user, noteId]);
 
   if (!editor) {
     return null;
@@ -196,7 +212,7 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
 };
 
 
-export const NoteEditor = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
+export const NoteEditor = ({ value, onChange, noteId }: { value: string; onChange: (value: string) => void, noteId?: string }) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -206,10 +222,10 @@ export const NoteEditor = ({ value, onChange }: { value: string; onChange: (valu
         placeholder: 'Start writing your note here...',
       }),
       Image.configure({
-        inline: false, // Set to false to make images block elements
+        inline: false, 
         allowBase64: true,
       }),
-      Attachment, // 4. Add the custom node to the editor
+      Attachment, 
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -228,7 +244,7 @@ export const NoteEditor = ({ value, onChange }: { value: string; onChange: (valu
 
   return (
     <div className="relative h-full flex flex-col">
-        <EditorToolbar editor={editor} />
+        <EditorToolbar editor={editor} noteId={noteId} />
         <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
     </div>
   );

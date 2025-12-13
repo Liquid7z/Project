@@ -139,6 +139,7 @@ const EditNoteView = ({ note, subjectId, onSave, onCancel }: { note: Partial<Not
                         <NoteEditor 
                             value={currentNote.content || ''}
                             onChange={(content) => setCurrentNote({...currentNote, content})}
+                            noteId={currentNote.id}
                         />
                     </CardContent>
                 </Card>
