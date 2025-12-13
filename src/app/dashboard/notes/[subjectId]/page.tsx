@@ -55,18 +55,24 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
   const { data: notes, isLoading } = useCollection<Note>(notesQuery);
 
   const handleCreateNote = async () => {
-    if (!user) return;
+    if (!user || !firestore) return;
     const notesCollection = collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes');
-    const newNote = {
-      title: 'Untitled Note',
-      blocks: [{ id: uuidv4(), type: 'text', content: { type: 'doc', content: [{ type: 'paragraph' }] }, order: 0 }],
-      lastEdited: serverTimestamp(),
-      userId: user.uid,
-      subjectId: subjectId,
+    const newNoteData = {
+        title: 'Untitled Note',
+        blocks: [{ id: uuidv4(), type: 'text', content: { type: 'doc', content: [{ type: 'paragraph' }] }, order: 0 }],
+        lastEdited: serverTimestamp(),
+        userId: user.uid,
+        subjectId: subjectId,
     };
-    const newDoc = await addDocumentNonBlocking(notesCollection, newNote);
-    if(newDoc?.id) {
-        router.push(`/dashboard/notes/${subjectId}/${newDoc.id}/edit`);
+
+    try {
+        const docRef = await addDocumentNonBlocking(notesCollection, newNoteData);
+        if (docRef?.id) {
+            router.push(`/dashboard/notes/${subjectId}/${docRef.id}/edit`);
+        }
+    } catch (error) {
+        console.error("Error creating new note: ", error);
+        // Optionally, show a toast notification to the user
     }
   };
   
