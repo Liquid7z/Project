@@ -27,9 +27,11 @@ import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const navItems = [
   { href: '/dashboard', icon: Bot, label: 'Generate' },
@@ -147,18 +149,18 @@ export default function DashboardLayout({
                             <SheetTitle>Navigation</SheetTitle>
                         </SheetHeader>
                         <nav className="grid gap-2 text-lg font-medium">
-                            <SheetClose asChild>
+                            
                                 <Link href="/dashboard" className="mb-4">
                                     <Logo />
                                 </Link>
-                            </SheetClose>
+                            
                             {navItems.map(item => (
-                                <SheetClose asChild key={item.href}>
-                                <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                                
+                                <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                                     <item.icon className="h-4 w-4" />
                                     {item.label}
                                 </Link>
-                                </SheetClose>
+                                
                             ))}
                         </nav>
                          <div className="mt-auto">
@@ -169,13 +171,10 @@ export default function DashboardLayout({
                         </div>
                     </SheetContent>
                 </Sheet>
-                 <div className="flex-1">
-                    <h1 className="font-semibold text-lg">{currentPage?.label}</h1>
+                 <div className="flex-1 flex items-center gap-2">
+                    <Label htmlFor="glow-mode" className="text-sm font-medium">Glow mode</Label>
+                    <Switch id="glow-mode" />
                 </div>
-                 <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.photoURL ?? `https://avatar.vercel.sh/${user?.email}.png`} alt={user?.displayName ?? 'User'} />
-                    <AvatarFallback>{user?.displayName?.[0] ?? 'U'}</AvatarFallback>
-                </Avatar>
             </header>
         </div>
         
