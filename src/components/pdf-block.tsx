@@ -31,22 +31,25 @@ export const PdfBlockNode = TipTapNode.create({
     return ({ node, deleteNode, editor }) => {
       const { fileURL, fileName } = node.attrs;
       return (
-        <NodeViewWrapper className="my-4 p-4 rounded-lg bg-red-900/20 border border-red-500/30 relative group not-prose">
-            {editor.isEditable && (
-                 <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-destructive/50 hover:bg-destructive"
-                    onClick={deleteNode}
-                 >
-                     <X className="h-4 w-4"/>
-                 </Button>
-            )}
-            <DocumentPreviewer 
-                fileURL={fileURL}
-                fileType="application/pdf"
-                fileName={fileName}
-            />
+        <NodeViewWrapper className="my-4 relative group not-prose">
+             <div className="p-4 rounded-lg bg-card border-l-4 border-accent shadow-md">
+                <h3 className="text-sm font-semibold mb-2 text-foreground">{fileName}</h3>
+                {editor.isEditable && (
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-destructive/50 hover:bg-destructive"
+                        onClick={deleteNode}
+                    >
+                        <X className="h-4 w-4"/>
+                    </Button>
+                )}
+                <DocumentPreviewer 
+                    fileURL={fileURL}
+                    fileType="application/pdf"
+                    fileName={fileName}
+                />
+            </div>
         </NodeViewWrapper>
       );
     };

@@ -33,7 +33,9 @@ export const DocumentBlockNode = TipTapNode.create({
     return ({ node, deleteNode, editor }) => {
       const { fileURL, fileName, fileType, fileSize } = node.attrs;
       return (
-        <NodeViewWrapper className="my-4 p-4 rounded-lg bg-muted/50 relative group not-prose">
+        <NodeViewWrapper className="my-4 relative group not-prose">
+          <div className="p-4 rounded-lg bg-card border-l-4 border-primary shadow-md">
+            <h3 className="text-sm font-semibold mb-2 text-foreground">{fileName}</h3>
             {editor.isEditable && (
                  <Button 
                     variant="ghost" 
@@ -49,6 +51,7 @@ export const DocumentBlockNode = TipTapNode.create({
                 fileType={fileType}
                 fileName={fileName}
             />
+          </div>
         </NodeViewWrapper>
       );
     };
@@ -56,5 +59,3 @@ export const DocumentBlockNode = TipTapNode.create({
 });
 
 export default DocumentBlockNode;
-
-    
