@@ -9,10 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import * as fs from 'fs';
-import * as pdfjs from 'pdfjs-dist';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
+import {getDocument, GlobalWorkerOptions, version} from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 const ExtractTextFromDocumentInputSchema = z.object({
   documentDataUri: z
@@ -56,7 +53,7 @@ const extractTextTool = ai.defineTool({
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
       console.log('Detected PDF document.');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
-      const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfData) }).promise;
+      const doc = await getDocument({ data: new Uint8Array(pdfData) }).promise;
 
       let fullText = '';
       for (let i = 1; i <= doc.numPages; i++) {
