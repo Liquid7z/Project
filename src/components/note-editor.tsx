@@ -139,11 +139,7 @@ export const NoteEditor = ({ value, onChange, onTitleChange, title }: { value: a
           return 'Start writing your note here...';
         },
       }),
-      DocumentBlock.configure({
-          HTMLAttributes: {
-              class: 'my-4',
-          }
-      })
+      DocumentBlock,
     ],
     content: value,
     onUpdate: ({ editor }) => {
