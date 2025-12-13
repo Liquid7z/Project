@@ -9,11 +9,9 @@ import 'pdfjs-dist/web/pdf_viewer.css';
 import { AlertCircle, FileWarning } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Set workerSrc for pdf.js. This is crucial for it to work with Next.js/Webpack.
-// We point it to a copy of the worker file hosted on a CDN, hardcoding the version
-// to avoid issues with dynamic version resolution in this environment.
-const PDF_JS_VERSION = '4.0.379';
-GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.worker.min.mjs`;
+// WORKAROUND: Force single-threaded rendering to avoid worker script fetching issues in this environment.
+GlobalWorkerOptions.workerSrc = `data:application/javascript,`;
+
 
 async function fileUrlToDataUri(url: string): Promise<string> {
     const response = await fetch(url);
