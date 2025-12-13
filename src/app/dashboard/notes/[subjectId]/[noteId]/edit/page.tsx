@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo, useState, useEffect, useCallback } from 'react';
+import { use, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, notFound } from 'next/navigation';
 import {
@@ -14,7 +14,7 @@ import {
 import { doc, serverTimestamp } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { WithId } from '@/firebase/firestore/use-collection';
-import { useDebounceCallback } from 'use-debounce';
+import { useDebouncedCallback } from 'use-debounce';
 import { DndProvider, useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { v4 as uuidv4 } from 'uuid';
@@ -152,7 +152,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
   }, [note]);
 
 
-  const debouncedSave = useDebounceCallback(
+  const debouncedSave = useDebouncedCallback(
     (newTitle: string, newBlocks: NoteBlock[]) => {
       if (!noteDocRef) return;
       const blocksWithOrder = newBlocks.map((block, index) => ({ ...block, order: index }));
