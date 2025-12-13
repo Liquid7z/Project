@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, notFound } from 'next/navigation';
+import { useRouter, notFound, useParams } from 'next/navigation';
 import {
   useUser,
   useFirestore,
@@ -125,9 +125,10 @@ const Block = ({ block, index, moveBlock, updateBlock, removeBlock, addFile }: B
 };
 
 
-export default function NoteEditPage({ params: paramsPromise }: { params: Promise<{ subjectId: string, noteId: string }> }) {
-  const params = use(paramsPromise);
-  const { subjectId, noteId } = params;
+export default function NoteEditPage() {
+  const params = useParams();
+  const subjectId = params.subjectId as string;
+  const noteId = params.noteId as string;
   const { user } = useUser();
   const firestore = useFirestore();
   const storage = useStorage();
@@ -135,7 +136,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
   const [isUploading, setIsUploading] = useState(false);
   
   const noteDocRef = useMemoFirebase(
-    () => (user ? doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId) : null),
+    () => (user && subjectId && noteId ? doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId) : null),
     [firestore, user, subjectId, noteId]
   );
   
@@ -167,7 +168,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
   );
 
   useEffect(() => {
-    if(!isLoading && note) {
+    if(!isLoading && note && (title !== note.title || JSON.stringify(blocks) !== JSON.stringify(note.blocks.sort((a,b) => a.order - b.order)))) {
       debouncedSave(title, blocks);
     }
   }, [title, blocks, debouncedSave, isLoading, note]);
@@ -184,7 +185,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
   };
   
   const addFile = async (file: File) => {
-      if (!user) return;
+      if (!user || !noteId) return;
       setIsUploading(true);
 
       const newBlockId = uuidv4();
@@ -196,8 +197,8 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
           await uploadBytes(fileStorageRef, file);
           const fileURL = await getDownloadURL(fileStorageRef);
           
-          let blockType: 'image' | 'document' | 'pdf' = 'document';
-          if(fileType.startsWith('image/')) blockType = 'image';
+          let blockType: 'text' | 'document' | 'pdf' = 'document';
+          if(fileType.startsWith('image/')) blockType = 'text';
           if(fileType === 'application/pdf') blockType = 'pdf';
 
           const fileContent = {
@@ -207,7 +208,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
               fileSize: file.size,
           };
           
-          if(blockType === 'image') {
+          if(blockType === 'text') {
               // find last text block and add image to it.
               const lastTextBlockIndex = blocks.findLastIndex(b => b.type === 'text');
               if (lastTextBlockIndex !== -1) {
@@ -232,7 +233,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
                   setBlocks(prev => [...prev, newBlock]);
               }
           } else {
-              const newBlock: NoteBlock = {
+               const newBlock: NoteBlock = {
                   id: newBlockId,
                   type: blockType,
                   content: fileContent,
@@ -272,7 +273,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
     });
   }, []);
 
-  if (isLoading) {
+  if (isLoading || !noteId) {
     return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
   }
   
