@@ -13,7 +13,7 @@ import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 // WORKAROUND: In a serverless environment, the worker is not available.
 // This forces pdfjs-dist to run in a single-threaded mode.
-GlobalWorkerOptions.workerSrc = false;
+GlobalWorkerOptions.workerSrc = false as any;
 
 const ExtractTextFromDocumentInputSchema = z.object({
   documentDataUri: z
