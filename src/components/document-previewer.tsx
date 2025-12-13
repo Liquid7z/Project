@@ -20,20 +20,6 @@ interface DocumentPreviewerProps {
     isCardPreview?: boolean;
 }
 
-async function fileUrlToDataUri(url: string): Promise<string> {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error('Network response was not ok.');
-    }
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-}
-
 const PDFViewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPreview?: boolean }) => {
     const [pdfDoc, setPdfDoc] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -121,8 +107,8 @@ const DocxPreviewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPrev
             try {
                 setIsLoading(true);
                 setError(null);
-                const dataUri = await fileUrlToDataUri(fileUrl);
-                const result = await extractTextAction({ documentDataUri: dataUri });
+                // Directly use the fileUrl if it's already a data URI, which it should be from storage
+                const result = await extractTextAction({ documentDataUri: fileUrl });
                 setContent(result.extractedText);
             } catch (err: any) {
                 console.error("Error processing DOCX:", err);
@@ -152,8 +138,8 @@ const FallbackPreview = ({ fileName }: { fileName: string }) => (
 
 export const DocumentPreviewer = ({ fileURL, fileType, fileName, isCardPreview = false }: DocumentPreviewerProps) => {
     
-    if (!fileType) {
-        return <FallbackPreview fileName={fileName} />;
+    if (!fileType || !fileURL) {
+        return <FallbackPreview fileName={fileName || 'File'} />;
     }
 
     if (fileType.startsWith('image/')) {
@@ -171,5 +157,3 @@ export const DocumentPreviewer = ({ fileURL, fileType, fileName, isCardPreview =
 
     return <FallbackPreview fileName={fileName} />;
 };
-
-    
