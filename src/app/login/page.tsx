@@ -65,13 +65,13 @@ export default function LoginPage() {
         <div 
             className="absolute inset-0 z-0"
             style={{
-                backgroundImage: 'radial-gradient(circle at top left, hsl(var(--primary) / 0.2), transparent 30%), radial-gradient(circle at bottom right, hsl(var(--accent) / 0.2), transparent 30%)'
+                backgroundImage: 'radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 30%), radial-gradient(circle at bottom right, hsl(var(--accent) / 0.1), transparent 30%)'
             }}
         />
         <Link href="/" className="absolute top-4 left-4 md:top-8 md:left-8 z-20">
             <Logo />
         </Link>
-        <Card className="mx-auto max-w-sm w-full z-10 glass-pane">
+        <Card className="mx-auto max-w-sm w-full z-10">
             <CardHeader className="space-y-1 text-center">
                 <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
                 <CardDescription>Enter your credentials to access your account</CardDescription>

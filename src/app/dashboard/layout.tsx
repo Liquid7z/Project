@@ -72,7 +72,7 @@ export default function DashboardLayout({
         <Sidebar
           variant="inset"
           collapsible="icon"
-          className="hidden md:block border-r-0 glass-pane !bg-card/30"
+          className="hidden md:block border-r-0 !bg-card/30"
         >
           <SidebarHeader className="p-4">
             <Logo />
@@ -149,7 +149,7 @@ export default function DashboardLayout({
                             </SheetClose>
                             {navItems.map(item => (
                                 <SheetClose asChild key={item.href}>
-                                    <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent/50 text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                                    <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                                         <item.icon className="h-4 w-4" />
                                         {item.label}
                                     </Link>
@@ -174,7 +174,7 @@ export default function DashboardLayout({
             </header>
         </div>
         
-        <SidebarInset className="md:border-none md:shadow-none md:rounded-none md:m-0 glass-pane">
+        <SidebarInset>
           <main className="flex-1 p-4 md:p-6">
             {children}
           </main>

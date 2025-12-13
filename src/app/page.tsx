@@ -86,7 +86,7 @@ export default function Home() {
                         LiqAI transforms your typed text into authentic handwritten documents using a personalized AI model of your own handwriting.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <Button size="lg" asChild className="animate-button-glow">
+                        <Button size="lg" asChild variant="glow">
                             <Link href="/signup">Start for Free</Link>
                         </Button>
                     </div>
@@ -107,7 +107,7 @@ export default function Home() {
             </div>
             <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 mt-12">
                 {features.map((feature, index) => (
-                    <div key={index} className="grid gap-4 p-6 rounded-lg glass-pane transition-all hover:scale-105 hover:border-accent">
+                    <div key={index} className="grid gap-4 p-6 rounded-lg transition-all hover:scale-105 hover:border-accent border">
                         <div className="flex items-center gap-4">
                             {feature.icon}
                             <h3 className="text-lg font-bold font-headline">{feature.title}</h3>
@@ -132,7 +132,7 @@ export default function Home() {
                 </div>
                 <div className="mx-auto grid max-w-md items-start gap-8 sm:max-w-4xl sm:grid-cols-2 mt-12">
                     {pricingTiers.map((tier) => (
-                        <Card key={tier.name} className={`glass-pane flex flex-col ${tier.primary ? 'border-accent' : ''}`}>
+                        <Card key={tier.name} className={`flex flex-col ${tier.primary ? 'border-accent' : ''}`}>
                             <CardHeader>
                                 <CardTitle className="font-headline">{tier.name}</CardTitle>
                                 <CardDescription>{tier.description}</CardDescription>
@@ -149,7 +149,7 @@ export default function Home() {
                                 </ul>
                             </CardContent>
                             <div className="p-6 pt-0">
-                                <Button asChild className={`w-full ${tier.primary ? 'animate-button-glow' : ''}`}>
+                                <Button asChild className="w-full" variant={tier.primary ? 'glow' : 'default'}>
                                     <Link href={tier.href}>{tier.cta}</Link>
                                 </Button>
                             </div>

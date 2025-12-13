@@ -63,7 +63,7 @@ export default function GeneratePage() {
         <div className="grid gap-6">
             {isLoading && <LoadingAnimation text={loadingText} />}
             <div className="grid lg:grid-cols-2 gap-6">
-                <Card className="glass-pane">
+                <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Input Content</CardTitle>
                         <CardDescription>Provide the text for your assignment.</CardDescription>
@@ -97,7 +97,7 @@ export default function GeneratePage() {
                     </CardFooter>
                 </Card>
 
-                <Card className="glass-pane">
+                <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Generated Output</CardTitle>
                         <CardDescription>Your handwritten assignment will appear here.</CardDescription>
