@@ -6,7 +6,7 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, Pilcrow, List, ListOrdered, ImageIcon, Paperclip, File as FileIcon } from 'lucide-react';
 import { Button } from './ui/button';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { useStorage, useUser } from '@/firebase';
@@ -14,10 +14,44 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { v4 as uuidv4 } from 'uuid';
 import { extractTextAction } from '@/actions/generation';
 import NextImage from 'next/image';
+import { Skeleton } from './ui/skeleton';
 
 const AttachmentComponent = (props: any) => {
-  const { node } = props;
-  const { src, title, previewSrc } = node.attrs;
+  const { node, updateAttributes } = props;
+  const { src, title } = node.attrs;
+  const [previewSrc, setPreviewSrc] = useState(node.attrs.previewSrc);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // If the preview is a generic SVG, it means we need to generate a real one.
+    const needsPreviewGeneration = previewSrc && previewSrc.startsWith('data:image/svg+xml');
+
+    if (needsPreviewGeneration && src && !isLoading) {
+      setIsLoading(true);
+      
+      // Since we can't get a data URI directly from a Firebase storage URL due to CORS,
+      // and we don't want to expose a proxy, we will make a compromise.
+      // We will assume that if a preview is needed, it's because it wasn't generated on upload.
+      // The `extractTextAction` can take a `documentDataUri`, but we only have a `src` URL.
+      // We will create a generic but more informative preview.
+      
+      const fileType = title.split('.').pop()?.toUpperCase() || 'FILE';
+
+      const generateBetterPreview = (fileType: string): string => {
+        const svg = `<svg width="400" height="500" xmlns="http://www.w3.org/2000/svg">
+            <rect width="400" height="500" fill="#2d3748" />
+            <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="30" fill="white" font-weight="bold">${fileType}</text>
+            <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" fill="#a0aec0">${title}</text>
+        </svg>`;
+        return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+      };
+
+      const newPreview = generateBetterPreview(fileType);
+      setPreviewSrc(newPreview);
+      updateAttributes({ previewSrc: newPreview });
+      setIsLoading(false);
+    }
+  }, [src, previewSrc, title, updateAttributes, isLoading]);
 
   return (
     <NodeViewWrapper className="not-prose my-4">
@@ -30,22 +64,30 @@ const AttachmentComponent = (props: any) => {
           <a 
             href={src} 
             download={title}
+            target="_blank"
+            rel="noopener noreferrer"
             className="font-medium text-foreground hover:underline truncate"
             onClick={(e) => e.stopPropagation()} 
           >
             {title}
           </a>
         </div>
-        {previewSrc && (
-          <div className="relative aspect-video w-full rounded-md overflow-hidden border">
+        <div className="relative aspect-video w-full rounded-md overflow-hidden border">
+            {isLoading ? (
+                <Skeleton className="h-full w-full" />
+            ) : previewSrc ? (
               <NextImage
                 src={previewSrc}
                 alt={`Preview of ${title}`}
                 fill
                 className="object-contain"
               />
-          </div>
-        )}
+            ) : (
+              <div className="flex items-center justify-center h-full bg-muted">
+                <p className="text-muted-foreground text-sm">No preview available</p>
+              </div>
+            )}
+        </div>
       </div>
     </NodeViewWrapper>
   );
@@ -107,7 +149,7 @@ const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => 
 
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = fileType === 'image' ? 'image/*' : '*/*';
+    input.accept = fileType === 'image' ? 'image/*' : '.pdf,.doc,.docx';
     
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -127,10 +169,10 @@ const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => 
             const documentDataUri = await fileToDataUri(file);
             const { previewDataUri } = await extractTextAction({ documentDataUri });
 
-            editor.chain().focus().insertContentAt(editor.state.doc.content.size, {
+            editor.chain().focus().insertContentAt(editor.state.selection.to, {
               type: 'attachment',
               attrs: { src: downloadURL, title: file.name, previewSrc: previewDataUri },
-            }).insertContentAt(editor.state.doc.content.size, `<p></p>`).run();
+            }).run();
           }
         } catch (error) {
           console.error("Error uploading file:", error);
