@@ -122,15 +122,15 @@ const EditorToolbar = ({ editor, noteId }: { editor: any, noteId?: string }) => 
           const downloadURL = await getDownloadURL(snapshot.ref);
 
           if (file.type.startsWith('image/')) {
-            editor.chain().focus('end').setImage({ src: downloadURL }).run();
+            editor.chain().focus().insertContentAt(editor.state.doc.content.size, `<p></p>`).setImage({ src: downloadURL }).run();
           } else {
             const documentDataUri = await fileToDataUri(file);
             const { previewDataUri } = await extractTextAction({ documentDataUri });
 
-            editor.chain().focus('end').insertContent({
+            editor.chain().focus().insertContentAt(editor.state.doc.content.size, {
               type: 'attachment',
               attrs: { src: downloadURL, title: file.name, previewSrc: previewDataUri },
-            }).run();
+            }).insertContentAt(editor.state.doc.content.size, `<p></p>`).run();
           }
         } catch (error) {
           console.error("Error uploading file:", error);
