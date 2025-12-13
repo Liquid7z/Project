@@ -27,7 +27,7 @@ import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 
@@ -144,21 +144,17 @@ export default function DashboardLayout({
                     </SheetTrigger>
                     <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
                         <SheetHeader>
-                             <SheetTitle className="sr-only">Navigation</SheetTitle>
+                            <SheetTitle className="sr-only">Navigation</SheetTitle>
                         </SheetHeader>
                         <nav className="grid gap-2 text-lg font-medium">
-                            <SheetClose asChild>
-                                <Link href="/dashboard" className="mb-4">
-                                    <Logo />
-                                </Link>
-                            </SheetClose>
+                            <Link href="/dashboard" className="mb-4">
+                                <Logo />
+                            </Link>
                             {navItems.map(item => (
-                                <SheetClose asChild key={item.href}>
-                                    <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                                        <item.icon className="h-4 w-4" />
-                                        {item.label}
-                                    </Link>
-                                </SheetClose>
+                                <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                                    <item.icon className="h-4 w-4" />
+                                    {item.label}
+                                </Link>
                             ))}
                         </nav>
                          <div className="mt-auto">
