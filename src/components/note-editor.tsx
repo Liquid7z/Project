@@ -29,7 +29,7 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
     try {
         await uploadBytes(fileStorageRef, file);
         const url = await getDownloadURL(fileStorageRef);
-        editor.chain().focus().setImage({ src: url }).run();
+        editor.chain().focus('end').setImage({ src: url }).run();
     } catch (error) {
         console.error("Error uploading image:", error);
         // Add user-facing error feedback (e.g., a toast)
@@ -57,7 +57,7 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
                 </a>
             </p>
         `;
-        editor.chain().focus().insertContent(html).run();
+        editor.chain().focus('end').insertContent(html).run();
 
     } catch (error) {
         console.error("Error uploading document:", error);
