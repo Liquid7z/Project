@@ -51,7 +51,7 @@ export default function AnalyzePage() {
                     <CardTitle className="font-headline">Analyze Your Handwriting Style</CardTitle>
                     <CardDescription>Upload an image of your handwriting to create a personalized AI model.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-8">
+                <CardContent className="grid lg:grid-cols-2 gap-8">
                     <div className="space-y-4">
                         <h3 className="font-bold text-lg text-accent">Instructions</h3>
                         <ul className="list-disc list-inside space-y-2 text-muted-foreground text-sm">

@@ -62,7 +62,7 @@ export default function GeneratePage() {
     return (
         <div className="grid gap-6">
             {isLoading && <LoadingAnimation text={loadingText} />}
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid lg:grid-cols-2 gap-6">
                 <Card className="glass-pane">
                     <CardHeader>
                         <CardTitle className="font-headline">Input Content</CardTitle>
