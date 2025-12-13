@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo, useState, useEffect, useCallback } from 'react';
+import { use, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
@@ -42,40 +42,69 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
 
     const [debouncedContent] = useDebounce(content, 1000);
     const [debouncedTitle] = useDebounce(title, 1000);
+    
+    // Ref to track if initial load is done
+    const isInitialLoadDone = useRef(false);
 
     useEffect(() => {
         if (note) {
             setTitle(note.title);
             if (note.content) {
-                const parsedContent = typeof note.content === 'string' ? JSON.parse(note.content) : note.content;
-                setContent(parsedContent);
+                try {
+                    const parsedContent = typeof note.content === 'string' ? JSON.parse(note.content) : note.content;
+                    setContent(parsedContent);
+                } catch(e) {
+                     setContent({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: note.content }] }] });
+                }
             } else {
                 setContent({ type: 'doc', content: [{ type: 'paragraph' }] });
             }
              if (note.lastEdited?.toDate) {
                 setLastSaved(note.lastEdited.toDate());
             }
+            isInitialLoadDone.current = true;
         }
     }, [note]);
 
-    const saveNote = useCallback(async () => {
-        if (!noteDocRef || content === null || !title) return;
+    const saveNote = useCallback(async (noteDataToSave: { title: string; content: string }) => {
+        if (!noteDocRef) return;
+        
         setIsSaving(true);
-        const noteData = {
-            title: title,
-            content: JSON.stringify(content),
+        const finalNoteData = {
+            ...noteDataToSave,
             lastEdited: serverTimestamp(),
         };
-        await updateDocumentNonBlocking(noteDocRef, noteData);
-        setLastSaved(new Date());
-        setIsSaving(false);
-    }, [noteDocRef, title, content]);
+
+        try {
+            await updateDocumentNonBlocking(noteDocRef, finalNoteData);
+            setLastSaved(new Date());
+        } catch (error) {
+            console.error("Failed to save note:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    }, [noteDocRef]);
 
     useEffect(() => {
-        if (debouncedContent !== null || debouncedTitle !== note?.title) {
-            saveNote();
+        // Prevent saving on initial load
+        if (!isInitialLoadDone.current || content === null) {
+            return;
         }
-    }, [debouncedContent, debouncedTitle, saveNote, note?.title]);
+        
+        const contentChanged = JSON.stringify(debouncedContent) !== JSON.stringify(note?.content ? (typeof note.content === 'string' ? JSON.parse(note.content) : note.content) : '');
+        const titleChanged = debouncedTitle !== note?.title;
+
+        if (contentChanged || titleChanged) {
+            saveNote({ title: debouncedTitle, content: JSON.stringify(debouncedContent) });
+        }
+    }, [debouncedContent, debouncedTitle, note, saveNote, content]);
+
+
+    const handleManualSave = () => {
+         if (content === null) return;
+         saveNote({ title, content: JSON.stringify(content) });
+         router.push(`/dashboard/notes/${noteId}`);
+    }
 
     const getSavingStatus = () => {
         if (isSaving) {
@@ -123,7 +152,7 @@ export default function NoteEditPage({ params: paramsPromise }: { params: Promis
                         {getSavingStatus()}
                     </div>
                 </div>
-                <Button variant="glow" onClick={saveNote} disabled={isSaving}>
+                <Button variant="glow" onClick={handleManualSave} disabled={isSaving}>
                     {isSaving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2"/>}
                     Save & Close
                 </Button>
