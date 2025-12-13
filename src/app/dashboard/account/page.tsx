@@ -1,6 +1,10 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, User, CreditCard, Shield } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { Check, User, CreditCard, Shield, Loader } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const freePlanFeatures = [
     '3 handwriting generations per month',
@@ -17,6 +21,18 @@ const premiumPlanFeatures = [
 ];
 
 export default function AccountPage() {
+    const { user, isUserLoading } = useUser();
+    const router = useRouter();
+
+    if (isUserLoading) {
+        return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
+    }
+
+    if (!user) {
+        router.push('/login');
+        return null;
+    }
+    
     // This would come from user data in a real app
     const currentUserPlan = 'Free';
 
@@ -81,7 +97,7 @@ export default function AccountPage() {
                         <User className="w-5 h-5 text-accent"/>
                         <div>
                             <p className="font-semibold">Email</p>
-                            <p className="text-muted-foreground">user@example.com</p>
+                            <p className="text-muted-foreground">{user.email}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3 p-4 rounded-md bg-background/50">
