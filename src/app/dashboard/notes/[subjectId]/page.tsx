@@ -23,22 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Book, FileText, Bot, Plus, Edit, Trash2, GripVertical, Image as ImageIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
-import DocumentBlock from '@/components/document-block';
-import PdfBlock from '@/components/pdf-block';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { DocumentPreviewer } from '@/components/document-previewer';
-import { FileUploader } from '@/components/file-uploader';
 import { v4 as uuidv4 } from 'uuid';
-import { useStorage } from '@/firebase';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { NoteEditor } from '@/components/note-editor';
-
-const ItemTypes = {
-  BLOCK: 'block',
-};
 
 type Subject = WithId<{
   name: string;
@@ -57,59 +42,11 @@ type Note = WithId<{
   lastEdited: any;
 }>;
 
-const Block = ({ block, moveBlock, index }: { block: NoteBlock, moveBlock: (dragIndex: number, hoverIndex: number) => void; index: number }) => {
-  const ref = React.useRef<HTMLDivElement>(null);
-
-  const [, drop] = useDrop({
-    accept: ItemTypes.BLOCK,
-    hover(item: { index: number }) {
-      if (!ref.current) {
-        return;
-      }
-      const dragIndex = item.index;
-      const hoverIndex = index;
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      moveBlock(dragIndex, hoverIndex);
-      item.index = hoverIndex;
-    },
-  });
-
-  const [{ isDragging }, drag, preview] = useDrag({
-    type: ItemTypes.BLOCK,
-    item: { index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  drag(drop(ref));
-
-  return (
-    <div ref={preview} style={{ opacity: isDragging ? 0.5 : 1 }} className="relative">
-      <div ref={ref} className="p-4 my-2 rounded-lg glass-pane border border-transparent hover:border-accent transition-all">
-        <button ref={drag} className="absolute -left-8 top-1/2 -translate-y-1/2 cursor-grab p-2 text-muted-foreground hover:text-foreground">
-          <GripVertical />
-        </button>
-        {block.type === 'text' && <NoteEditor value={block.content} onChange={() => {}} />}
-        {block.type === 'document' && (
-          <DocumentPreviewer
-            fileName={block.content.fileName}
-            fileType={block.content.fileType}
-            fileURL={block.content.fileURL}
-          />
-        )}
-      </div>
-    </div>
-  );
-};
-
 
 const NotesSection = ({ subjectId }: { subjectId: string }) => {
   const firestore = useFirestore();
   const { user } = useUser();
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const router = useRouter();
 
   const notesQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes'), orderBy('lastEdited', 'desc')) : null,
@@ -118,7 +55,7 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
   const { data: notes, isLoading } = useCollection<Note>(notesQuery);
 
   const handleCreateNote = async () => {
-    if (!user || !notesQuery) return;
+    if (!user) return;
     const notesCollection = collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes');
     const newNote = {
       title: 'Untitled Note',
@@ -129,16 +66,10 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
     };
     const newDoc = await addDocumentNonBlocking(notesCollection, newNote);
     if(newDoc?.id) {
-        setEditingNoteId(newDoc.id);
+        router.push(`/dashboard/notes/${subjectId}/${newDoc.id}/edit`);
     }
   };
   
-  if (editingNoteId) {
-      // return <NoteEditor noteId={editingNoteId} subjectId={subjectId} onBack={() => setEditingNoteId(null)} />;
-      // For now, let's just show a placeholder
-      return <div>Editing note...</div>;
-  }
-
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -146,17 +77,18 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
       </div>
        {isLoading && <Skeleton className="h-24 w-full" />}
       {!isLoading && notes?.map(note => (
-        <Card key={note.id} className="mb-4 glass-pane hover:border-accent transition-colors">
-            <CardHeader>
-                <CardTitle>{note.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {/* Render a preview of the note content */}
-                <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3">
-                   {note.blocks.find(b => b.type === 'text')?.content?.content[0]?.content?.[0]?.text || 'No content preview.'}
-                </div>
-            </CardContent>
-        </Card>
+        <Link key={note.id} href={`/dashboard/notes/${subjectId}/${note.id}`}>
+            <Card className="mb-4 glass-pane hover:border-accent transition-colors cursor-pointer">
+                <CardHeader>
+                    <CardTitle>{note.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3">
+                       {note.blocks.find(b => b.type === 'text')?.content?.content[0]?.content?.[0]?.text || 'No content preview.'}
+                    </div>
+                </CardContent>
+            </Card>
+        </Link>
       ))}
        {!isLoading && !notes?.length && (
          <div className="text-center py-12 text-muted-foreground">

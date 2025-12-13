@@ -24,7 +24,11 @@ const EditorToolbar = ({ editor, onAddFile }: { editor: any, onAddFile: (file: F
   
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
      const file = event.target.files?.[0];
-     if (file) onAddFile(file);
+     if (file) {
+        onAddFile(file);
+        // Reset file input to allow uploading the same file again
+        if(fileInputRef.current) fileInputRef.current.value = '';
+     }
   };
 
 
@@ -58,13 +62,13 @@ const EditorToolbar = ({ editor, onAddFile }: { editor: any, onAddFile: (file: F
       <Button variant={editor.isActive('codeBlock') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleCodeBlock().run()} title="Code Block" className={iconButtonClass}><Code className="w-5 h-5" /></Button>
       <div className="w-[1px] h-6 bg-border mx-1"/>
       <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.ppt,.pptx,.txt" className="hidden" />
-      <Button variant={'ghost'} size="icon" onClick={() => fileInputRef.current?.click()} title="Add Image" className={iconButtonClass}><ImageIcon className="w-5 h-5" /></Button>
+      <Button variant={'ghost'} size="icon" onClick={() => fileInputRef.current?.click()} title="Add File" className={iconButtonClass}><Paperclip className="w-5 h-5" /></Button>
     </div>
   );
 };
 
 
-export const NoteEditor = ({ value, onChange, onAddFile, isEditable = true }: { value: any; onChange: (value: any) => void; onAddFile?: (file: File) => void; isEditable?: boolean; }) => {
+export const NoteEditor = ({ value, onChange, onAddFile, isEditable = true }: { value: any; onChange?: (value: any) => void; onAddFile?: (file: File) => void; isEditable?: boolean; }) => {
   const editor = useEditor({
     editable: isEditable,
     extensions: [
@@ -72,7 +76,7 @@ export const NoteEditor = ({ value, onChange, onAddFile, isEditable = true }: { 
       Image.configure({
         inline: false,
         HTMLAttributes: {
-          class: 'my-4 rounded-md',
+          class: 'my-4 rounded-md max-w-full h-auto',
         },
       }),
       UnderlineExtension,
@@ -80,12 +84,14 @@ export const NoteEditor = ({ value, onChange, onAddFile, isEditable = true }: { 
         types: ['heading', 'paragraph'],
       }),
       Placeholder.configure({
-        placeholder: 'Start writing your note here... Type "/" for commands.',
+        placeholder: 'Start writing your note here...',
       }),
+      DocumentBlock,
+      PdfBlock,
     ],
     content: value,
     onUpdate: ({ editor }) => {
-      onChange(editor.getJSON());
+      onChange?.(editor.getJSON());
     },
     editorProps: {
       attributes: {
