@@ -217,13 +217,11 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
 
         const batch = writeBatch(firestore);
 
-        // Determine if we're creating or updating a note
         const isNewNote = !noteToSave.id;
         const noteDocRef = isNewNote ? doc(collection(firestore, subjectDocRef.path, 'notes')) : doc(firestore, subjectDocRef.path, 'notes', noteToSave.id);
 
         batch.set(noteDocRef, noteData, { merge: true });
 
-        // Update subject's lastEdited timestamp and noteCount
         const subjectUpdate: any = { lastEdited: serverTimestamp() };
         if (isNewNote) {
             subjectUpdate.noteCount = increment(1);
@@ -233,7 +231,7 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
         await batch.commit();
 
         if (isNewNote) {
-            noteToSave.id = noteDocRef.id; // Assign new ID for immediate UI update
+            noteToSave.id = noteDocRef.id;
         }
         
         setIsEditing(false);
@@ -273,6 +271,10 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
         });
 
         await batch.commit();
+
+        if (selectedNote?.id === noteId) {
+            setSelectedNote(null);
+        }
     };
 
   return (
