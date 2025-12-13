@@ -4,7 +4,7 @@ import { useState, use, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Edit, Plus, X, MoreVertical, Archive, Trash2, Notebook, FileText, Type } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, X, MoreVertical, Archive, Trash2, Notebook, FileText, Type, Upload } from 'lucide-react';
 import { NoteEditor } from '@/components/note-editor';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -123,8 +123,12 @@ const FullNoteView = ({ note, onBack, onEdit }: { note: Note; onBack: () => void
     )
 }
 
-const EditNoteView = ({ note, subjectId, onSave, onCancel }: { note: Partial<Note> | null; subjectId: string; onSave: (noteToSave: Partial<Note>) => void; onCancel: () => void; }) => {
+const EditNoteView = ({ note, subjectId, onSave, onCancel, onUploadComplete }: { note: Partial<Note> | null; subjectId: string; onSave: (noteToSave: Partial<Note>) => void; onCancel: () => void; onUploadComplete: (note: Note) => void; }) => {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const storage = useStorage();
     const [currentNote, setCurrentNote] = useState(note || { title: '', content: '', type: 'text' });
+    const [isUploading, setIsUploading] = useState(false);
 
     const handleSave = () => {
         onSave({
@@ -134,6 +138,49 @@ const EditNoteView = ({ note, subjectId, onSave, onCancel }: { note: Partial<Not
             subjectId: subjectId,
         });
     }
+    
+    const handleFileReplace = async (file: File) => {
+        if (!user || !firestore || !storage || !currentNote.id) return;
+
+        setIsUploading(true);
+
+        const filePath = `notes/${user.uid}/${subjectId}/${currentNote.id}/${file.name}`;
+        const fileStorageRef = storageRef(storage, filePath);
+
+        try {
+            // Delete old file if it exists
+            if (currentNote.fileURL) {
+                try {
+                    const oldFileRef = storageRef(storage, currentNote.fileURL);
+                    await deleteObject(oldFileRef);
+                } catch (error) {
+                    console.warn("Old file not found or could not be deleted, proceeding.", error);
+                }
+            }
+
+            const snapshot = await uploadBytes(fileStorageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+
+            const updatedNoteData = {
+                ...currentNote,
+                title: file.name,
+                fileURL: downloadURL,
+                fileType: file.type,
+                fileSize: file.size,
+                originalFileName: file.name,
+                lastEdited: serverTimestamp(),
+            };
+            
+            await onSave(updatedNoteData);
+            onUploadComplete(updatedNoteData as Note);
+
+        } catch (error) {
+            console.error("Error replacing document:", error);
+        } finally {
+            setIsUploading(false);
+        }
+    }
+
 
     return (
          <motion.div 
@@ -165,7 +212,22 @@ const EditNoteView = ({ note, subjectId, onSave, onCancel }: { note: Partial<Not
                             />
                        ) : (
                            <div className="p-6">
-                                <p className="text-muted-foreground mb-4">To replace the document, please upload a new file. The current file will be replaced.</p>
+                                <div className="mb-6 p-4 border border-dashed rounded-lg">
+                                    <h4 className="font-bold flex items-center gap-2 mb-2"><Upload className="h-4 w-4" /> Replace Document</h4>
+                                    <p className="text-muted-foreground text-sm mb-4">To replace the document, please upload a new file below. The current file will be overwritten.</p>
+                                    {isUploading ? (
+                                        <div className="flex items-center justify-center p-8">
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                                className="h-8 w-8 border-4 border-t-transparent border-primary rounded-full"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <FileUploader onFileUpload={handleFileReplace} />
+                                    )}
+                                </div>
+                                <h4 className="font-bold mb-4">Current Document</h4>
                                 <DocumentPreviewer note={currentNote as Note} />
                            </div>
                        )}
@@ -400,7 +462,13 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
     
     const handleUploadComplete = (newNote: Note) => {
         setIsCreating(null);
-        handleSelectNote(newNote);
+        if (isEditing) {
+            // This case handles file replacement
+            setSelectedNote(newNote);
+        } else {
+            // This case handles new document note creation
+            handleSelectNote(newNote);
+        }
     }
 
 
@@ -462,6 +530,7 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
                     subjectId={subjectId}
                     onSave={handleSaveNote}
                     onCancel={handleCancelEdit}
+                    onUploadComplete={handleUploadComplete}
                 />
             )}
 
@@ -482,5 +551,3 @@ export default function SubjectNotesPage({ params: paramsPromise }: { params: Pr
     </div>
   );
 }
-
-    
