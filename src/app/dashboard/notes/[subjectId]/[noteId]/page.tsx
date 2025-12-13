@@ -40,16 +40,8 @@ const NoteViewer = ({ content }: { content: any }) => {
             TextAlign.configure({
                 types: ['heading', 'paragraph'],
             }),
-            DocumentBlock.configure({
-                HTMLAttributes: {
-                    class: 'my-4',
-                }
-            }),
-             PdfBlock.configure({
-                HTMLAttributes: {
-                    class: 'my-4',
-                }
-            }),
+            DocumentBlock,
+            PdfBlock,
         ],
         content: content,
         editable: false,
