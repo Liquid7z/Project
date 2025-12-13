@@ -51,8 +51,15 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
                 },
             };
         
-        // Insert a new line before the content block for better spacing.
-        editor.chain().focus().enter().insertContentAt(editor.state.selection.to, contentToInsert).run()
+        // Move cursor to the end of the document and insert the content.
+        editor.chain().focus().command(({ tr, dispatch }) => {
+            if (dispatch) {
+                const endPos = tr.doc.content.size;
+                tr.insert(endPos, editor.schema.nodes.paragraph.create()); // Insert a new paragraph for spacing
+                tr.insert(endPos + 1, editor.schema.nodeFromJSON(contentToInsert));
+            }
+            return true;
+        }).run();
 
     } catch (error) {
         console.error("Error uploading file:", error);
