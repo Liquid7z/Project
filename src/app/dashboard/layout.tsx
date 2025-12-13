@@ -21,18 +21,20 @@ import {
   ChevronRight,
   Menu,
   Loader,
+  Notebook,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 
 const navItems = [
   { href: '/dashboard', icon: Bot, label: 'Generate' },
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
+  { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
   { href: '/dashboard/account', icon: User, label: 'Account' },
 ];
 
@@ -142,7 +144,7 @@ export default function DashboardLayout({
                     </SheetTrigger>
                     <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
                         <SheetHeader>
-                            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                             <SheetTitle className="sr-only">Navigation</SheetTitle>
                         </SheetHeader>
                         <nav className="grid gap-2 text-lg font-medium">
                             <SheetClose asChild>
