@@ -31,16 +31,26 @@ import {
   File as FileIcon
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FileUploader } from '@/components/file-uploader';
 
 type NoteType = 'text' | 'image' | 'pdf' | 'doc';
+
+type Note = {
+  id: number;
+  title: string;
+  content: string;
+  type: NoteType;
+  isEditing?: boolean;
+};
+
 
 const mockData = {
   physics: {
     notes: [
-      { id: 1, title: 'Newtonian Mechanics', content: 'Newton\'s laws of motion are three physical laws that, together, laid the foundation for classical mechanics.', type: 'text' },
-      { id: 2, title: 'Quantum Physics Intro', content: 'Quantum mechanics is a fundamental theory in physics that provides a description of the physical properties of nature at the scale of atoms and subatomic particles.', type: 'text' },
-      { id: 3, title: 'Lab Setup', content: '/placeholder.jpg', type: 'image' },
-      { id: 4, title: 'Thermodynamics Paper', content: 'thermo.pdf', type: 'pdf' },
+      { id: 1, title: 'Newtonian Mechanics', content: 'Newton\'s laws of motion are three physical laws that, together, laid the foundation for classical mechanics.', type: 'text' as NoteType },
+      { id: 2, title: 'Quantum Physics Intro', content: 'Quantum mechanics is a fundamental theory in physics that provides a description of the physical properties of nature at the scale of atoms and subatomic particles.', type: 'text' as NoteType },
+      { id: 3, title: 'Lab Setup', content: '/placeholder.jpg', type: 'image' as NoteType },
+      { id: 4, title: 'Thermodynamics Paper', content: 'thermo.pdf', type: 'pdf' as NoteType },
 
     ],
     syllabus: [
@@ -103,9 +113,9 @@ export default function SubjectPage() {
   const [selectedPaper, setSelectedPaper] = useState<any>(null);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
-  const [activeNoteType, setActiveNoteType] = useState<NoteType | null>(null);
-
+  
   const subjectData = mockData[subject] || mockData.physics;
+  const [notes, setNotes] = useState<Note[]>(subjectData.notes);
 
   const tabContentVariant = {
     hidden: { opacity: 0, y: 20 },
@@ -114,12 +124,57 @@ export default function SubjectPage() {
   };
   
   const handleCreateNote = (type: NoteType) => {
-    setActiveNoteType(type);
+    const newNote: Note = {
+      id: Date.now(),
+      title: 'New Note',
+      content: '',
+      type,
+      isEditing: true,
+    };
+    setNotes(prev => [newNote, ...prev]);
     setIsNoteModalOpen(false);
-    setIsNoteEditorOpen(true);
+  };
+
+  const handleSaveNote = (noteId: number, newContent: string) => {
+    setNotes(prev => prev.map(n => n.id === noteId ? { ...n, content: newContent, isEditing: false, title: newContent.split('\n')[0] || 'Untitled Note' } : n));
   };
   
   const getNoteCard = (note: any) => {
+    if (note.isEditing) {
+      switch(note.type) {
+        case 'text':
+          return (
+            <div className="flex flex-col gap-4">
+              <Textarea 
+                defaultValue={note.content} 
+                className="h-40 bg-background/70"
+                placeholder="Start writing your note..."
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}>Cancel</Button>
+                <Button variant="glow" onClick={(e) => {
+                  const textarea = (e.currentTarget.parentElement?.parentElement?.querySelector('textarea') as HTMLTextAreaElement);
+                  handleSaveNote(note.id, textarea.value);
+                }}>Save</Button>
+              </div>
+            </div>
+          );
+        default: // image, pdf, doc
+           return (
+            <div className="flex flex-col gap-4">
+              <FileUploader onFileUpload={(file) => {
+                // In a real app, you'd upload this file and get a URL
+                handleSaveNote(note.id, file.name);
+              }} />
+              <div className="flex justify-end">
+                <Button variant="ghost" onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}>Cancel</Button>
+              </div>
+            </div>
+          );
+      }
+    }
+
+
     switch(note.type) {
       case 'image':
         return (
@@ -131,6 +186,7 @@ export default function SubjectPage() {
           </>
         )
       case 'pdf':
+      case 'doc':
          return (
           <>
             <h3 className="font-bold font-headline">{note.title}</h3>
@@ -187,12 +243,12 @@ export default function SubjectPage() {
                   {/* Notes Tab */}
                   {activeTab === 'notes' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {subjectData.notes.length > 0 ? subjectData.notes.map(note => (
+                          {notes.length > 0 ? notes.map(note => (
                             <motion.div 
                               key={note.id} 
-                              className="group relative p-4 rounded-md glass-pane cursor-pointer"
-                              whileHover={{ y: -5, boxShadow: "0 0 15px hsl(var(--primary))" }}
-                              onClick={() => setSelectedNote(note)}
+                              className="group relative p-4 rounded-md glass-pane"
+                              whileHover={!note.isEditing ? { y: -5, boxShadow: "0 0 15px hsl(var(--primary))" } : {}}
+                              onClick={() => !note.isEditing && setSelectedNote(note)}
                             >
                                 <div className="absolute top-3 right-3">{noteTypeIcons[note.type as keyof typeof noteTypeIcons]}</div>
                                 {getNoteCard(note)}
@@ -351,9 +407,9 @@ export default function SubjectPage() {
       
       {/* Full Screen Note Editor */}
       <AnimatePresence>
-        {isNoteEditorOpen && activeNoteType && (
+        {isNoteEditorOpen && (
           <FullScreenNoteEditor 
-            noteType={activeNoteType} 
+            noteType={'text'} 
             onClose={() => setIsNoteEditorOpen(false)} 
           />
         )}
