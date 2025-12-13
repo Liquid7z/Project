@@ -1,7 +1,7 @@
 'use server';
 
 import { analyzeHandwritingStyle, AnalyzeHandwritingStyleInput } from '@/ai/flows/analyze-handwriting-style';
-import { extractTextFromDocument, ExtractTextFromDocumentInput } from '@/ai/flows/extract-text-from-document';
+import { extractTextFromDocument, ExtractTextFromDocumentInput, ExtractTextFromDocumentOutput } from '@/ai/flows/extract-text-from-document';
 import { generateAssignment, GenerateAssignmentInput, GenerateAssignmentOutput } from '@/ai/flows/generate-assignment';
 import { z } from 'zod';
 
@@ -10,7 +10,7 @@ export async function analyzeStyleAction(input: AnalyzeHandwritingStyleInput): P
   return await analyzeHandwritingStyle(input);
 }
 
-export async function extractTextAction(input: ExtractTextFromDocumentInput): Promise<{ extractedText: string }> {
+export async function extractTextAction(input: ExtractTextFromDocumentInput): Promise<ExtractTextFromDocumentOutput> {
   return await extractTextFromDocument(input);
 }
 

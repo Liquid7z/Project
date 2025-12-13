@@ -23,6 +23,7 @@ export default function GeneratePage() {
     const [isLoading, setIsLoading] = useState(false);
     const [loadingText, setLoadingText] = useState('Processing...');
     const [textContent, setTextContent] = useState('');
+    const [documentPreview, setDocumentPreview] = useState<string | null>(null);
     const [generatedPages, setGeneratedPages] = useState<GeneratedPage[]>([]);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const { toast } = useToast();
@@ -30,6 +31,8 @@ export default function GeneratePage() {
     const handleFileUpload = async (file: File) => {
         setIsLoading(true);
         setLoadingText('Extracting text...');
+        setDocumentPreview(null);
+        setGeneratedPages([]);
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
@@ -37,6 +40,9 @@ export default function GeneratePage() {
                 const documentDataUri = reader.result as string;
                 const result = await extractTextAction({ documentDataUri });
                 setTextContent(result.extractedText);
+                if (result.previewDataUri) {
+                    setDocumentPreview(result.previewDataUri);
+                }
             } catch (error) {
                 console.error("Failed to extract text:", error);
                 toast({
@@ -49,6 +55,12 @@ export default function GeneratePage() {
             }
         };
     };
+    
+    const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setTextContent(e.target.value);
+        setDocumentPreview(null);
+        setGeneratedPages([]);
+    }
 
     const handleGenerateClick = () => {
         if (!textContent) {
@@ -86,7 +98,9 @@ export default function GeneratePage() {
                     content: textContent,
                     handwritingStyleModelId: styleModelId,
                 });
+
                 setGeneratedPages(generationResult.assignmentPages);
+                setDocumentPreview(null); // Clear document preview to show generated pages
 
             } catch (error) {
                 console.error("Failed to generate assignment:", error);
@@ -160,6 +174,60 @@ export default function GeneratePage() {
         doc.save('assignment.pdf');
         setIsLoading(false);
     };
+    
+    const renderOutputContent = () => {
+        if (generatedPages.length > 0) {
+            return (
+                <Carousel className="w-full max-w-xs">
+                    <CarouselContent>
+                        {generatedPages.map((page, index) => (
+                        <CarouselItem key={index}>
+                            <div className="p-1">
+                                 <div className="w-full aspect-[3/4] relative group">
+                                    <Image
+                                        src={page.pageDataUri}
+                                        alt={`Generated page ${page.pageNumber}`}
+                                        fill
+                                        className="object-contain"
+                                    />
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="secondary" size="icon" asChild>
+                                            <a href={page.pageDataUri} download={`page_${page.pageNumber}.png`}>
+                                                <Download />
+                                            </a>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious />
+                    <CarouselNext />
+                </Carousel>
+            );
+        }
+        if (documentPreview) {
+            return (
+                 <div className="w-full max-w-xs p-1">
+                    <div className="w-full aspect-[3/4] relative">
+                        <Image
+                            src={documentPreview}
+                            alt="Document Preview"
+                            fill
+                            className="object-contain"
+                        />
+                    </div>
+                </div>
+            );
+        }
+        return (
+             <div className="text-center text-muted-foreground p-4">
+                <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-4">Output will be displayed here once generated.</p>
+            </div>
+        )
+    }
 
     return (
         <>
@@ -181,7 +249,7 @@ export default function GeneratePage() {
                                     placeholder="Paste your assignment text here, or upload a document."
                                     className="min-h-[300px] bg-background/50"
                                     value={textContent}
-                                    onChange={(e) => setTextContent(e.target.value)}
+                                    onChange={handleTextChange}
                                 />
                             </TabsContent>
                             <TabsContent value="upload" className="mt-4">
@@ -205,40 +273,7 @@ export default function GeneratePage() {
                         <CardDescription>Your handwritten assignment will appear here.</CardDescription>
                     </CardHeader>
                     <CardContent className="min-h-[365px] flex items-center justify-center bg-background/30 rounded-md p-0 md:p-6">
-                        {generatedPages.length > 0 ? (
-                            <Carousel className="w-full max-w-xs">
-                                <CarouselContent>
-                                    {generatedPages.map((page, index) => (
-                                    <CarouselItem key={index}>
-                                        <div className="p-1">
-                                             <div className="w-full aspect-[3/4] relative group">
-                                                <Image
-                                                    src={page.pageDataUri}
-                                                    alt={`Generated page ${page.pageNumber}`}
-                                                    fill
-                                                    className="object-contain"
-                                                />
-                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="secondary" size="icon" asChild>
-                                                        <a href={page.pageDataUri} download={`page_${page.pageNumber}.png`}>
-                                                            <Download />
-                                                        </a>
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CarouselItem>
-                                    ))}
-                                </CarouselContent>
-                                <CarouselPrevious />
-                                <CarouselNext />
-                            </Carousel>
-                        ) : (
-                            <div className="text-center text-muted-foreground p-4">
-                                <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                                <p className="mt-4">Output will be displayed here once generated.</p>
-                            </div>
-                        )}
+                        {renderOutputContent()}
                     </CardContent>
                      {generatedPages.length > 0 && <CardFooter className="justify-end">
                         <Button variant="outline" onClick={handleDownloadPdf}>Download All as PDF</Button>

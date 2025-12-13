@@ -116,30 +116,10 @@ const generateAssignmentFlow = ai.defineFlow(
         }
         ctx.fillText(currentLine, x, y);
 
-        if (input.content.startsWith('data:application/pdf;base64,')) {
-            const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-            const pdfData = Buffer.from(input.content.split(',')[1], 'base64');
-            const doc = await getDocument({ data: pdfData }).promise;
-            const page = await doc.getPage(1);
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvasFactory = new canvas.CanvasFactory();
-            const canvasAndContext = canvasFactory.create(viewport.width, viewport.height);
-            const renderContext = {
-              canvasContext: canvasAndContext.context,
-              viewport: viewport,
-              canvasFactory: canvasFactory,
-            };
-            await page.render(renderContext).promise;
-            pages.push({
-              pageNumber: i + 1,
-              pageDataUri: canvasAndContext.canvas.toDataURL(),
-            });
-        } else {
-            pages.push({
-              pageNumber: i + 1,
-              pageDataUri: pageCanvas.toDataURL(),
-            });
-        }
+        pages.push({
+            pageNumber: i + 1,
+            pageDataUri: pageCanvas.toDataURL(),
+        });
       }
       return { assignmentPages: pages };
     }

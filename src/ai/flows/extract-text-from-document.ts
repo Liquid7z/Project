@@ -22,6 +22,7 @@ export type ExtractTextFromDocumentInput = z.infer<typeof ExtractTextFromDocumen
 
 const ExtractTextFromDocumentOutputSchema = z.object({
   extractedText: z.string().describe('The extracted text from the document.'),
+  previewDataUri: z.string().optional().describe('An image preview of the first page of the document, as a data URI.'),
 });
 export type ExtractTextFromDocumentOutput = z.infer<typeof ExtractTextFromDocumentOutputSchema>;
 
@@ -38,15 +39,39 @@ const extractTextTool = ai.defineTool({
   async (input) => {
     // Simulate text extraction.  In a real application, this would use a library
     // like PDF.js or mammoth.js to extract text from the document.
-    // For this example, we'll just return a placeholder.
+    
     const documentDataBase64 = input.documentDataUri.split(',')[1];
-    const documentBuffer = Buffer.from(documentDataBase64, 'base64');
 
-    // Basic check for file type based on data URI.
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
       console.log('Detected PDF document.');
-      // In a real implementation, use PDF.js to extract text from documentBuffer.
-      return { extractedText: 'Extracted text from PDF document.' };
+      const canvas = await import('canvas');
+      const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const pdfData = Buffer.from(documentDataBase64, 'base64');
+      const doc = await getDocument({ data: pdfData }).promise;
+
+      // Extract text from all pages
+      let fullText = '';
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const textContent = await page.getTextContent();
+        fullText += textContent.items.map(item => (item as any).str).join(' ');
+      }
+
+      // Generate preview from the first page
+      const firstPage = await doc.getPage(1);
+      const viewport = firstPage.getViewport({ scale: 1.5 });
+      const canvasFactory = new canvas.CanvasFactory();
+      const canvasAndContext = canvasFactory.create(viewport.width, viewport.height);
+      const renderContext = {
+        canvasContext: canvasAndContext.context,
+        viewport: viewport,
+        canvasFactory: canvasFactory,
+      };
+      await firstPage.render(renderContext).promise;
+      const previewDataUri = canvasAndContext.canvas.toDataURL();
+
+      return { extractedText: fullText, previewDataUri: previewDataUri };
+
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       console.log('Detected DOCX document.');
       // In a real implementation, use mammoth.js to extract text from documentBuffer.
@@ -75,7 +100,7 @@ const extractTextFromDocumentFlow = ai.defineFlow(
     outputSchema: ExtractTextFromDocumentOutputSchema,
   },
   async input => {
-    const {output} = await extractTextFromDocumentPrompt(input);
-    return output!;
+    const response = await extractTextTool(input);
+    return response;
   }
 );
