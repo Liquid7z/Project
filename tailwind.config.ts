@@ -105,10 +105,10 @@ export default {
         },
         'button-glow': {
            '0%, 100%': {
-            'box-shadow': '0 0 5px hsl(var(--accent)), 0 0 10px hsl(var(--primary)), inset 0 0 5px hsl(var(--accent) / 0.5)',
+            'box-shadow': '0 0 5px hsl(var(--accent)), 0 0 10px hsl(var(--primary)), inset 0 0 5px hsla(var(--accent), 0.5)',
           },
           '50%': {
-            'box-shadow': '0 0 10px hsl(var(--accent)), 0 0 20px hsl(var(--primary)), inset 0 0 10px hsl(var(--accent) / 0.5)',
+            'box-shadow': '0 0 10px hsl(var(--accent)), 0 0 20px hsl(var(--primary)), inset 0 0 10px hsla(var(--accent), 0.5)',
           }
         }
       },
