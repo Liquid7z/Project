@@ -47,6 +47,15 @@ const extractTextTool = ai.defineTool({
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       const documentBuffer = Buffer.from(documentDataBase64, 'base64');
       const mammothOptions = {
+        styleMap: [
+            "p[style-name='Normal'] => p:fresh",
+            "p[style-name='Heading 1'] => h1:fresh",
+            "p[style-name='Heading 2'] => h2:fresh",
+            "p[style-name='Heading 3'] => h3:fresh",
+            "p[style-name='Heading 4'] => h4:fresh",
+            "p[style-name='Title'] => h1:fresh",
+            "p[style-name='Subtitle'] => h2:fresh",
+        ],
         convertImage: mammoth.images.imgElement(function(image) {
             return image.read("base64").then(function(imageBuffer) {
                 return {
@@ -59,8 +68,7 @@ const extractTextTool = ai.defineTool({
       return { extractedText: extractedHtml };
     } else {
       console.log('Unsupported document type.');
-      const fileType = input.documentDataUri.substring(input.documentDataUri.indexOf('/') + 1, input.documentDataUri.indexOf(';'));
-      return { extractedText: `Content from ${fileType} file.` };
+      return { extractedText: '' };
     }
   }
 );
@@ -77,3 +85,4 @@ const extractTextFromDocumentFlow = ai.defineFlow(
     return response;
   }
 );
+
