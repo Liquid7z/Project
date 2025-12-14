@@ -15,15 +15,20 @@ import {
 import { collection, doc, serverTimestamp, query, orderBy, where, writeBatch } from 'firebase/firestore';
 import Link from 'next/link';
 import { WithId } from '@/firebase/firestore/use-collection';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Book, FileText, Bot, Plus, Edit, Trash2, GripVertical, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Book, FileText, Bot, Plus, Edit, Trash2, GripVertical, Image as ImageIcon, Loader } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { v4 as uuidv4 } from 'uuid';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { FileUploader } from '@/components/file-uploader';
+import { extractTextAction } from '@/actions/generation';
+import { useToast } from '@/hooks/use-toast';
+
 
 type Subject = WithId<{
   name: string;
@@ -31,7 +36,7 @@ type Subject = WithId<{
 
 type NoteBlock = {
   id: string;
-  type: 'text' | 'document';
+  type: 'text' | 'document' | 'pdf';
   content: any; // JSON for text, or file info for document
   order: number;
 };
@@ -43,6 +48,126 @@ type Note = WithId<{
 }>;
 
 
+const NewNoteDialog = ({ subjectId, onNoteCreated }: { subjectId: string; onNoteCreated: () => void }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [title, setTitle] = useState('');
+    const [textContent, setTextContent] = useState('');
+    const [activeTab, setActiveTab] = useState('text');
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    const notesCollectionRef = useMemoFirebase(() => 
+        user ? collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes') : null
+    , [user, firestore, subjectId]);
+    
+    const resetState = () => {
+        setTitle('');
+        setTextContent('');
+        setActiveTab('text');
+        setIsLoading(false);
+    };
+
+    const handleFileUploader = async (file: File) => {
+        setIsLoading(true);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            try {
+                const documentDataUri = reader.result as string;
+                const { extractedText } = await extractTextAction({ documentDataUri });
+                setTextContent(extractedText);
+                setTitle(file.name.split('.').slice(0, -1).join('.') || 'Untitled Note');
+                setActiveTab('text'); // Switch to text tab to show extracted content
+            } catch (error) {
+                console.error("Failed to extract text:", error);
+                toast({ variant: 'destructive', title: 'Extraction Failed', description: 'Could not extract text from document.' });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+    };
+
+    const handleCreateNote = async () => {
+        if (!user || !notesCollectionRef || !title) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Title is required to create a note.'});
+            return;
+        }
+
+        setIsLoading(true);
+        const newNoteData = {
+            title: title,
+            blocks: [{ id: uuidv4(), type: 'text', content: { type: 'doc', content: [{ type: 'paragraph', content: textContent ? [{ type: 'text', text: textContent }] : [] }] }, order: 0 }],
+            lastEdited: serverTimestamp(),
+            userId: user.uid,
+            subjectId: subjectId,
+        };
+
+        try {
+            await addDocumentNonBlocking(notesCollectionRef, newNoteData);
+            toast({ title: 'Note Created!', description: `"${title}" has been added to this subject.` });
+            onNoteCreated(); // This could trigger a refresh on the parent component
+            setIsOpen(false);
+            resetState();
+        } catch (error) {
+            console.error("Error creating new note: ", error);
+            toast({ variant: 'destructive', title: 'Creation Failed', description: 'There was an error creating your note.' });
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetState(); }}>
+            <DialogTrigger asChild>
+                <Button variant="glow"><Plus className="mr-2" /> New Note</Button>
+            </DialogTrigger>
+            <DialogContent className="glass-pane sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle className="font-headline">Create a New Note</DialogTitle>
+                    <DialogDescription>Add content by typing, pasting, or uploading a document.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <Input 
+                        placeholder="Note Title" 
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="font-headline text-lg"
+                    />
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="text">Type/Paste</TabsTrigger>
+                            <TabsTrigger value="upload">Upload Document</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="text" className="mt-4">
+                            <Textarea 
+                                placeholder="Start writing your note content here..."
+                                className="min-h-[200px]"
+                                value={textContent}
+                                onChange={(e) => setTextContent(e.target.value)}
+                            />
+                        </TabsContent>
+                         <TabsContent value="upload" className="mt-4">
+                            <FileUploader 
+                                onFileUpload={handleFileUploader}
+                                acceptedFiles={['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']}
+                            />
+                        </TabsContent>
+                    </Tabs>
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCreateNote} disabled={isLoading || !title}>
+                        {isLoading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                        Create Note
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 const NotesSection = ({ subjectId }: { subjectId: string }) => {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -52,34 +177,12 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
     user ? query(collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes'), orderBy('lastEdited', 'desc')) : null,
     [firestore, user, subjectId]
   );
-  const { data: notes, isLoading } = useCollection<Note>(notesQuery);
+  const { data: notes, isLoading, forceRefresh } = useCollection<Note>(notesQuery);
 
-  const handleCreateNote = async () => {
-    if (!user || !firestore) return;
-    const notesCollection = collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes');
-    const newNoteData = {
-        title: 'Untitled Note',
-        blocks: [{ id: uuidv4(), type: 'text', content: { type: 'doc', content: [{ type: 'paragraph' }] }, order: 0 }],
-        lastEdited: serverTimestamp(),
-        userId: user.uid,
-        subjectId: subjectId,
-    };
-
-    try {
-        const docRef = await addDocumentNonBlocking(notesCollection, newNoteData);
-        if (docRef?.id) {
-            router.push(`/dashboard/notes/${subjectId}/${docRef.id}/edit`);
-        }
-    } catch (error) {
-        console.error("Error creating new note: ", error);
-        // Optionally, show a toast notification to the user
-    }
-  };
-  
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <Button onClick={handleCreateNote} variant="glow"><Plus className="mr-2" /> New Note</Button>
+        <NewNoteDialog subjectId={subjectId} onNoteCreated={forceRefresh} />
       </div>
        {isLoading && <Skeleton className="h-24 w-full" />}
       {!isLoading && notes?.map(note => (
@@ -90,7 +193,7 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
                 </CardHeader>
                 <CardContent>
                     <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3">
-                       {note.blocks.find(b => b.type === 'text')?.content?.content[0]?.content?.[0]?.text || 'No content preview.'}
+                       {note.blocks.find(b => b.type === 'text')?.content?.content?.[0]?.content?.[0]?.text || 'No content preview.'}
                     </div>
                 </CardContent>
             </Card>
