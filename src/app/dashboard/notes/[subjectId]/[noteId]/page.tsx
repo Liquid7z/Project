@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import {
   useUser,
   useFirestore,
@@ -19,9 +19,6 @@ import { NoteEditor } from '@/components/note-editor';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DocumentPreviewer } from '@/components/document-previewer';
-import { GripVertical } from 'lucide-react';
-import PdfBlock from '@/components/pdf-block';
-import DocumentBlock from '@/components/document-block';
 
 type NoteBlock = {
   id: string;
@@ -63,14 +60,15 @@ const BlockViewer = ({ block }: { block: NoteBlock }) => {
     );
 }
 
-export default function NoteViewPage({ params: paramsPromise }: { params: Promise<{ subjectId: string, noteId: string }> }) {
-  const params = use(paramsPromise);
-  const { subjectId, noteId } = params;
+export default function NoteViewPage() {
+  const params = useParams();
+  const subjectId = params.subjectId as string;
+  const noteId = params.noteId as string;
   const { user } = useUser();
   const firestore = useFirestore();
 
   const noteDocRef = useMemoFirebase(
-    () => (user ? doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId) : null),
+    () => (user && subjectId && noteId ? doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId) : null),
     [firestore, user, subjectId, noteId]
   );
   const { data: note, isLoading, error } = useDoc<Note>(noteDocRef);
