@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -24,6 +24,7 @@ import {
   Loader,
   Notebook,
   Sun,
+  PenSquare,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,6 +36,7 @@ import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
+import { QuickNoteDrawer } from '@/components/quick-note-drawer';
 
 const navItems = [
   { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
@@ -59,6 +61,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading, userError } = useUser();
+  const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false);
   
   useEffect(() => {
     if (auth && !isUserLoading) {
@@ -101,6 +104,15 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
               </div>
             </SidebarGroup>
             <SidebarMenu>
+               <SidebarMenuItem>
+                 <SidebarMenuButton
+                   onClick={() => setIsQuickNoteOpen(true)}
+                   tooltip={{ children: 'Quick Note' }}
+                 >
+                   <PenSquare />
+                   <span>Quick Note</span>
+                 </SidebarMenuButton>
+               </SidebarMenuItem>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
                   <Link href={item.href}>
@@ -169,6 +181,19 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                                   <Logo />
                               </Link>
                           </SheetClose>
+                          <SheetClose asChild>
+                            <Button
+                              variant="ghost"
+                              onClick={() => {
+                                setOpenMobile(false);
+                                setIsQuickNoteOpen(true);
+                              }}
+                              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:text-foreground justify-start"
+                            >
+                              <PenSquare className="h-4 w-4" />
+                              Quick Note
+                            </Button>
+                          </SheetClose>
                           {navItems.map(item => (
                               <SheetClose key={item.href} asChild>
                                   <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -221,6 +246,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
           
           <main className="flex-1 p-4 md:p-6 relative">
             {children}
+             <QuickNoteDrawer isOpen={isQuickNoteOpen} onOpenChange={setIsQuickNoteOpen} />
           </main>
         </div>
       </div>
