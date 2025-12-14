@@ -10,11 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf.mjs';
+import {getDocument} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
-
-// Set workerSrc to null to run in a single-threaded mode on the server.
-GlobalWorkerOptions.workerSrc = null;
 
 const ExtractTextFromDocumentInputSchema = z.object({
   documentDataUri: z
