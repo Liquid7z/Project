@@ -26,21 +26,24 @@ interface Block {
     id: string;
     type: 'text' | 'document' | 'image';
     content?: string; // HTML for text
-    file?: File;
+    downloadUrl?: string; // URL from storage
     fileName?: string;
     fileType?: string;
-    downloadUrl?: string;
-    previewUrls?: string[];
+    // Client-side only properties
+    file?: File; // The actual file object, for upload
+    previewUrls?: string[]; // data URIs for client-side preview
 }
 
 const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; removeBlock: (id: string) => void; updateContent: (id: string, content: string) => void }) => {
-    
+
+    // Use local object URL for instant preview of just-uploaded images
     const localImageUrl = useMemo(() => {
         if (block.type === 'image' && block.file) {
             return URL.createObjectURL(block.file);
         }
         return null;
     }, [block.type, block.file]);
+    
 
     return (
         <div data-testid="note-block-container" className="relative group p-4 rounded-lg bg-background/30 border border-transparent hover:border-border transition-colors">
@@ -55,7 +58,8 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
                     name={block.fileName || 'Document'}
                     type={block.fileType || 'File'}
                     url={block.downloadUrl || '#'}
-                    previewUrls={block.previewUrls || (block.file ? [URL.createObjectURL(block.file)] : [])}
+                    // Show local previews if available, otherwise empty
+                    previewUrls={block.previewUrls || []}
                  />
             ) : null}
              <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100" onClick={() => removeBlock(block.id)}>
@@ -105,27 +109,35 @@ export default function NoteEditPage() {
         setIsSaving(true);
         try {
             const updatedBlocks = await Promise.all(blocks.map(async (block) => {
-                if ((block.type === 'document' || block.type === 'image') && block.file && !block.downloadUrl) {
+                // This block represents data to be saved to Firestore, stripped of client-side properties
+                let storableBlock: Omit<Block, 'file' | 'previewUrls'> & { previewUrls?: string[] } = { ...block };
+                
+                // If there's a file to upload, do it now.
+                if ((block.type === 'document' || block.type === 'image') && block.file) {
                      const storage = getStorage();
                      const filePath = `users/${user.uid}/notes/${noteId}/${uuidv4()}-${block.file.name}`;
                      const fileRef = ref(storage, filePath);
                      await uploadBytes(fileRef, block.file);
                      const downloadUrl = await getDownloadURL(fileRef);
+                     storableBlock.downloadUrl = downloadUrl;
 
-                     let finalPreviewUrls = block.previewUrls || [];
-                     
-                     // Create a new block object without the 'file' property
-                     const { file, ...rest } = block;
-                     return { ...rest, downloadUrl, previewUrls: finalPreviewUrls };
+                     // If it's a PDF, we save the generated preview URLs
+                     if(block.type === 'document' && block.previewUrls) {
+                         storableBlock.previewUrls = block.previewUrls;
+                     }
                 }
-                // Make sure to remove the 'file' property from already uploaded blocks
-                if (block.file) {
-                    const { file, ...rest } = block;
-                    return rest;
+                
+                // CRITICAL: Remove client-side properties before saving to Firestore.
+                delete storableBlock.file;
+                // Only delete previewUrls if it's not a document with previews we want to save
+                if(storableBlock.type !== 'document'){
+                    delete storableBlock.previewUrls;
                 }
-                return block;
+
+
+                return storableBlock;
             }));
-
+            
             await updateDoc(noteRef, {
                 title,
                 blocks: updatedBlocks,
@@ -164,14 +176,14 @@ export default function NoteEditPage() {
                 const previewUrls: string[] = [];
                 for (let i = 1; i <= Math.min(doc.numPages, 10); i++) { // Limit previews for performance
                     const page = await doc.getPage(i);
-                    const viewport = page.getViewport({ scale: 1.0 }); // Use a smaller scale for thumbnail
+                    const viewport = page.getViewport({ scale: 1.5 }); // Use a smaller scale for thumbnail
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
                     if(context){
                         await page.render({ canvasContext: context, viewport: viewport }).promise;
-                        previewUrls.push(canvas.toDataURL());
+                        previewUrls.push(canvas.toDataURL('image/jpeg', 0.8)); // Use JPEG for smaller size
                     }
                 }
                 newBlock.previewUrls = previewUrls;
@@ -190,8 +202,7 @@ export default function NoteEditPage() {
             type: 'image' as const,
             file: file,
             fileName: file.name,
-            fileType: file.type || 'Unknown',
-            previewUrls: [URL.createObjectURL(file)]
+            fileType: file.type || 'Unknown'
         };
         setBlocks(prev => [...prev, newBlock]);
     };
@@ -277,5 +288,7 @@ export default function NoteEditPage() {
         </div>
     );
 }
+
+    
 
     
