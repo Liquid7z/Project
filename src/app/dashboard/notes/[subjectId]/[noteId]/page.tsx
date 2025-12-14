@@ -3,11 +3,12 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, File, Loader, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit, File as FileIcon, Loader, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { DocumentPreviewer } from '@/components/document-previewer';
 
 // Mock data
 const mockNote = {
@@ -15,8 +16,8 @@ const mockNote = {
     title: 'The Last Sunset',
     content: `<p>The sky bled orange and purple as the last sun of the year dipped below the horizon of Neo-Kyoto. From my high-rise hab-unit, the city looked like a circuit board of pulsing light. It was beautiful, in a sterile, manufactured kind of way.</p><p>Down below, the crowds would be swarming, a river of humanity flowing towards the countdown plaza. But up here, it was just me and the quiet hum of the climate-control unit. Another year gone. Another year alone.</p>`,
     documents: [
-        { name: 'Research_Notes.pdf', url: '#', type: 'PDF' },
-        { name: 'Character_Sheet.docx', url: '#', type: 'DOCX' },
+        { name: 'Research_Notes.pdf', url: '#', type: 'PDF', previewUrl: 'https://picsum.photos/seed/doc1/800/1100' },
+        { name: 'Character_Sheet.docx', url: '#', type: 'DOCX', previewUrl: 'https://picsum.photos/seed/doc2/800/1100' },
     ],
     lastUpdated: new Date(Date.now() - 3600000),
 };
@@ -118,15 +119,13 @@ export default function NotePreviewPage() {
                         <CardContent>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {note.documents.map((doc, index) => (
-                                    <a key={index} href={doc.url} target="_blank" rel="noopener noreferrer" className="block group">
-                                        <div className="flex items-center gap-4 p-4 rounded-md bg-background/50 hover:bg-accent/10 transition-colors">
-                                            <File className="h-8 w-8 text-primary" />
-                                            <div>
-                                                <p className="font-semibold text-sm truncate">{doc.name}</p>
-                                                <Badge variant="secondary">{doc.type}</Badge>
-                                            </div>
-                                        </div>
-                                    </a>
+                                    <DocumentPreviewer 
+                                        key={index}
+                                        name={doc.name}
+                                        type={doc.type}
+                                        url={doc.url}
+                                        previewUrl={doc.previewUrl}
+                                    />
                                 ))}
                             </div>
                         </CardContent>
