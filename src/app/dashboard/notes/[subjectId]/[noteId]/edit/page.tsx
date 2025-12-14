@@ -19,19 +19,18 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { Separator } from '@/components/ui/separator';
-import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
-import { version } from 'pdfjs-dist/package.json';
+import { extractTextAction } from '@/actions/generation';
 
 interface Block {
     id: string;
-    type: 'text' | 'document' | 'image';
+    type: 'text' | 'image';
     content?: string; // HTML for text
     downloadUrl?: string; // URL from storage
     fileName?: string;
     fileType?: string;
     // Client-side only properties
     file?: File; // The actual file object, for upload
-    previewUrls?: string[]; // data URIs for client-side image/pdf preview
+    previewUrl?: string; // data URI for client-side image preview
 }
 
 const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; removeBlock: (id: string) => void; updateContent: (id: string, content: string) => void }) => {
@@ -40,18 +39,11 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
             {block.type === 'text' ? (
                 <NoteEditor value={block.content || ''} onChange={(newContent) => updateContent(block.id, newContent)} />
             ) : block.type === 'image' ? (
-                 (block.previewUrls && block.previewUrls[0]) ? (
-                    <Image src={block.previewUrls[0]} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md" />
+                 (block.previewUrl) ? (
+                    <Image src={block.previewUrl} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md" />
                  ) : block.downloadUrl ? (
                     <Image src={block.downloadUrl} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md" />
                  ) : null
-            ) : block.type === 'document' ? (
-                <DocumentPreviewer
-                    name={block.fileName || 'Document'}
-                    type={block.fileType || 'File'}
-                    url={block.downloadUrl || '#'}
-                    previewUrls={block.previewUrls || []}
-                 />
             ) : null}
              <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100" onClick={() => removeBlock(block.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -100,7 +92,7 @@ export default function NoteEditPage() {
         try {
             const updatedBlocks = await Promise.all(blocks.map(async (block) => {
                 // This block represents data to be saved to Firestore, stripped of client-side properties
-                const { file, ...storableBlock } = block;
+                const { file, previewUrl, ...storableBlock } = block;
 
                 // If there's a file to upload, do it now.
                 if (file) {
@@ -131,57 +123,36 @@ export default function NoteEditPage() {
     
     const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
 
-    const addTextBlock = () => setBlocks(prev => [...prev, { id: `text-${Date.now()}`, type: 'text', content: '<p></p>' }]);
+    const addTextBlock = (content: string = '<p></p>') => {
+        setBlocks(prev => [...prev, { id: `text-${Date.now()}`, type: 'text', content }]);
+    }
 
     const handleDocumentUpload = async (file: File) => {
-        const fileType = file.type;
-        const blockId = `doc-${Date.now()}`;
-        const newBlock: Block = {
-            id: blockId,
-            type: 'document',
-            file: file,
-            fileName: file.name,
-            fileType: fileType,
-            previewUrls: [],
-        };
+        toast({title: "Extracting Content", description: "Reading your document, please wait..."});
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            try {
+                const documentDataUri = reader.result as string;
+                const result = await extractTextAction({ documentDataUri });
 
-        setBlocks(prev => [...prev, newBlock]);
-        toast({title: "Processing Document", description: "Generating previews for your document..."});
-
-        if (fileType === 'application/pdf') {
-             try {
-                // Configure the worker
-                GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
-
-                const reader = new FileReader();
-                reader.readAsArrayBuffer(file);
-                reader.onload = async (e) => {
-                    const pdfData = new Uint8Array(e.target?.result as ArrayBuffer);
-                    const pdf = await getDocument({ data: pdfData }).promise;
-                    const previewUrls: string[] = [];
-
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const viewport = page.getViewport({ scale: 1.5 });
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        if (!context) continue;
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        
-                        await page.render({ canvasContext: context, viewport: viewport }).promise;
-                        previewUrls.push(canvas.toDataURL());
-                    }
-                    
-                    setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, previewUrls } : b));
-                    toast({title: "Preview Ready", description: "Your document previews have been generated."});
-                };
-
-            } catch (err) {
-                console.error("Error generating PDF preview:", err);
-                toast({title: "Preview Failed", description: "Could not generate document previews.", variant: "destructive"});
+                if (result.extractedText) {
+                    addTextBlock(`<p>${result.extractedText.replace(/\n/g, '</p><p>')}</p>`);
+                    toast({title: "Content Extracted", description: "The content from your document has been added to the note."});
+                } else {
+                     toast({title: "Extraction Failed", description: "Could not extract content from the document.", variant: "destructive"});
+                }
+                
+            } catch (error) {
+                console.error("Failed to extract text from document:", error);
+                toast({title: "Error", description: "An error occurred while processing the document.", variant: "destructive"});
             }
-        }
+        };
+         reader.onerror = (error) => {
+            console.error("Error reading file:", error);
+            toast({title: "File Read Error", description: "Could not read the uploaded file.", variant: "destructive"});
+        };
     };
     
     const handleImageUpload = (file: File) => {
@@ -191,7 +162,7 @@ export default function NoteEditPage() {
             file: file,
             fileName: file.name,
             fileType: file.type || 'Unknown',
-            previewUrls: [URL.createObjectURL(file)] // Create a local URL for instant preview
+            previewUrl: URL.createObjectURL(file) // Create a local URL for instant preview
         };
         setBlocks(prev => [...prev, newBlock]);
     };
@@ -199,8 +170,8 @@ export default function NoteEditPage() {
     const removeBlock = (id: string) => {
         setBlocks(prev => prev.filter(b => {
             const block = prev.find(block => block.id === id);
-            if (block?.previewUrls && block.type === 'image') {
-                URL.revokeObjectURL(block.previewUrls[0]); // Clean up object URL for images
+            if (block?.previewUrl && block.type === 'image') {
+                URL.revokeObjectURL(block.previewUrl); // Clean up object URL for images
             }
             return b.id !== id;
         }));
@@ -267,7 +238,7 @@ export default function NoteEditPage() {
                         {isSaving ? <Loader className="animate-spin" /> : <Save />}
                     </Button>
                     <Separator />
-                    <Button variant="outline" size="icon" onClick={addTextBlock}>
+                    <Button variant="outline" size="icon" onClick={() => addTextBlock()}>
                         <Plus className="h-4 w-4"/>
                     </Button>
                      <FileUploader onFileUpload={handleImageUpload} acceptedFiles={['image/png', 'image/jpeg', 'image/gif']}>
@@ -275,7 +246,7 @@ export default function NoteEditPage() {
                            <ImageIcon className="h-4 w-4"/>
                        </Button>
                     </FileUploader>
-                     <FileUploader onFileUpload={handleDocumentUpload} acceptedFiles={['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}>
+                     <FileUploader onFileUpload={handleDocumentUpload} acceptedFiles={['application/vnd.openxmlformats-officedocument.wordprocessingml.document']}>
                        <Button variant="outline" size="icon" className="w-10 h-10">
                            <FileIcon className="h-4 w-4"/>
                        </Button>
@@ -285,5 +256,3 @@ export default function NoteEditPage() {
         </div>
     );
 }
-
-    

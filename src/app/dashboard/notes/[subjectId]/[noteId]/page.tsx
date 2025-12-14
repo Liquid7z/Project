@@ -14,12 +14,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface Block {
     id: string;
-    type: 'text' | 'document' | 'image';
+    type: 'text' | 'image';
     content?: string;
     fileName?: string;
     fileType?: string;
     downloadUrl?: string;
-    previewUrls?: string[];
+    previewUrl?: string;
 }
 
 
@@ -33,25 +33,12 @@ const BlockViewer = ({ block }: { block: Block }) => {
         );
     }
     
-    if (block.type === 'image' && (block.downloadUrl || (block.previewUrls && block.previewUrls[0]))) {
+    if (block.type === 'image' && (block.downloadUrl || block.previewUrl)) {
         return (
             <div className="not-prose my-4">
-                <Image src={block.previewUrls?.[0] || block.downloadUrl!} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md mx-auto" />
+                <Image src={block.previewUrl || block.downloadUrl!} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md mx-auto" />
             </div>
         )
-    }
-
-    if (block.type === 'document') {
-        return (
-             <div className="not-prose">
-                <DocumentPreviewer
-                    name={block.fileName || 'Document'}
-                    type={block.fileType || 'File'}
-                    url={block.downloadUrl || '#'}
-                    previewUrls={block.previewUrls || []}
-                />
-            </div>
-        );
     }
 
     return null;
@@ -190,5 +177,3 @@ export default function NotePreviewPage() {
         </div>
     );
 }
-
-    
