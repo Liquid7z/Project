@@ -19,7 +19,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { Separator } from '@/components/ui/separator';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { getDocument, GlobalWorkerOptions, version } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 
 interface Block {
@@ -157,7 +157,7 @@ export default function NoteEditPage() {
 
         if (file.type === 'application/pdf') {
             try {
-                GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
+                GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
                 const doc = await getDocument(URL.createObjectURL(file)).promise;
                 const previewUrls: string[] = [];
                 for (let i = 1; i <= doc.numPages; i++) {
@@ -275,3 +275,5 @@ export default function NoteEditPage() {
         </div>
     );
 }
+
+    

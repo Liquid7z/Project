@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf.mjs';
+import {getDocument, GlobalWorkerOptions, version} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
 
 const ExtractTextFromDocumentInputSchema = z.object({
@@ -45,8 +45,7 @@ const extractTextTool = ai.defineTool({
       console.log('Detected PDF document.');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
       
-      const originalWorkerSrc = GlobalWorkerOptions.workerSrc;
-      GlobalWorkerOptions.workerSrc = false as any; // Temporarily disable for server-side
+      GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
       
       try {
         const doc = await getDocument({ data: new Uint8Array(pdfData.buffer) }).promise;
@@ -58,7 +57,7 @@ const extractTextTool = ai.defineTool({
         }
         return { extractedText: fullText };
       } finally {
-        GlobalWorkerOptions.workerSrc = originalWorkerSrc;
+        GlobalWorkerOptions.workerSrc = '' as any;
       }
 
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
@@ -86,3 +85,5 @@ const extractTextFromDocumentFlow = ai.defineFlow(
     return response;
   }
 );
+
+    
