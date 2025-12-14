@@ -220,7 +220,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
           <DialogHeader>
             <DialogTitle className="font-headline">Save Quick Note</DialogTitle>
             <DialogDescription>
-              Choose a subject and decide whether to create a new resource or append to an existing one.
+             Choose where to save your note. It will be saved as a "Resource".
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -318,7 +318,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
                         name="existingResourceId"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Append to Resource</FormLabel>
+                            <FormLabel>Append to Item</FormLabel>
                             <Select onValueChange={(value) => {
                                 const [id, type] = value.split('::');
                                 field.onChange(id);
@@ -328,7 +328,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
                                 <SelectTrigger disabled={!subjectId || isLoadingItems}>
                                 <SelectValue placeholder={
                                     !subjectId ? "Select a subject first" :
-                                    isLoadingItems ? "Loading resources..." : "Select an existing resource"} />
+                                    isLoadingItems ? "Loading items..." : "Select an existing item"} />
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -336,7 +336,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
                                      <SelectItem value="loading" disabled>Loading...</SelectItem>
                                 ) : (
                                    existingItems.map(item => (
-                                    <SelectItem key={item.id} value={`${item.id}::${item.type}`}>{item.title}</SelectItem>
+                                    <SelectItem key={item.id} value={`${item.id}::${item.type}`}>{item.title} ({item.type.slice(0,-1)})</SelectItem>
                                   ))
                                 )}
                             </SelectContent>
@@ -362,3 +362,5 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
     </>
   );
 }
+
+    
