@@ -13,12 +13,6 @@ import {z} from 'genkit';
 import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
 
-// On the client, the worker is needed for previews. This sets the path.
-if (typeof window !== 'undefined') {
-  GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
-}
-
-
 const ExtractTextFromDocumentInputSchema = z.object({
   documentDataUri: z
     .string()

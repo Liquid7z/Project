@@ -22,6 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { extractTextAction } from '@/actions/generation';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { Separator } from '@/components/ui/separator';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 
 interface Block {
@@ -118,6 +119,9 @@ export default function NoteEditPage() {
                      if(block.file.type.startsWith('image/')) {
                          previewUrls = [downloadUrl];
                      } else if (block.file.type === 'application/pdf') {
+                         // Set worker source for pdfjs-dist
+                         GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
+
                          const reader = new FileReader();
                          const fileDataPromise = new Promise<string>((resolve, reject) => {
                              reader.onload = e => resolve(e.target?.result as string);
