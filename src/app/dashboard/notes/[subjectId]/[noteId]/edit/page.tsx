@@ -32,7 +32,7 @@ interface Block {
     content?: string; // HTML for text
     file?: File;
     fileName?: string;
-f    fileType?: string;
+    fileType?: string;
     downloadUrl?: string;
     previewUrls?: string[];
 }
