@@ -38,13 +38,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 
 const itemFormSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
 });
 
-const ContentList = ({ type }: { type: 'notes' | 'examQuestions' | 'syllabus' | 'resources' }) => {
+const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 'syllabus' | 'resources', subjectName?: string }) => {
     const params = useParams();
     const router = useRouter();
     const subjectId = params.subjectId as string;
@@ -168,9 +169,21 @@ const ContentList = ({ type }: { type: 'notes' | 'examQuestions' | 'syllabus' | 
                             <Link href={`/dashboard/notes/${subjectId}/${type}/${item.id}`} className="flex-grow flex flex-col">
                                 <CardHeader>
                                     <CardTitle className="font-headline group-hover:text-accent transition-colors">{item.title}</CardTitle>
+                                    {type === 'resources' && subjectName && (
+                                      <CardDescription>
+                                        In subject: {subjectName}
+                                      </CardDescription>
+                                    )}
                                 </CardHeader>
                                 <CardContent className="flex-grow">
                                     <p className="text-sm text-muted-foreground line-clamp-3">{previewText}</p>
+                                    {type === 'resources' && item.tags && item.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-4">
+                                            {item.tags.map((tag: string) => (
+                                                <Badge key={tag} variant="secondary">{tag}</Badge>
+                                            ))}
+                                        </div>
+                                    )}
                                 </CardContent>
                                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground">
                                     <span>
@@ -344,7 +357,7 @@ export default function SubjectPage() {
                    <ContentList type="syllabus" />
                 </TabsContent>
                 <TabsContent value="resources" className="mt-6">
-                    <ContentList type="resources" />
+                    <ContentList type="resources" subjectName={subject.name} />
                 </TabsContent>
             </Tabs>
         </div>
