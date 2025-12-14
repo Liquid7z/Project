@@ -70,7 +70,7 @@ export default function SubjectPage() {
         defaultValues: { title: '' },
     });
     
-    const handleCreateNote = async (values: z.infer<typeof noteFormSchema>>) => {
+    const handleCreateNote = async (values: z.infer<typeof noteFormSchema>) => {
         if (!notesCollectionRef) return;
         try {
             const newNoteDoc = await addDoc(notesCollectionRef, {
@@ -299,5 +299,3 @@ export default function SubjectPage() {
         </div>
     );
 }
-
-    
