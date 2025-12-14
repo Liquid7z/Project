@@ -42,22 +42,8 @@ const extractTextTool = ai.defineTool({
     const documentDataBase64 = input.documentDataUri.split(',')[1];
     
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
-      const pdfData = Buffer.from(documentDataBase64, 'base64');
-      
-      try {
-        const doc = await getDocument({ data: new Uint8Array(pdfData) }).promise;
-        let fullText = '';
-        for (let i = 1; i <= doc.numPages; i++) {
-          const page = await doc.getPage(i);
-          const textContent = await page.getTextContent();
-          fullText += textContent.items.map(item => (item as any).str).join(' ');
-        }
-        return { extractedText: fullText };
-      } catch (e) {
-          console.error("Error extracting text from PDF:", e)
-          return { extractedText: '' };
-      }
-
+      // PDF text extraction is disabled per user request.
+      return { extractedText: '' };
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       const documentBuffer = Buffer.from(documentDataBase64, 'base64');
       const mammothOptions = {
