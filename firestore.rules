@@ -106,6 +106,22 @@ service cloud.firestore {
       match /subscriptions/{subscriptionId} {
         allow list, get, create, update, delete: if isOwner(userId);
       }
+      
+      /**
+       * @description Manages a user's subjects. Only the user can manage their own subjects.
+       * @path /users/{userId}/subjects/{subjectId}
+       */
+      match /subjects/{subjectId} {
+        allow list, get, create, update, delete: if isOwner(userId);
+
+        /**
+         * @description Manages notes within a subject. Only the subject owner can manage notes.
+         * @path /users/{userId}/subjects/{subjectId}/notes/{noteId}
+         */
+        match /notes/{noteId} {
+          allow list, get, create, update, delete: if isOwner(userId);
+        }
+      }
     }
   }
 }
