@@ -36,7 +36,7 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      router.push('/dashboard/notes');
+      router.push('/dashboard');
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -50,7 +50,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      router.push('/dashboard/notes');
+      router.push('/dashboard');
     } catch (error: any) {
        toast({
         variant: "destructive",

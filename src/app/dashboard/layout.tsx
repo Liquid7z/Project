@@ -24,6 +24,7 @@ import {
   Loader,
   Notebook,
   Sun,
+  LayoutDashboard,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,6 +38,7 @@ import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
 
 const navItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
   { href: '/dashboard/generate', icon: Bot, label: 'Generate' },
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
@@ -105,7 +107,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                 <SidebarMenuItem key={item.label}>
                   <Link href={item.href}>
                     <SidebarMenuButton
-                      isActive={pathname.startsWith(item.href)}
+                      isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
                       tooltip={{ children: item.label }}
                     >
                         <item.icon />
@@ -162,7 +164,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                   <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
                       <SheetHeader>
                           <SheetTitle>
-                            <Link href="/dashboard/notes">
+                            <Link href="/dashboard">
                                 <Logo />
                             </Link>
                           </SheetTitle>

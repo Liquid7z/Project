@@ -57,7 +57,7 @@ export default function SignupPage() {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             createUserProfile(userCredential.user);
-            router.push('/dashboard/notes');
+            router.push('/dashboard');
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -72,7 +72,7 @@ export default function SignupPage() {
         try {
             const result = await signInWithPopup(auth, provider);
             createUserProfile(result.user);
-            router.push('/dashboard/notes');
+            router.push('/dashboard');
         } catch (error: any) {
             toast({
                 variant: "destructive",
