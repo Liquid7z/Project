@@ -13,6 +13,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface Block {
     id: string;
@@ -55,30 +56,21 @@ const BlockViewer = ({ block }: { block: Block }) => {
 }
 
 
-export default function NotePreviewPage() {
+export default function ContentPreviewPage() {
     const params = useParams();
-    const subjectId = params.subjectId as string;
-    const noteId = params.noteId as string;
     const router = useRouter();
+    const subjectId = params.subjectId as string;
+    const [contentType, itemPathId] = params.contentTypeAndNoteId as string[];
+
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
-    const noteRef = useMemoFirebase(() => {
-        if (!user || !subjectId || !noteId) return null;
-        // This is a temporary fix to handle different content types.
-        // In a real app, you would have different pages for different content types.
-        const pathSegments = window.location.pathname.split('/');
-        const contentType = pathSegments[pathSegments.length - 2] === 'edit' 
-            ? pathSegments[pathSegments.length - 3] 
-            : pathSegments[pathSegments.length - 2];
-        
-        const validContentTypes = ['notes', 'examQuestions', 'syllabus', 'resources'];
-        const collectionName = validContentTypes.includes(contentType) ? contentType : 'notes';
-        
-        return doc(firestore, 'users', user.uid, 'subjects', subjectId, collectionName, noteId);
-    }, [user, subjectId, noteId, firestore]);
+    const itemRef = useMemoFirebase(() => {
+        if (!user || !subjectId || !contentType || !itemPathId) return null;
+        return doc(firestore, 'users', user.uid, 'subjects', subjectId, contentType, itemPathId);
+    }, [user, subjectId, contentType, itemPathId, firestore]);
 
-    const { data: note, isLoading: isNoteLoading, error: noteError } = useDoc(noteRef);
+    const { data: item, isLoading: isItemLoading, error: itemError } = useDoc(itemRef);
     
     const subjectRef = useMemoFirebase(() => {
       if (!user || !subjectId ) return null;
@@ -89,16 +81,12 @@ export default function NotePreviewPage() {
     
     const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
 
-    const isLoading = isUserLoading || isNoteLoading || isSubjectLoading;
+    const isLoading = isUserLoading || isItemLoading || isSubjectLoading;
     
-    const blocks = note?.blocks || [];
+    const blocks = item?.blocks || [];
 
     const getEditUrl = () => {
-        if (!noteId) return '#';
-        const pathSegments = window.location.pathname.split('/');
-        pathSegments.pop();
-        pathSegments.push('edit');
-        return pathSegments.join('/');
+        return `/dashboard/notes/${subjectId}/${contentType}/${itemPathId}/edit`;
     }
 
     if (isLoading) {
@@ -135,12 +123,12 @@ export default function NotePreviewPage() {
         );
     }
     
-    if (noteError) {
+    if (itemError) {
          return (
             <div className="flex flex-col items-center justify-center h-full text-center">
                 <AlertTriangle className="h-12 w-12 text-destructive" />
                 <p className="mt-4 font-semibold">Failed to load item</p>
-                <p className="text-sm text-muted-foreground">{noteError.message}</p>
+                <p className="text-sm text-muted-foreground">{itemError.message}</p>
                 <Button variant="outline" size="sm" asChild className="mt-4">
                    <Link href={`/dashboard/notes/${subjectId}`}>Return to Subject</Link>
                 </Button>
@@ -148,7 +136,7 @@ export default function NotePreviewPage() {
         );
     }
 
-    if (!note) {
+    if (!item) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center">
                 <AlertTriangle className="h-12 w-12 text-muted-foreground" />
@@ -182,14 +170,14 @@ export default function NotePreviewPage() {
             </div>
             
             <div className="space-y-6 px-4 md:px-8">
-                <Card className={cn("glass-pane overflow-hidden p-6 transition-all", note.isImportant && "important-glow")}>
+                <Card className={cn("glass-pane overflow-hidden p-6 transition-all", item.isImportant && "important-glow")}>
                     <CardHeader className="!p-0 !pb-4 border-b">
                          <CardTitle className="font-headline text-lg">
                             From subject: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
                          </CardTitle>
                     </CardHeader>
                     <CardContent className="!p-0 !pt-6">
-                        <h1 className="text-4xl font-bold font-headline">{note.title}</h1>
+                        <h1 className="text-4xl font-bold font-headline">{item.title}</h1>
                     </CardContent>
                 </Card>
 
@@ -210,3 +198,4 @@ export default function NotePreviewPage() {
         </div>
     );
 }
+

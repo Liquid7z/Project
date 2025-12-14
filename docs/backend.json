@@ -51,6 +51,39 @@
         "isImportant": { "type": "boolean", "description": "Indicates if the note is marked as important." }
       },
       "required": ["title", "blocks"]
+    },
+     "ExamQuestion": {
+      "title": "ExamQuestion",
+      "type": "object",
+      "description": "Represents an exam question paper or practice question.",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the exam question." },
+        "blocks": { "type": "array", "description": "The content blocks of the question.", "items": { "type": "object" } },
+        "isImportant": { "type": "boolean", "description": "Indicates if the exam question is marked as important." }
+      },
+      "required": ["title", "blocks"]
+    },
+    "Syllabus": {
+      "title": "Syllabus",
+      "type": "object",
+      "description": "Represents a syllabus document or content.",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the syllabus item." },
+        "blocks": { "type": "array", "description": "The content blocks of the syllabus.", "items": { "type": "object" } },
+        "isImportant": { "type": "boolean", "description": "Indicates if the syllabus is marked as important." }
+      },
+      "required": ["title", "blocks"]
+    },
+    "Resource": {
+      "title": "Resource",
+      "type": "object",
+      "description": "Represents a supplementary resource file or link.",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the resource." },
+        "blocks": { "type": "array", "description": "The content blocks of the resource.", "items": { "type": "object" } },
+        "isImportant": { "type": "boolean", "description": "Indicates if the resource is marked as important." }
+      },
+      "required": ["title", "blocks"]
     }
   },
   "auth": {
@@ -73,9 +106,19 @@
       {
         "path": "/users/{userId}/subjects/{subjectId}/notes/{noteId}",
         "definition": { "entityName": "Note", "schema": { "$ref": "#/backend/entities/Note" }, "description": "Stores notes within a subject." }
+      },
+      {
+        "path": "/users/{userId}/subjects/{subjectId}/examQuestions/{questionId}",
+        "definition": { "entityName": "ExamQuestion", "schema": { "$ref": "#/backend/entities/ExamQuestion" }, "description": "Stores exam questions for a subject." }
+      },
+      {
+        "path": "/users/{userId}/subjects/{subjectId}/syllabus/{syllabusId}",
+        "definition": { "entityName": "Syllabus", "schema": { "$ref": "#/backend/entities/Syllabus" }, "description": "Stores syllabus items for a subject." }
+      },
+      {
+        "path": "/users/{userId}/subjects/{subjectId}/resources/{resourceId}",
+        "definition": { "entityName": "Resource", "schema": { "$ref": "#/backend/entities/Resource" }, "description": "Stores resources for a subject." }
       }
     ]
   }
 }
-
-    

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical, Sparkles } from 'lucide-react';
+import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical, Sparkles, Notebook, FileQuestion, BookCopy, Package } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -38,97 +38,94 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const noteFormSchema = z.object({
   title: z.string().min(1, 'Note title is required.'),
 });
 
-export default function SubjectPage() {
+const ContentList = ({ type }: { type: 'notes' | 'examQuestions' | 'syllabus' | 'resources' }) => {
     const params = useParams();
     const router = useRouter();
     const subjectId = params.subjectId as string;
-    const [isNewNoteDialogOpen, setIsNewNoteDialogOpen] = useState(false);
+    const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false);
     const { toast } = useToast();
-    const { user, isUserLoading } = useUser();
+    const { user } = useUser();
     const firestore = useFirestore();
 
-    const subjectRef = useMemoFirebase(() => {
+    const contentCollectionRef = useMemoFirebase(() => {
         if (!user || !subjectId) return null;
-        return doc(firestore, 'users', user.uid, 'subjects', subjectId);
-    }, [user, subjectId, firestore]);
-    const { data: subject, isLoading: isSubjectLoading, error: subjectError } = useDoc(subjectRef);
+        return collection(firestore, 'users', user.uid, 'subjects', subjectId, type);
+    }, [user, subjectId, firestore, type]);
+    
+    const { data: items, isLoading, error } = useCollection(contentCollectionRef);
 
-    const notesCollectionRef = useMemoFirebase(() => {
-        if (!user || !subjectId) return null;
-        return collection(firestore, 'users', user.uid, 'subjects', subjectId, 'notes');
-    }, [user, subjectId, firestore]);
-    const { data: notes, isLoading: areNotesLoading, error: notesError } = useCollection(notesCollectionRef);
-
-    const form = useForm<z.infer<typeof noteFormSchema>>({
+     const form = useForm<z.infer<typeof noteFormSchema>>({
         resolver: zodResolver(noteFormSchema),
         defaultValues: { title: '' },
     });
     
-    const handleCreateNote = async (values: z.infer<typeof noteFormSchema>) => {
-        if (!notesCollectionRef) return;
+    const handleCreateItem = async (values: z.infer<typeof noteFormSchema>) => {
+        if (!contentCollectionRef) return;
         try {
-            const newNoteDoc = await addDoc(notesCollectionRef, {
+            const newItemDoc = await addDoc(contentCollectionRef, {
                 title: values.title,
-                blocks: [{ id: `text-${Date.now()}`, type: 'text', content: '<p>Start writing your new note here!</p>' }],
+                blocks: [{ id: `text-${Date.now()}`, type: 'text', content: `<p>Start writing your new ${type.slice(0, -1)} here!</p>` }],
                 createdAt: serverTimestamp(),
                 lastUpdated: serverTimestamp(),
                 isImportant: false,
             });
-            toast({ title: 'Note Created', description: `Note "${values.title}" has been added.` });
-            setIsNewNoteDialogOpen(false);
+            toast({ title: 'Item Created', description: `New item "${values.title}" has been added.` });
+            setIsNewItemDialogOpen(false);
             form.reset();
-            router.push(`/dashboard/notes/${subjectId}/${newNoteDoc.id}`);
+            router.push(`/dashboard/notes/${subjectId}/${type}/${newItemDoc.id}`);
         } catch (error) {
-            console.error("Error creating note:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to create note.' });
+            console.error(`Error creating ${type}:`, error);
+            toast({ variant: 'destructive', title: 'Error', description: `Failed to create ${type.slice(0, -1)}.` });
         }
     };
     
-    const handleDeleteNote = async (noteId: string) => {
+    const handleDeleteItem = async (itemId: string) => {
         if (!user || !subjectId) return;
-        const noteRef = doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId);
+        const itemRef = doc(firestore, 'users', user.uid, 'subjects', subjectId, type, itemId);
         try {
-            await deleteDoc(noteRef);
-            toast({ title: 'Note Deleted', description: 'The note has been successfully deleted.' });
+            await deleteDoc(itemRef);
+            toast({ title: 'Item Deleted', description: 'The item has been successfully deleted.' });
         } catch (error) {
-            console.error("Error deleting note:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete note.' });
+            console.error(`Error deleting ${type}:`, error);
+            toast({ variant: 'destructive', title: 'Error', description: `Failed to delete item.` });
         }
     };
 
-    const toggleNoteImportance = async (note: any) => {
+    const toggleItemImportance = async (item: any) => {
       if (!user || !subjectId) return;
-      const noteRef = doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', note.id);
+      const itemRef = doc(firestore, 'users', user.uid, 'subjects', subjectId, type, item.id);
       try {
-        await updateDoc(noteRef, { isImportant: !note.isImportant });
-         toast({ title: 'Note Updated', description: `"${note.title}" marked as ${!note.isImportant ? 'important' : 'not important'}.` });
+        await updateDoc(itemRef, { isImportant: !item.isImportant });
+         toast({ title: 'Item Updated', description: `"${item.title}" marked as ${!item.isImportant ? 'important' : 'not important'}.` });
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update note importance.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update item importance.' });
       }
     };
-    
-    const isLoading = isUserLoading || isSubjectLoading || areNotesLoading;
-    const error = subjectError || notesError;
 
-    if (isLoading) {
-        return (
-            <div className="space-y-6">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 bg-muted rounded-md animate-pulse"></div>
-                        <div>
-                            <div className="h-8 w-48 bg-muted rounded animate-pulse"></div>
-                            <div className="h-4 w-64 bg-muted rounded animate-pulse mt-2"></div>
-                        </div>
-                    </div>
-                    <div className="h-10 w-32 bg-muted rounded-md animate-pulse"></div>
-                </div>
+    const typeName = {
+        notes: 'Note',
+        examQuestions: 'Exam Question',
+        syllabus: 'Syllabus Item',
+        resources: 'Resource'
+    }[type];
+
+    return (
+        <div className="space-y-6">
+             <div className="flex items-start justify-between">
+                <div className="flex-1"/>
+                <Button variant="glow" onClick={() => setIsNewItemDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New {typeName}
+                </Button>
+            </div>
+            {isLoading && (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {[...Array(3)].map((_, i) => (
                         <Card key={i} className="animate-pulse">
@@ -147,6 +144,144 @@ export default function SubjectPage() {
                         </Card>
                     ))}
                 </div>
+            )}
+            {error && (
+                <Card className="flex flex-col items-center justify-center p-8 text-center glass-pane">
+                    <AlertTriangle className="w-12 h-12 text-destructive" />
+                    <h3 className="mt-4 text-lg font-semibold">Error Loading Content</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
+                </Card>
+            )}
+            {!isLoading && items && items.length === 0 && (
+                <Card className="flex flex-col items-center justify-center p-12 text-center glass-pane border-dashed">
+                    <FileText className="w-16 h-16 text-muted-foreground/50" />
+                    <h3 className="mt-4 text-lg font-semibold">This section is empty</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">Add your first {typeName.toLowerCase()} to get started.</p>
+                </Card>
+            )}
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                 {items && items.map((item) => {
+                    const firstTextBlock = item.blocks?.find((b: any) => b.type === 'text');
+                    const previewText = firstTextBlock?.content?.replace(/<[^>]+>/g, '') || 'No additional content.';
+
+                    return (
+                        <Card key={item.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", item.isImportant && "important-glow")}>
+                            <Link href={`/dashboard/notes/${subjectId}/${type}/${item.id}`} className="flex-grow flex flex-col">
+                                <CardHeader>
+                                    <CardTitle className="font-headline group-hover:text-accent transition-colors">{item.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex-grow">
+                                    <p className="text-sm text-muted-foreground line-clamp-3">{previewText}</p>
+                                </CardContent>
+                                <CardFooter className="flex justify-between items-center text-xs text-muted-foreground">
+                                    <span>
+                                        {item.lastUpdated ? `Updated ${formatDistanceToNow(item.lastUpdated.toDate(), { addSuffix: true })}` : 'Not updated'}
+                                    </span>
+                                </CardFooter>
+                            </Link>
+                             <div className="absolute top-2 right-2">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-50 group-hover:opacity-100">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem asChild><Link href={`/dashboard/notes/${subjectId}/${type}/${item.id}/edit`}>Edit</Link></DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => toggleItemImportance(item)}>
+                                            <Sparkles className={cn("mr-2 h-4 w-4", item.isImportant && "text-accent")} />
+                                            Mark as Important
+                                        </DropdownMenuItem>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Delete</DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the item titled "{item.title}".
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteItem(item.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </Card>
+                    );
+                 })}
+            </div>
+             <Dialog open={isNewItemDialogOpen} onOpenChange={setIsNewItemDialogOpen}>
+                <DialogContent className="glass-pane">
+                    <DialogHeader>
+                        <DialogTitle className="font-headline">Create New {typeName}</DialogTitle>
+                        <DialogDescription>
+                            Give your new item a title to get started. You can add content on the next page.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleCreateItem)} className="space-y-4 py-4">
+                            <FormField
+                                control={form.control}
+                                name="title"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Title</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder={`e.g., Chapter 1 ${typeName}`} {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="ghost">Cancel</Button>
+                                </DialogClose>
+                                <Button type="submit" variant="glow">Create & Open</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+};
+
+export default function SubjectPage() {
+    const params = useParams();
+    const subjectId = params.subjectId as string;
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    const subjectRef = useMemoFirebase(() => {
+        if (!user || !subjectId) return null;
+        return doc(firestore, 'users', user.uid, 'subjects', subjectId);
+    }, [user, subjectId, firestore]);
+    const { data: subject, isLoading: isSubjectLoading, error: subjectError } = useDoc(subjectRef);
+
+    const isLoading = isUserLoading || isSubjectLoading;
+    const error = subjectError;
+
+    if (isLoading) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 bg-muted rounded-md animate-pulse"></div>
+                        <div>
+                            <div className="h-8 w-48 bg-muted rounded animate-pulse"></div>
+                            <div className="h-4 w-64 bg-muted rounded animate-pulse mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+                 <div className="h-10 w-full bg-muted rounded-md animate-pulse mt-6"></div>
+                 <div className="h-48 w-full bg-muted rounded-md animate-pulse mt-6"></div>
             </div>
         )
     }
@@ -191,111 +326,28 @@ export default function SubjectPage() {
                         <p className="text-muted-foreground">{subject.description}</p>
                     </div>
                 </div>
-                <Button variant="glow" onClick={() => setIsNewNoteDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Note
-                </Button>
-            </div>
-
-            {notes && notes.length === 0 && (
-                <Card className="flex flex-col items-center justify-center p-12 text-center glass-pane border-dashed">
-                    <FileText className="w-16 h-16 text-muted-foreground/50" />
-                    <h3 className="mt-4 text-lg font-semibold">This Subject is Empty</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">Add your first note to get started.</p>
-                </Card>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                 {notes && notes.map((note) => {
-                    const firstTextBlock = note.blocks?.find((b: any) => b.type === 'text');
-                    const previewText = firstTextBlock?.content?.replace(/<[^>]+>/g, '') || 'No additional content.';
-
-                    return (
-                        <Card key={note.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", note.isImportant && "important-glow")}>
-                            <Link href={`/dashboard/notes/${subjectId}/${note.id}`} className="flex-grow flex flex-col">
-                                <CardHeader>
-                                    <CardTitle className="font-headline group-hover:text-accent transition-colors">{note.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex-grow">
-                                    <p className="text-sm text-muted-foreground line-clamp-3">{previewText}</p>
-                                </CardContent>
-                                <CardFooter className="flex justify-between items-center text-xs text-muted-foreground">
-                                    <span>
-                                        {note.lastUpdated ? `Updated ${formatDistanceToNow(note.lastUpdated.toDate(), { addSuffix: true })}` : 'Not updated'}
-                                    </span>
-                                </CardFooter>
-                            </Link>
-                             <div className="absolute top-2 right-2">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-50 group-hover:opacity-100">
-                                            <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem asChild><Link href={`/dashboard/notes/${subjectId}/${note.id}/edit`}>Edit</Link></DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => toggleNoteImportance(note)}>
-                                            <Sparkles className={cn("mr-2 h-4 w-4", note.isImportant && "text-accent")} />
-                                            Mark as Important
-                                        </DropdownMenuItem>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Delete</DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the note titled "{note.title}".
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDeleteNote(note.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </Card>
-                    );
-                 })}
             </div>
             
-            <Dialog open={isNewNoteDialogOpen} onOpenChange={setIsNewNoteDialogOpen}>
-                <DialogContent className="glass-pane">
-                    <DialogHeader>
-                        <DialogTitle className="font-headline">Create New Note</DialogTitle>
-                        <DialogDescription>
-                            Give your new note a title to get started. You can add content on the next page.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(handleCreateNote)} className="space-y-4 py-4">
-                            <FormField
-                                control={form.control}
-                                name="title"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Note Title</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g., The Last Sunset" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button type="button" variant="ghost">Cancel</Button>
-                                </DialogClose>
-                                <Button type="submit" variant="glow">Create & Open Note</Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+            <Tabs defaultValue="notes" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="notes"><Notebook className="w-4 h-4 mr-2"/>Notes</TabsTrigger>
+                    <TabsTrigger value="examQuestions"><FileQuestion className="w-4 h-4 mr-2"/>Exam Questions</TabsTrigger>
+                    <TabsTrigger value="syllabus"><BookCopy className="w-4 h-4 mr-2"/>Syllabus</TabsTrigger>
+                    <TabsTrigger value="resources"><Package className="w-4 h-4 mr-2"/>Other Resources</TabsTrigger>
+                </TabsList>
+                <TabsContent value="notes" className="mt-6">
+                    <ContentList type="notes" />
+                </TabsContent>
+                <TabsContent value="examQuestions" className="mt-6">
+                    <ContentList type="examQuestions" />
+                </TabsContent>
+                <TabsContent value="syllabus" className="mt-6">
+                   <ContentList type="syllabus" />
+                </TabsContent>
+                <TabsContent value="resources" className="mt-6">
+                    <ContentList type="resources" />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

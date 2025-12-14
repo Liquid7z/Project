@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -62,19 +62,18 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
 
 export default function ItemEditPage() {
     const params = useParams();
-    const subjectId = params.subjectId as string;
-    const noteId = params.noteId as string; // noteId is the generic ID for any content type
     const router = useRouter();
+    const subjectId = params.subjectId as string;
+    const [contentType, itemPathId] = params.contentTypeAndNoteId as string[];
+
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
 
-    const [contentType, setContentType] = useState<string>('notes');
-
     const itemRef = useMemoFirebase(() => {
-        if (!user || !subjectId || !noteId) return null;
-        return doc(firestore, 'users', user.uid, 'subjects', subjectId, contentType, noteId);
-    }, [user, subjectId, noteId, firestore, contentType]);
+        if (!user || !subjectId || !itemPathId || !contentType) return null;
+        return doc(firestore, 'users', user.uid, 'subjects', subjectId, contentType, itemPathId);
+    }, [user, subjectId, itemPathId, firestore, contentType]);
 
     const { data: item, isLoading: isItemLoading, error: itemError } = useDoc(itemRef);
 
@@ -88,18 +87,8 @@ export default function ItemEditPage() {
       return doc(firestore, 'users', user.uid, 'subjects', subjectId);
     }, [user, subjectId, firestore]);
     const { data: subject, isLoading: isSubjectLoading } = useDoc(subjectRef);
-
-    React.useEffect(() => {
-        // Determine content type from URL
-        const pathSegments = window.location.pathname.split('/');
-        const type = pathSegments[pathSegments.length - 3];
-        const validContentTypes = ['notes', 'examQuestions', 'syllabus', 'resources'];
-        if (validContentTypes.includes(type)) {
-            setContentType(type);
-        }
-    }, []);
-
-    React.useEffect(() => {
+    
+    useEffect(() => {
         if (item) {
             setTitle(item.title || '');
             setBlocks(item.blocks || []);
@@ -116,7 +105,7 @@ export default function ItemEditPage() {
 
                 if (file) {
                      const storage = getStorage();
-                     const filePath = `users/${user.uid}/${contentType}/${noteId}/${uuidv4()}-${file.name}`;
+                     const filePath = `users/${user.uid}/${contentType}/${itemPathId}/${uuidv4()}-${file.name}`;
                      const fileRef = ref(storage, filePath);
                      await uploadBytes(fileRef, file);
                      storableBlock.downloadUrl = await getDownloadURL(fileRef);
@@ -132,7 +121,7 @@ export default function ItemEditPage() {
                 lastUpdated: serverTimestamp(),
             });
             toast({ title: "Item Saved!", description: "Your changes have been saved successfully." });
-            router.push(`/dashboard/notes/${subjectId}/${contentType}/${noteId}`);
+            router.push(`/dashboard/notes/${subjectId}/${contentType}/${itemPathId}`);
         } catch (error) {
             console.error("Error saving item:", error);
             toast({ title: "Error", description: "Failed to save item.", variant: "destructive" });
@@ -221,8 +210,7 @@ export default function ItemEditPage() {
     if (itemError) return <div className="flex items-center justify-center h-full text-destructive"><AlertTriangle className="h-8 w-8 mr-2"/> Error loading item.</div>;
 
     const getBackLink = () => {
-         const pathSegments = window.location.pathname.split('/');
-         return pathSegments.slice(0, -1).join('/');
+         return `/dashboard/notes/${subjectId}/${contentType}/${itemPathId}`;
     }
 
     return (

@@ -121,6 +121,30 @@ service cloud.firestore {
         match /notes/{noteId} {
           allow list, get, create, update, delete: if isOwner(userId);
         }
+        
+        /**
+         * @description Manages exam questions within a subject.
+         * @path /users/{userId}/subjects/{subjectId}/examQuestions/{questionId}
+         */
+        match /examQuestions/{questionId} {
+          allow list, get, create, update, delete: if isOwner(userId);
+        }
+
+        /**
+         * @description Manages syllabus items within a subject.
+         * @path /users/{userId}/subjects/{subjectId}/syllabus/{syllabusId}
+         */
+        match /syllabus/{syllabusId} {
+          allow list, get, create, update, delete: if isOwner(userId);
+        }
+
+        /**
+         * @description Manages resources within a subject.
+         * @path /users/{userId}/subjects/{subjectId}/resources/{resourceId}
+         */
+        match /resources/{resourceId} {
+          allow list, get, create, update, delete: if isOwner(userId);
+        }
       }
     }
   }
