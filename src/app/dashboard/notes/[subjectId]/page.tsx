@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -228,19 +229,17 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
       </div>
        {isLoading && <Skeleton className="h-24 w-full" />}
       {!isLoading && notes?.map(note => (
-        <Link key={note.id} href={`/dashboard/notes/${subjectId}/${note.id}`} legacyBehavior>
-            <a className="block">
-                <Card className="mb-4 glass-pane hover:border-accent transition-colors cursor-pointer">
-                    <CardHeader>
-                        <CardTitle>{note.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3">
-                           {note.blocks.find(b => b.type === 'text')?.content?.content?.[0]?.content?.[0]?.text || 'No content preview.'}
-                        </div>
-                    </CardContent>
-                </Card>
-            </a>
+        <Link key={note.id} href={`/dashboard/notes/${subjectId}/${note.id}`} className="block">
+            <Card className="mb-4 glass-pane hover:border-accent transition-colors cursor-pointer">
+                <CardHeader>
+                    <CardTitle>{note.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3">
+                       {note.blocks.find(b => b.type === 'text')?.content?.content?.[0]?.content?.[0]?.text || 'No content preview.'}
+                    </div>
+                </CardContent>
+            </Card>
         </Link>
       ))}
        {!isLoading && !notes?.length && (
