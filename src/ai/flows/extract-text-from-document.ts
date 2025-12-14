@@ -45,6 +45,7 @@ const extractTextTool = ai.defineTool({
       console.log('Detected PDF document.');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
       
+      // Set worker path for server-side execution
       GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
       
       try {
@@ -57,17 +58,19 @@ const extractTextTool = ai.defineTool({
         }
         return { extractedText: fullText };
       } finally {
-        GlobalWorkerOptions.workerSrc = '' as any;
+        // Important: Clean up the worker source to avoid conflicts in different environments.
+        (GlobalWorkerOptions as any).workerSrc = null;
       }
 
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       console.log('Detected DOCX document.');
       const documentBuffer = Buffer.from(documentDataBase64, 'base64');
       const { value: extractedText } = await mammoth.extractRawText({ buffer: documentBuffer });
-      return { extractedText };
+      return { extractedText: extractedText };
     } else {
       console.log('Unsupported document type.');
       const fileType = input.documentDataUri.substring(input.documentDataUri.indexOf('/') + 1, input.documentDataUri.indexOf(';'));
+      // Fallback for unsupported types, perhaps just return a message
       return { extractedText: `Content from ${fileType} file.` };
     }
   }

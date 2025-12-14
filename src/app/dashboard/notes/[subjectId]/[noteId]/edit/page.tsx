@@ -157,12 +157,14 @@ export default function NoteEditPage() {
 
         if (file.type === 'application/pdf') {
             try {
-                GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
+                if (!GlobalWorkerOptions.workerSrc) {
+                   GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
+                }
                 const doc = await getDocument(URL.createObjectURL(file)).promise;
                 const previewUrls: string[] = [];
-                for (let i = 1; i <= doc.numPages; i++) {
+                for (let i = 1; i <= Math.min(doc.numPages, 10); i++) { // Limit previews for performance
                     const page = await doc.getPage(i);
-                    const viewport = page.getViewport({ scale: 1.5 });
+                    const viewport = page.getViewport({ scale: 1.0 }); // Use a smaller scale for thumbnail
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
                     canvas.height = viewport.height;
