@@ -62,16 +62,16 @@ export default function NoteViewPage() {
   const params = useParams();
   const subjectId = params.subjectId as string;
   const noteId = params.noteId as string;
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
   const noteDocRef = useMemoFirebase(
     () => (user && subjectId && noteId ? doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId) : null),
     [firestore, user, subjectId, noteId]
   );
-  const { data: note, isLoading, error } = useDoc<Note>(noteDocRef);
+  const { data: note, isLoading: isLoadingNote, error } = useDoc<Note>(noteDocRef);
 
-  if (isLoading) {
+  if (isUserLoading || isLoadingNote) {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
