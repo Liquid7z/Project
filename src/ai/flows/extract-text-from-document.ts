@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Extracts text from a document (PDF/DOCX) using a tool.
@@ -60,24 +61,28 @@ const extractTextTool = ai.defineTool({
       console.log('Detected PDF document.');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
       
-      // Temporarily disable worker for server-side execution
-      const worker = GlobalWorkerOptions.workerSrc;
+      // Temporarily disable worker for server-side execution and restore it after.
+      const originalWorkerSrc = GlobalWorkerOptions.workerSrc;
       GlobalWorkerOptions.workerSrc = false as any;
-      const doc = await getDocument({ data: new Uint8Array(pdfData.buffer) }).promise;
-      GlobalWorkerOptions.workerSrc = worker;
+      
+      try {
+        const doc = await getDocument({ data: new Uint8Array(pdfData.buffer) }).promise;
 
+        let fullText = '';
+        for (let i = 1; i <= doc.numPages; i++) {
+          const page = await doc.getPage(i);
+          const textContent = await page.getTextContent();
+          fullText += textContent.items.map(item => (item as any).str).join(' ');
+        }
+        
+        // Since canvas is not available on the server, we generate a generic preview.
+        const previewDataUri = generateGenericPreview('PDF');
+        return { extractedText: fullText, previewDataUri: previewDataUri };
 
-      let fullText = '';
-      for (let i = 1; i <= doc.numPages; i++) {
-        const page = await doc.getPage(i);
-        const textContent = await page.getTextContent();
-        fullText += textContent.items.map(item => (item as any).str).join(' ');
+      } finally {
+        // Restore the original worker source for client-side rendering.
+        GlobalWorkerOptions.workerSrc = originalWorkerSrc;
       }
-
-      // Since canvas is not available on the server, we generate a generic preview.
-      const previewDataUri = generateGenericPreview('PDF');
-
-      return { extractedText: fullText, previewDataUri: previewDataUri };
 
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       console.log('Detected DOCX document.');
