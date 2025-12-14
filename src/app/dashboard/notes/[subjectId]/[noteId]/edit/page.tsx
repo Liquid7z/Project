@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -23,7 +24,7 @@ import { extractTextAction } from '@/actions/generation';
 
 interface Block {
     id: string;
-    type: 'text' | 'image';
+    type: 'text' | 'image' | 'document';
     content?: string; // HTML for text
     downloadUrl?: string; // URL from storage
     fileName?: string;
@@ -44,6 +45,8 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
                  ) : block.downloadUrl ? (
                     <Image src={block.downloadUrl} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md" />
                  ) : null
+            ) : block.type === 'document' ? (
+                <DocumentPreviewer name={block.fileName!} type={block.fileType!} url={block.downloadUrl!} />
             ) : null}
              <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100" onClick={() => removeBlock(block.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -128,31 +131,46 @@ export default function NoteEditPage() {
     }
 
     const handleDocumentUpload = async (file: File) => {
-        toast({title: "Extracting Content", description: "Reading your document, please wait..."});
-        
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            try {
-                const documentDataUri = reader.result as string;
-                const result = await extractTextAction({ documentDataUri });
+        // Handle DOCX by extracting content
+        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            toast({title: "Extracting Content", description: "Reading your document, please wait..."});
+            
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                try {
+                    const documentDataUri = reader.result as string;
+                    const result = await extractTextAction({ documentDataUri });
 
-                if (result.extractedText) {
-                    addTextBlock(result.extractedText);
-                    toast({title: "Content Extracted", description: "The content from your document has been added to the note."});
-                } else {
-                     toast({title: "Extraction Failed", description: "Could not extract content from the document.", variant: "destructive"});
+                    if (result.extractedText) {
+                        addTextBlock(result.extractedText);
+                        toast({title: "Content Extracted", description: "The content from your document has been added to the note."});
+                    } else {
+                         toast({title: "Extraction Failed", description: "Could not extract content from the document.", variant: "destructive"});
+                    }
+                    
+                } catch (error) {
+                    console.error("Failed to extract text from document:", error);
+                    toast({title: "Error", description: "An error occurred while processing the document.", variant: "destructive"});
                 }
-                
-            } catch (error) {
-                console.error("Failed to extract text from document:", error);
-                toast({title: "Error", description: "An error occurred while processing the document.", variant: "destructive"});
-            }
-        };
-         reader.onerror = (error) => {
-            console.error("Error reading file:", error);
-            toast({title: "File Read Error", description: "Could not read the uploaded file.", variant: "destructive"});
-        };
+            };
+             reader.onerror = (error) => {
+                console.error("Error reading file:", error);
+                toast({title: "File Read Error", description: "Could not read the uploaded file.", variant: "destructive"});
+            };
+        } else if (file.type === 'application/pdf') {
+            // Handle PDF by creating a document block for upload
+             const newBlock: Block = {
+                id: `doc-${Date.now()}`,
+                type: 'document' as const,
+                file: file,
+                fileName: file.name,
+                fileType: file.type || 'Unknown',
+                downloadUrl: URL.createObjectURL(file) // temporary URL for client-side linking before upload
+            };
+            setBlocks(prev => [...prev, newBlock]);
+            toast({title: "PDF Added", description: "Your PDF has been added to the note. Save to complete the upload."});
+        }
     };
     
     const handleImageUpload = (file: File) => {
@@ -170,8 +188,12 @@ export default function NoteEditPage() {
     const removeBlock = (id: string) => {
         setBlocks(prev => prev.filter(b => {
             const block = prev.find(block => block.id === id);
+            // Clean up object URLs to prevent memory leaks
             if (block?.previewUrl && block.type === 'image') {
-                URL.revokeObjectURL(block.previewUrl); // Clean up object URL for images
+                URL.revokeObjectURL(block.previewUrl);
+            }
+            if (block?.downloadUrl && (block.type === 'document' || (block.type === 'image' && !block.file))) {
+                 if (block.file) URL.revokeObjectURL(block.downloadUrl);
             }
             return b.id !== id;
         }));

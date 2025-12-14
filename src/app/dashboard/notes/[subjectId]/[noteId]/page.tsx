@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -14,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface Block {
     id: string;
-    type: 'text' | 'image';
+    type: 'text' | 'image' | 'document';
     content?: string;
     fileName?: string;
     fileType?: string;
@@ -37,6 +38,14 @@ const BlockViewer = ({ block }: { block: Block }) => {
         return (
             <div className="not-prose my-4">
                 <Image src={block.previewUrl || block.downloadUrl!} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md mx-auto" />
+            </div>
+        )
+    }
+
+    if (block.type === 'document' && block.downloadUrl) {
+        return (
+             <div className="not-prose my-4">
+                <DocumentPreviewer name={block.fileName!} type={block.fileType!} url={block.downloadUrl} />
             </div>
         )
     }
