@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -9,7 +10,7 @@ import { LoadingAnimation } from '@/components/loading-animation';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Construction } from 'lucide-react';
 
 export default function AnalyzePage() {
     const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +47,12 @@ export default function AnalyzePage() {
     return (
         <div className="grid gap-6">
             {isLoading && <LoadingAnimation text="Analyzing your handwriting..." />}
-            <Card className="glass-pane">
+            <Card className="glass-pane relative overflow-hidden">
+                <div className="absolute inset-0 bg-card/70 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                    <Construction className="h-16 w-16 text-accent" />
+                    <h3 className="text-2xl font-headline mt-4">Feature Coming Soon</h3>
+                    <p className="text-muted-foreground">We're working hard to bring this to you!</p>
+                </div>
                 <CardHeader>
                     <CardTitle className="font-headline">Analyze Your Handwriting Style</CardTitle>
                     <CardDescription>Upload an image of your handwriting to create a personalized AI model.</CardDescription>

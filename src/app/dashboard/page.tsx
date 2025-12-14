@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -9,7 +10,7 @@ import { FileUploader } from '@/components/file-uploader';
 import { generateAssignmentAction, extractTextAction, analyzeStyleAction } from '@/actions/generation';
 import { LoadingAnimation } from '@/components/loading-animation';
 import Image from 'next/image';
-import { Download, FileText, Type, UploadCloud } from 'lucide-react';
+import { Download, FileText, Type, UploadCloud, Construction } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -40,9 +41,7 @@ export default function GeneratePage() {
                 const documentDataUri = reader.result as string;
                 const result = await extractTextAction({ documentDataUri });
                 setTextContent(result.extractedText);
-                if (result.previewDataUri) {
-                    setDocumentPreview(result.previewDataUri);
-                }
+                
             } catch (error) {
                 console.error("Failed to extract text:", error);
                 toast({
@@ -243,7 +242,12 @@ export default function GeneratePage() {
         <>
             {isLoading && <LoadingAnimation text={loadingText} />}
             <div className="grid lg:grid-cols-2 gap-6">
-                <Card className="glass-pane">
+                <Card className="glass-pane relative overflow-hidden">
+                    <div className="absolute inset-0 bg-card/70 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                        <Construction className="h-16 w-16 text-accent" />
+                        <h3 className="text-2xl font-headline mt-4">Feature Coming Soon</h3>
+                        <p className="text-muted-foreground">We're working hard to bring this to you!</p>
+                    </div>
                     <CardHeader>
                         <CardTitle className="font-headline">Input Content</CardTitle>
                         <CardDescription>Provide the text for your assignment.</CardDescription>
@@ -265,7 +269,7 @@ export default function GeneratePage() {
                             <TabsContent value="upload" className="mt-4">
                                 <FileUploader
                                     onFileUpload={handleFileUpload}
-                                    acceptedFiles={['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
+                                    acceptedFiles={['application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
                                 />
                             </TabsContent>
                         </Tabs>
@@ -277,7 +281,12 @@ export default function GeneratePage() {
                     </CardFooter>
                 </Card>
 
-                <Card className="glass-pane">
+                <Card className="glass-pane relative overflow-hidden">
+                     <div className="absolute inset-0 bg-card/70 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                        <Construction className="h-16 w-16 text-accent" />
+                        <h3 className="text-2xl font-headline mt-4">Feature Coming Soon</h3>
+                        <p className="text-muted-foreground">We're working hard to bring this to you!</p>
+                    </div>
                     <CardHeader>
                         <CardTitle className="font-headline">Generated Output</CardTitle>
                         <CardDescription>Your handwritten assignment will appear here.</CardDescription>
