@@ -3,14 +3,14 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, Loader, AlertTriangle, GripVertical, File as FileIcon } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Edit, Loader, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Block {
     id: string;
@@ -55,7 +55,7 @@ export default function NotePreviewPage() {
     const subjectId = params.subjectId as string;
     const noteId = params.noteId as string;
     const router = useRouter();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
     const noteRef = useMemoFirebase(() => {
@@ -71,17 +71,41 @@ export default function NotePreviewPage() {
     }, [user, subjectId, firestore]);
     
     const { data: subject, isLoading: isSubjectLoading } = useDoc(subjectRef);
-
     
     const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
 
-    const isLoading = isNoteLoading || isSubjectLoading;
+    const isLoading = isUserLoading || isNoteLoading || isSubjectLoading;
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-                <Loader className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground">Loading your note...</p>
+            <div className="max-w-5xl mx-auto space-y-8 pb-12">
+                 {heroImage && (
+                    <div className="h-64 w-full relative rounded-lg overflow-hidden">
+                        <Skeleton className="w-full h-full" />
+                    </div>
+                )}
+                 <div className="flex items-center justify-between -mt-24 relative z-10 px-8">
+                    <Skeleton className="h-10 w-10 rounded-md" />
+                    <Skeleton className="h-10 w-32 rounded-md" />
+                </div>
+                 <div className="space-y-6 px-4 md:px-8">
+                    <Card className="glass-pane overflow-hidden p-6">
+                        <CardHeader className="!p-0 !pb-4 border-b">
+                             <CardTitle className="font-headline text-lg">
+                                 <Skeleton className="h-6 w-48" />
+                             </CardTitle>
+                        </CardHeader>
+                        <CardContent className="!p-0 !pt-6">
+                            <Skeleton className="h-10 w-3/4" />
+                        </CardContent>
+                    </Card>
+                    <Card className="glass-pane">
+                        <CardContent className="p-6 space-y-6">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-8 w-3/4" />
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         );
     }
@@ -91,7 +115,7 @@ export default function NotePreviewPage() {
             <div className="flex flex-col items-center justify-center h-full text-center">
                 <AlertTriangle className="h-12 w-12 text-destructive" />
                 <p className="mt-4 font-semibold">Failed to load note</p>
-                <p className="text-sm text-muted-foreground">{noteError.toString()}</p>
+                <p className="text-sm text-muted-foreground">{noteError.message}</p>
                 <Button variant="outline" size="sm" asChild className="mt-4">
                    <Link href={`/dashboard/notes/${subjectId}`}>Return to Subject</Link>
                 </Button>
@@ -146,7 +170,7 @@ export default function NotePreviewPage() {
 
                 <Card className="glass-pane">
                     <CardContent className="p-6 space-y-6">
-                        {note.blocks?.map((block: Block) => (
+                        {(note.blocks || []).map((block: Block) => (
                            <BlockViewer key={block.id} block={block} />
                         ))}
                     </CardContent>
