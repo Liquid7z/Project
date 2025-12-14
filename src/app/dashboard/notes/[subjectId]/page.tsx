@@ -101,7 +101,7 @@ const NewNoteDialog = ({ subjectId }: { subjectId: string }) => {
         };
     };
 
-    const onSubmit = async (values: z.infer<typeof noteFormSchema>>) => {
+    const onSubmit = async (values: z.infer<typeof noteFormSchema>) => {
         if (!user || !notesCollectionRef) {
             toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a note.'});
             return;
@@ -321,3 +321,5 @@ export default function SubjectPage() {
     </div>
   );
 }
+
+    
