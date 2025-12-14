@@ -35,7 +35,6 @@ import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
-import { AIStudyCoach } from '@/components/ai-study-coach';
 
 const navItems = [
   { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
@@ -222,7 +221,6 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
           
           <main className="flex-1 p-4 md:p-6 relative">
             {children}
-            <AIStudyCoach />
           </main>
         </div>
       </div>
