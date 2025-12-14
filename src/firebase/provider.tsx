@@ -167,16 +167,28 @@ export const useFirebaseApp = (): FirebaseApp => {
   return firebaseApp;
 };
 
-type MemoFirebase <T> = T & {__memo?: boolean};
+type MemoFirebase<T> = T & { __memo?: boolean };
 
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
-  const memoized = useMemo(factory, deps);
-  
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
-  
-  return memoized;
+export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const memoized = useMemo(factory, deps);
+
+    if (memoized && typeof memoized === 'object') {
+        try {
+            Object.defineProperty(memoized, '__memo', {
+                value: true,
+                writable: false,
+                enumerable: false,
+                configurable: false,
+            });
+        } catch (e) {
+            // This might fail on frozen objects, but it's a dev-time check, so we can ignore it.
+        }
+    }
+    
+    return memoized;
 }
+
 
 /**
  * Hook specifically for accessing the authenticated user's state.
