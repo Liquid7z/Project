@@ -60,7 +60,7 @@ export default function NotesDashboardPage() {
         },
     });
 
-    const handleCreateOrUpdateSubject = async (values: z.infer<typeof subjectFormSchema>>) => {
+    const handleCreateOrUpdateSubject = async (values: z.infer<typeof subjectFormSchema>) => {
         if (editingSubject) { // Update existing subject
             if (!user) return;
             const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', editingSubject.id);
@@ -290,5 +290,3 @@ export default function NotesDashboardPage() {
         </div>
     );
 }
-
-    
