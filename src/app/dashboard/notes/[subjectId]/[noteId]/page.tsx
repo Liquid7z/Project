@@ -3,25 +3,51 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, File as FileIcon, Loader, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit, Loader, AlertTriangle, GripVertical, File as FileIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { DocumentPreviewer } from '@/components/document-previewer';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
-// Mock data
-const mockNote = {
-    id: 'n1',
-    title: 'The Last Sunset',
-    content: `<p>The sky bled orange and purple as the last sun of the year dipped below the horizon of Neo-Kyoto. From my high-rise hab-unit, the city looked like a circuit board of pulsing light. It was beautiful, in a sterile, manufactured kind of way.</p><p>Down below, the crowds would be swarming, a river of humanity flowing towards the countdown plaza. But up here, it was just me and the quiet hum of the climate-control unit. Another year gone. Another year alone.</p>`,
-    documents: [
-        { name: 'Research_Notes.pdf', url: '#', type: 'PDF', previewUrl: 'https://picsum.photos/seed/doc1/800/1100' },
-        { name: 'Character_Sheet.docx', url: '#', type: 'DOCX', previewUrl: 'https://picsum.photos/seed/doc2/800/1100' },
-    ],
-    lastUpdated: new Date(Date.now() - 3600000),
-};
-const mockSubject = { id: '1', name: 'Creative Writing', description: 'Drafts of short stories and poems.' };
+
+interface Block {
+    id: string;
+    type: 'text' | 'document';
+    content?: string;
+    fileName?: string;
+    fileType?: string;
+    downloadUrl?: string;
+    previewUrls?: string[];
+}
+
+
+const BlockViewer = ({ block }: { block: Block }) => {
+    if (block.type === 'text') {
+        return (
+            <div
+                className="prose prose-sm md:prose-base dark:prose-invert max-w-none prose-p:text-muted-foreground prose-headings:text-foreground"
+                dangerouslySetInnerHTML={{ __html: block.content || '' }}
+            />
+        );
+    }
+
+    if (block.type === 'document') {
+        return (
+             <div className="not-prose">
+                <DocumentPreviewer
+                    name={block.fileName || 'Document'}
+                    type={block.fileType || 'File'}
+                    url={block.downloadUrl || '#'}
+                    previewUrls={block.previewUrls || []}
+                />
+            </div>
+        );
+    }
+
+    return null;
+}
 
 
 export default function NotePreviewPage() {
@@ -29,14 +55,27 @@ export default function NotePreviewPage() {
     const subjectId = params.subjectId as string;
     const noteId = params.noteId as string;
     const router = useRouter();
+    const { user } = useUser();
+    const firestore = useFirestore();
 
-    // In a real app, use useDoc for the note and subject
-    const note = mockNote;
-    const subject = mockSubject;
-    const isLoading = false;
-    const error = null;
+    const noteRef = useMemoFirebase(() => {
+        if (!user || !subjectId || !noteId) return null;
+        return doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', noteId);
+    }, [user, subjectId, noteId, firestore]);
+
+    const { data: note, isLoading: isNoteLoading, error: noteError } = useDoc(noteRef);
+    
+    const subjectRef = useMemoFirebase(() => {
+      if (!user || !subjectId ) return null;
+      return doc(firestore, 'users', user.uid, 'subjects', subjectId);
+    }, [user, subjectId, firestore]);
+    
+    const { data: subject, isLoading: isSubjectLoading } = useDoc(subjectRef);
+
     
     const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
+
+    const isLoading = isNoteLoading || isSubjectLoading;
 
     if (isLoading) {
         return (
@@ -47,12 +86,12 @@ export default function NotePreviewPage() {
         );
     }
     
-    if (error) {
+    if (noteError) {
          return (
             <div className="flex flex-col items-center justify-center h-full text-center">
                 <AlertTriangle className="h-12 w-12 text-destructive" />
                 <p className="mt-4 font-semibold">Failed to load note</p>
-                <p className="text-sm text-muted-foreground">{error.toString()}</p>
+                <p className="text-sm text-muted-foreground">{noteError.toString()}</p>
                 <Button variant="outline" size="sm" asChild className="mt-4">
                    <Link href={`/dashboard/notes/${subjectId}`}>Return to Subject</Link>
                 </Button>
@@ -73,7 +112,7 @@ export default function NotePreviewPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-5xl mx-auto space-y-8 pb-12">
             {heroImage && (
                 <div className="h-64 w-full relative rounded-lg overflow-hidden">
                     <Image src={heroImage.imageUrl} alt={heroImage.description} layout="fill" objectFit="cover" className="opacity-20" />
@@ -94,44 +133,24 @@ export default function NotePreviewPage() {
             </div>
             
             <div className="space-y-6 px-4 md:px-8">
-                <Card className="glass-pane overflow-hidden">
-                    <CardHeader>
-                        <CardTitle className="font-headline text-4xl">{note.title}</CardTitle>
-                        <CardDescription>From subject: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject.name}</Link></CardDescription>
+                <Card className="glass-pane overflow-hidden p-6">
+                    <CardHeader className="!p-0 !pb-4 border-b">
+                         <CardTitle className="font-headline text-lg">
+                            From subject: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
+                         </CardTitle>
                     </CardHeader>
-                </Card>
-
-                <Card className="glass-pane">
-                    <CardContent className="p-6">
-                        <h3 className="font-headline text-xl mb-4 text-accent">Content</h3>
-                         <div
-                            className="prose prose-sm md:prose-base dark:prose-invert max-w-none prose-p:text-muted-foreground prose-headings:text-foreground"
-                            dangerouslySetInnerHTML={{ __html: note.content }}
-                        />
+                    <CardContent className="!p-0 !pt-6">
+                        <h1 className="text-4xl font-bold font-headline">{note.title}</h1>
                     </CardContent>
                 </Card>
 
-                {note.documents && note.documents.length > 0 && (
-                     <Card className="glass-pane">
-                        <CardHeader>
-                             <CardTitle className="font-headline text-xl text-accent">Attached Documents</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {note.documents.map((doc, index) => (
-                                    <DocumentPreviewer 
-                                        key={index}
-                                        name={doc.name}
-                                        type={doc.type}
-                                        url={doc.url}
-                                        previewUrl={doc.previewUrl}
-                                    />
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
+                <Card className="glass-pane">
+                    <CardContent className="p-6 space-y-6">
+                        {note.blocks?.map((block: Block) => (
+                           <BlockViewer key={block.id} block={block} />
+                        ))}
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

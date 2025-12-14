@@ -29,7 +29,7 @@ export type ExtractTextFromDocumentInput = z.infer<typeof ExtractTextFromDocumen
 
 const ExtractTextFromDocumentOutputSchema = z.object({
   extractedText: z.string().describe('The extracted text from the document.'),
-  previewDataUri: z.string().optional().describe('An image preview of the first page of the document, as a data URI.'),
+  previewDataUris: z.array(z.string()).optional().describe('Image previews of the document pages, as data URIs.'),
 });
 export type ExtractTextFromDocumentOutput = z.infer<typeof ExtractTextFromDocumentOutputSchema>;
 
@@ -69,15 +69,18 @@ const extractTextTool = ai.defineTool({
         const doc = await getDocument({ data: new Uint8Array(pdfData.buffer) }).promise;
 
         let fullText = '';
+        const previewDataUris: string[] = [];
+
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
           const textContent = await page.getTextContent();
           fullText += textContent.items.map(item => (item as any).str).join(' ');
+          
+          // Since canvas is not available on the server, we generate a generic preview for each page.
+          previewDataUris.push(generateGenericPreview(`PDF Page ${i}`));
         }
         
-        // Since canvas is not available on the server, we generate a generic preview.
-        const previewDataUri = generateGenericPreview('PDF');
-        return { extractedText: fullText, previewDataUri: previewDataUri };
+        return { extractedText: fullText, previewDataUris };
 
       } finally {
         // Restore the original worker source for client-side rendering.
@@ -88,13 +91,13 @@ const extractTextTool = ai.defineTool({
       console.log('Detected DOCX document.');
       const documentBuffer = Buffer.from(documentDataBase64, 'base64');
       const { value: extractedText } = await mammoth.extractRawText({ buffer: documentBuffer });
-      const previewDataUri = generateGenericPreview('DOCX');
-      return { extractedText, previewDataUri };
+      const previewDataUris = [generateGenericPreview('DOCX')];
+      return { extractedText, previewDataUris };
     } else {
       console.log('Unsupported document type.');
       const fileType = input.documentDataUri.substring(input.documentDataUri.indexOf('/') + 1, input.documentDataUri.indexOf(';'));
-      const previewDataUri = generateGenericPreview(fileType);
-      return { extractedText: `Content from ${fileType} file.`, previewDataUri };
+      const previewDataUris = [generateGenericPreview(fileType)];
+      return { extractedText: `Content from ${fileType} file.`, previewDataUris };
     }
   }
 );

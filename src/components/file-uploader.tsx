@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, PropsWithChildren } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
 import { UploadCloud, File, X } from 'lucide-react';
 
@@ -8,9 +8,10 @@ interface FileUploaderProps {
   onFileUpload: (file: File) => void;
   acceptedFiles?: string[];
   maxSize?: number;
+  children?: React.ReactNode;
 }
 
-export function FileUploader({ onFileUpload, acceptedFiles = ['image/png', 'image/jpeg', 'application/pdf'], maxSize = 5 * 1024 * 1024 }: FileUploaderProps) {
+export function FileUploader({ onFileUpload, acceptedFiles = ['image/png', 'image/jpeg', 'application/pdf'], maxSize = 5 * 1024 * 1024, children }: PropsWithChildren<FileUploaderProps>) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +27,8 @@ export function FileUploader({ onFileUpload, acceptedFiles = ['image/png', 'imag
       const uploadedFile = accepted[0];
       setFile(uploadedFile);
       onFileUpload(uploadedFile);
+      // Reset file state after upload to allow re-uploading the same file if needed
+      setTimeout(() => setFile(null), 1000);
     }
   }, [onFileUpload]);
 
@@ -36,10 +39,20 @@ export function FileUploader({ onFileUpload, acceptedFiles = ['image/png', 'imag
     multiple: false,
   });
 
-  const removeFile = () => {
+  const removeFile = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setFile(null);
     setError(null);
   };
+  
+  if (children) {
+      return (
+          <div {...getRootProps()} className="cursor-pointer">
+              <input {...getInputProps()} />
+              {children}
+          </div>
+      )
+  }
 
   return (
     <div className="w-full">
