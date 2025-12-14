@@ -30,9 +30,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 interface QuickNoteDrawerProps {
   isOpen: boolean;
@@ -40,10 +41,29 @@ interface QuickNoteDrawerProps {
 }
 
 const saveNoteSchema = z.object({
-  title: z.string().min(1, 'Title is required.'),
+  title: z.string().optional(),
   subjectId: z.string().min(1, 'Please select a subject.'),
   tags: z.string().optional(),
+  saveMode: z.enum(['create', 'append']).default('create'),
+  existingResourceId: z.string().optional(),
+  existingResourceType: z.string().optional(),
+}).superRefine((data, ctx) => {
+    if (data.saveMode === 'create' && !data.title) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['title'],
+            message: 'Title is required when creating a new resource.',
+        });
+    }
+    if (data.saveMode === 'append' && !data.existingResourceId) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['existingResourceId'],
+            message: 'Please select an existing resource to append to.',
+        });
+    }
 });
+
 
 export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) {
   const [content, setContent] = React.useState('');
@@ -52,6 +72,10 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const [selectedSubjectForAppend, setSelectedSubjectForAppend] = React.useState<string | null>(null);
+  const [existingItems, setExistingItems] = React.useState<any[]>([]);
+  const [isLoadingItems, setIsLoadingItems] = React.useState(false);
+
 
   const subjectsCollectionRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -62,8 +86,32 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
 
   const form = useForm<z.infer<typeof saveNoteSchema>>({
     resolver: zodResolver(saveNoteSchema),
-    defaultValues: { title: '', subjectId: '', tags: '' },
+    defaultValues: { title: '', subjectId: '', tags: '', saveMode: 'create' },
   });
+
+  const saveMode = form.watch('saveMode');
+  const subjectId = form.watch('subjectId');
+
+   React.useEffect(() => {
+    const fetchItems = async () => {
+        if (saveMode !== 'append' || !subjectId || !user) {
+            setExistingItems([]);
+            return;
+        }
+        setIsLoadingItems(true);
+        const itemTypes = ['notes', 'examQuestions', 'syllabus', 'resources'];
+        let allItems: any[] = [];
+        for (const type of itemTypes) {
+            const itemsCollectionRef = collection(firestore, 'users', user.uid, 'subjects', subjectId, type);
+            const querySnapshot = await getDocs(itemsCollectionRef);
+            const items = querySnapshot.docs.map(d => ({...d.data(), id: d.id, type: type }));
+            allItems = [...allItems, ...items];
+        }
+        setExistingItems(allItems);
+        setIsLoadingItems(false);
+    };
+    fetchItems();
+   }, [subjectId, saveMode, user, firestore]);
 
   const handleSave = () => {
     if (!content.trim() || content.trim() === '<p></p>') {
@@ -90,29 +138,44 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
         toast({ variant: 'destructive', title: 'Not authenticated' });
         return;
     }
-    const resourcesCollectionRef = collection(firestore, 'users', user.uid, 'subjects', values.subjectId, 'resources');
-    try {
-      const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
-      
-      const newResourceDoc = await addDoc(resourcesCollectionRef, {
-        title: values.title,
-        blocks: [{ id: `text-${Date.now()}`, type: 'text', content }],
-        createdAt: serverTimestamp(),
-        lastUpdated: serverTimestamp(),
-        isImportant: false,
-        tags: tagsArray,
-      });
-      toast({ title: 'Note Saved!', description: 'Your quick note has been saved to Other Resources.' });
-      
-      // Reset state and close dialogs
-      setContent('');
-      form.reset();
-      setIsSaveDialogOpen(false);
-      onOpenChange(false);
-      
-      // Navigate to the new resource
-      router.push(`/dashboard/notes/${values.subjectId}/resources/${newResourceDoc.id}`);
 
+    try {
+        if (values.saveMode === 'create') {
+            const resourcesCollectionRef = collection(firestore, 'users', user.uid, 'subjects', values.subjectId, 'resources');
+            const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+            const newResourceDoc = await addDoc(resourcesCollectionRef, {
+                title: values.title,
+                blocks: [{ id: `text-${Date.now()}`, type: 'text', content }],
+                createdAt: serverTimestamp(),
+                lastUpdated: serverTimestamp(),
+                isImportant: false,
+                tags: tagsArray,
+            });
+            toast({ title: 'Note Saved!', description: 'Your quick note has been saved to Other Resources.' });
+            router.push(`/dashboard/notes/${values.subjectId}/resources/${newResourceDoc.id}`);
+        } else { // Append to existing
+            if (!values.existingResourceId || !values.existingResourceType) return;
+            const itemRef = doc(firestore, 'users', user.uid, 'subjects', values.subjectId, values.existingResourceType, values.existingResourceId);
+            
+            const docSnap = await getDoc(itemRef);
+            if (!docSnap.exists()) throw new Error("Document not found");
+            const existingData = docSnap.data();
+            const existingBlocks = existingData.blocks || [];
+            
+            await updateDoc(itemRef, {
+                blocks: [...existingBlocks, { id: `text-${Date.now()}`, type: 'text', content }],
+                lastUpdated: serverTimestamp(),
+            });
+            toast({ title: 'Content Appended!', description: `Content was added to "${existingData.title}".`});
+             router.push(`/dashboard/notes/${values.subjectId}/${values.existingResourceType}/${values.existingResourceId}`);
+        }
+
+        // Reset state and close dialogs
+        setContent('');
+        form.reset();
+        setIsSaveDialogOpen(false);
+        onOpenChange(false);
+        
     } catch (error) {
       console.error("Error saving quick note:", error);
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to save your note.' });
@@ -133,7 +196,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
           <SheetHeader>
             <SheetTitle className="font-headline">Quick Note</SheetTitle>
             <SheetDescription>
-              Jot down a quick thought. You can save it to a subject later.
+              Jot down a quick thought. You can save it as a new resource or append to an existing one.
             </SheetDescription>
           </SheetHeader>
           <div className="flex-1 min-h-0 py-4">
@@ -157,63 +220,132 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
           <DialogHeader>
             <DialogTitle className="font-headline">Save Quick Note</DialogTitle>
             <DialogDescription>
-              Choose a subject and give your new resource a title.
+              Choose a subject and decide whether to create a new resource or append to an existing one.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(processSave)} className="space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="subjectId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subject</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a subject to save to" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {areSubjectsLoading ? (
-                            <SelectItem value="loading" disabled>Loading subjects...</SelectItem>
-                        ) : (
-                          subjects?.map(subject => (
-                            <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
-                          ))
+                <FormField
+                    control={form.control}
+                    name="saveMode"
+                    render={({ field }) => (
+                        <FormItem className="space-y-3">
+                            <FormLabel>Action</FormLabel>
+                            <FormControl>
+                                <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex space-x-4"
+                                >
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl>
+                                            <RadioGroupItem value="create" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">Create new resource</FormLabel>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl>
+                                            <RadioGroupItem value="append" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">Append to existing</FormLabel>
+                                    </FormItem>
+                                </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="subjectId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Subject</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Select a subject" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {areSubjectsLoading ? (
+                                <SelectItem value="loading" disabled>Loading subjects...</SelectItem>
+                            ) : (
+                            subjects?.map(subject => (
+                                <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
+                            ))
+                            )}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+
+                {saveMode === 'create' && (
+                    <>
+                        <FormField
+                            control={form.control}
+                            name="title"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Resource Title</FormLabel>
+                                <FormControl>
+                                <Input placeholder="e.g., Quick thought on..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="tags"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Tags (optional)</FormLabel>
+                                <FormControl>
+                                <Input placeholder="e.g., Physics, Chapter 3, Gravity" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </>
+                )}
+                 {saveMode === 'append' && (
+                    <FormField
+                        control={form.control}
+                        name="existingResourceId"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Append to Resource</FormLabel>
+                            <Select onValueChange={(value) => {
+                                const [id, type] = value.split('::');
+                                field.onChange(id);
+                                form.setValue('existingResourceType', type);
+                            }} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger disabled={!subjectId || isLoadingItems}>
+                                <SelectValue placeholder={
+                                    !subjectId ? "Select a subject first" :
+                                    isLoadingItems ? "Loading resources..." : "Select an existing resource"} />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {isLoadingItems ? (
+                                     <SelectItem value="loading" disabled>Loading...</SelectItem>
+                                ) : (
+                                   existingItems.map(item => (
+                                    <SelectItem key={item.id} value={`${item.id}::${item.type}`}>{item.title}</SelectItem>
+                                  ))
+                                )}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
                         )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Resource Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Quick thought on..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags (optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Physics, Chapter 3, Gravity" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    />
+                 )}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="ghost">Cancel</Button>
@@ -230,3 +362,5 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
     </>
   );
 }
+
+    
