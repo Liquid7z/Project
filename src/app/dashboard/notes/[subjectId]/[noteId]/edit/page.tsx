@@ -19,7 +19,6 @@ import { FileUploader } from '@/components/file-uploader';
 import { Badge } from '@/components/ui/badge';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { extractTextAction } from '@/actions/generation';
@@ -125,21 +124,19 @@ export default function NoteEditPage() {
     }, [note]);
 
     const handleSave = async () => {
-        if (!noteRef) return;
+        if (!noteRef || !user) return;
         setIsSaving(true);
         try {
-            // This is a simplified approach. A real app might handle uploads separately.
             const updatedBlocks = await Promise.all(blocks.map(async (block) => {
                 if ((block.type === 'document' || block.type === 'image') && block.file && !block.downloadUrl) {
                      const storage = getStorage();
-                     const filePath = `users/${user?.uid}/notes/${noteId}/${uuidv4()}-${block.file.name}`;
+                     const filePath = `users/${user.uid}/notes/${noteId}/${uuidv4()}-${block.file.name}`;
                      const fileRef = ref(storage, filePath);
                      await uploadBytes(fileRef, block.file);
                      const downloadUrl = await getDownloadURL(fileRef);
 
-                     // For PDFs, generate previews
                      let previewUrls: string[] = [];
-                     if(block.file.type === 'application/pdf') {
+                     if(block.file.type === 'application/pdf' || block.file.type.startsWith('image/')) {
                          const reader = new FileReader();
                          const fileDataPromise = new Promise<string>((resolve, reject) => {
                              reader.onload = e => resolve(e.target?.result as string);
@@ -147,9 +144,13 @@ export default function NoteEditPage() {
                              reader.readAsDataURL(block.file as Blob);
                          });
                          const documentDataUri = await fileDataPromise;
-                         const result = await extractTextAction({ documentDataUri });
-                         if(result.previewDataUris) {
-                             previewUrls = result.previewDataUris;
+                         if (block.file.type === 'application/pdf') {
+                            const result = await extractTextAction({ documentDataUri });
+                            if(result.previewDataUris) {
+                                previewUrls = result.previewDataUris;
+                            }
+                         } else {
+                            previewUrls = [documentDataUri];
                          }
                      }
 
@@ -178,23 +179,35 @@ export default function NoteEditPage() {
     const addTextBlock = () => setBlocks(prev => [...prev, { id: `text-${Date.now()}`, type: 'text', content: '<p></p>' }]);
     
     const handleDocumentUpload = (file: File) => {
-        setBlocks(prev => [...prev, {
-            id: `doc-${Date.now()}`,
-            type: 'document',
-            file: file,
-            fileName: file.name,
-            fileType: file.type || 'Unknown'
-        }]);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const downloadUrl = e.target?.result as string;
+            setBlocks(prev => [...prev, {
+                id: `doc-${Date.now()}`,
+                type: 'document',
+                file: file,
+                fileName: file.name,
+                fileType: file.type || 'Unknown',
+                downloadUrl: downloadUrl, 
+            }]);
+        }
+        reader.readAsDataURL(file);
     };
     
     const handleImageUpload = (file: File) => {
-        setBlocks(prev => [...prev, {
-            id: `img-${Date.now()}`,
-            type: 'image',
-            file: file,
-            fileName: file.name,
-            fileType: file.type || 'Unknown'
-        }]);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const downloadUrl = e.target?.result as string;
+            setBlocks(prev => [...prev, {
+                id: `img-${Date.now()}`,
+                type: 'image',
+                file: file,
+                fileName: file.name,
+                fileType: file.type || 'Unknown',
+                downloadUrl: downloadUrl
+            }]);
+        }
+        reader.readAsDataURL(file);
     };
 
     const moveBlock = (dragIndex: number, hoverIndex: number) => {
