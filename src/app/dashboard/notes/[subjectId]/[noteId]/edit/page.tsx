@@ -50,7 +50,7 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
                     previewUrls={block.previewUrls || []}
                  />
             ) : null}
-             <Button variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100" onClick={() => removeBlock(block.id)}>
+             <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100" onClick={() => removeBlock(block.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
         </div>
