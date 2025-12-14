@@ -138,7 +138,7 @@ export default function NoteEditPage() {
                 const result = await extractTextAction({ documentDataUri });
 
                 if (result.extractedText) {
-                    addTextBlock(`<p>${result.extractedText.replace(/\n/g, '</p><p>')}</p>`);
+                    addTextBlock(result.extractedText);
                     toast({title: "Content Extracted", description: "The content from your document has been added to the note."});
                 } else {
                      toast({title: "Extraction Failed", description: "Could not extract content from the document.", variant: "destructive"});
@@ -246,7 +246,7 @@ export default function NoteEditPage() {
                            <ImageIcon className="h-4 w-4"/>
                        </Button>
                     </FileUploader>
-                     <FileUploader onFileUpload={handleDocumentUpload} acceptedFiles={['application/vnd.openxmlformats-officedocument.wordprocessingml.document']}>
+                     <FileUploader onFileUpload={handleDocumentUpload} acceptedFiles={['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf']}>
                        <Button variant="outline" size="icon" className="w-10 h-10">
                            <FileIcon className="h-4 w-4"/>
                        </Button>

@@ -60,8 +60,8 @@ const extractTextTool = ai.defineTool({
 
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       const documentBuffer = Buffer.from(documentDataBase64, 'base64');
-      const { value: extractedText } = await mammoth.extractRawText({ buffer: documentBuffer });
-      return { extractedText: extractedText };
+      const { value: extractedHtml } = await mammoth.convertToHtml({ buffer: documentBuffer });
+      return { extractedText: extractedHtml };
     } else {
       console.log('Unsupported document type.');
       const fileType = input.documentDataUri.substring(input.documentDataUri.indexOf('/') + 1, input.documentDataUri.indexOf(';'));
@@ -82,3 +82,4 @@ const extractTextFromDocumentFlow = ai.defineFlow(
     return response;
   }
 );
+
