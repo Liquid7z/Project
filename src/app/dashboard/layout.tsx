@@ -36,9 +36,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 const navItems = [
+  { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
   { href: '/dashboard', icon: Bot, label: 'Generate' },
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
-  { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
   { href: '/dashboard/account', icon: User, label: 'Account' },
 ];
 
