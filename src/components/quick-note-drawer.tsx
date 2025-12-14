@@ -59,7 +59,7 @@ const saveNoteSchema = z.object({
          ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['existingResourceId'],
-            message: 'Please select an existing resource to append to.',
+            message: 'Please select an existing item to append to.',
         });
     }
 });
@@ -151,7 +151,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
                 isImportant: false,
                 tags: tagsArray,
             });
-            toast({ title: 'Note Saved!', description: 'Your quick note has been saved to Other Resources.' });
+            toast({ title: 'Note Saved!', description: 'Your quick note has been saved as a new resource.' });
             router.push(`/dashboard/notes/${values.subjectId}/resources/${newResourceDoc.id}`);
         } else { // Append to existing
             if (!values.existingResourceId || !values.existingResourceType) return;
@@ -196,7 +196,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
           <SheetHeader>
             <SheetTitle className="font-headline">Quick Note</SheetTitle>
             <SheetDescription>
-              Jot down a quick thought. You can save it as a new resource or append to an existing one.
+              Jot down a quick thought. You can save it as a new resource or append to an existing item.
             </SheetDescription>
           </SheetHeader>
           <div className="flex-1 min-h-0 py-4">
@@ -220,7 +220,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
           <DialogHeader>
             <DialogTitle className="font-headline">Save Quick Note</DialogTitle>
             <DialogDescription>
-             Choose where to save your note. It will be saved as a "Resource".
+             Choose where to save your note.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -321,7 +321,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
                             <FormLabel>Append to Item</FormLabel>
                             <Select onValueChange={(value) => {
                                 const [id, type] = value.split('::');
-                                field.onChange(id);
+                                form.setValue('existingResourceId', id);
                                 form.setValue('existingResourceType', type);
                             }} defaultValue={field.value}>
                             <FormControl>
@@ -362,5 +362,3 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
     </>
   );
 }
-
-    
