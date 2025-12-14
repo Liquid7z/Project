@@ -67,7 +67,7 @@ const DraggableBlock = ({ block, index, moveBlock, removeBlock, updateContent }:
     preview(drop(ref));
 
     return (
-        <div ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }} className="relative group p-4 rounded-lg bg-background/30 border border-transparent hover:border-border transition-colors">
+        <div data-testid="note-block-container" ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }} className="relative group p-4 rounded-lg bg-background/30 border border-transparent hover:border-border transition-colors">
             <div className="absolute top-1/2 -left-8 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" ref={drag}>
                 <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
             </div>
@@ -137,7 +137,9 @@ export default function NoteEditPage() {
                      const downloadUrl = await getDownloadURL(fileRef);
 
                      let previewUrls: string[] = [];
-                     if(block.file.type === 'application/pdf' || block.file.type.startsWith('image/')) {
+                     if(block.file.type.startsWith('image/')) {
+                         previewUrls = [downloadUrl];
+                     } else if (block.file.type === 'application/pdf') {
                          const reader = new FileReader();
                          const fileDataPromise = new Promise<string>((resolve, reject) => {
                              reader.onload = e => resolve(e.target?.result as string);
@@ -145,18 +147,19 @@ export default function NoteEditPage() {
                              reader.readAsDataURL(block.file as Blob);
                          });
                          const documentDataUri = await fileDataPromise;
-                         if (block.file.type === 'application/pdf') {
-                            const result = await extractTextAction({ documentDataUri });
-                            if(result.previewDataUris) {
-                                previewUrls = result.previewDataUris;
-                            }
-                         } else {
-                            previewUrls = [documentDataUri];
+                         const result = await extractTextAction({ documentDataUri });
+                         if(result.previewDataUris) {
+                             previewUrls = result.previewDataUris;
                          }
                      }
                      // Create a new block object without the 'file' property
                      const { file, ...rest } = block;
                      return { ...rest, downloadUrl, previewUrls };
+                }
+                // Make sure to remove the 'file' property from already uploaded blocks
+                if (block.file) {
+                    const { file, ...rest } = block;
+                    return rest;
                 }
                 return block;
             }));
@@ -181,25 +184,25 @@ export default function NoteEditPage() {
     const addTextBlock = () => setBlocks(prev => [...prev, { id: `text-${Date.now()}`, type: 'text', content: '<p></p>' }]);
     
     const handleDocumentUpload = (file: File) => {
-        setBlocks(prev => [...prev, {
+        const newBlock = {
             id: `doc-${Date.now()}`,
-            type: 'document',
+            type: 'document' as const,
             file: file,
             fileName: file.name,
             fileType: file.type || 'Unknown',
-            downloadUrl: '', // Will be populated on save
-        }]);
+        };
+        setBlocks(prev => [...prev, newBlock]);
     };
     
     const handleImageUpload = (file: File) => {
-        setBlocks(prev => [...prev, {
+        const newBlock = {
             id: `img-${Date.now()}`,
-            type: 'image',
+            type: 'image' as const,
             file: file,
             fileName: file.name,
             fileType: file.type || 'Unknown',
-            downloadUrl: '', // Will be populated on save
-        }]);
+        };
+        setBlocks(prev => [...prev, newBlock]);
     };
 
     const moveBlock = (dragIndex: number, hoverIndex: number) => {
