@@ -81,7 +81,8 @@
       "properties": {
         "title": { "type": "string", "description": "The title of the resource." },
         "blocks": { "type": "array", "description": "The content blocks of the resource.", "items": { "type": "object" } },
-        "isImportant": { "type": "boolean", "description": "Indicates if the resource is marked as important." }
+        "isImportant": { "type": "boolean", "description": "Indicates if the resource is marked as important." },
+        "tags": { "type": "array", "description": "A list of tags for the resource.", "items": { "type": "string" } }
       },
       "required": ["title", "blocks"]
     }

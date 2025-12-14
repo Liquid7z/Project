@@ -41,6 +41,7 @@ interface QuickNoteDrawerProps {
 const saveNoteSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
   subjectId: z.string().min(1, 'Please select a subject.'),
+  tags: z.string().optional(),
 });
 
 export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) {
@@ -60,7 +61,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
 
   const form = useForm<z.infer<typeof saveNoteSchema>>({
     resolver: zodResolver(saveNoteSchema),
-    defaultValues: { title: '', subjectId: '' },
+    defaultValues: { title: '', subjectId: '', tags: '' },
   });
 
   const handleSave = () => {
@@ -82,12 +83,15 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
     }
     const resourcesCollectionRef = collection(firestore, 'users', user.uid, 'subjects', values.subjectId, 'resources');
     try {
+      const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+      
       const newResourceDoc = await addDoc(resourcesCollectionRef, {
         title: values.title,
         blocks: [{ id: `text-${Date.now()}`, type: 'text', content }],
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
         isImportant: false,
+        tags: tagsArray,
       });
       toast({ title: 'Note Saved!', description: 'Your quick note has been saved to Other Resources.' });
       
@@ -183,6 +187,19 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
                     <FormLabel>Resource Title</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., Quick thought on..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags (optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Physics, Chapter 3, Gravity" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
