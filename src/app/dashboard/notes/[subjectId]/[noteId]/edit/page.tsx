@@ -21,6 +21,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { extractTextAction } from '@/actions/generation';
 import { DocumentPreviewer } from '@/components/document-previewer';
+import { Separator } from '@/components/ui/separator';
 
 
 interface Block {
@@ -206,10 +207,6 @@ export default function NoteEditPage() {
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                 </Link>
-                <Button onClick={handleSave} variant="glow" disabled={isSaving}>
-                    {isSaving ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save Changes
-                </Button>
             </div>
 
             <div className="space-y-6 px-4 md:px-8 relative">
@@ -245,6 +242,10 @@ export default function NoteEditPage() {
 
              <div className="fixed right-8 top-1/2 -translate-y-1/2 z-20">
                 <Card className="glass-pane p-2 flex flex-col gap-2">
+                    <Button variant="glow" size="icon" onClick={handleSave} disabled={isSaving}>
+                        {isSaving ? <Loader className="animate-spin" /> : <Save />}
+                    </Button>
+                    <Separator />
                     <Button variant="outline" size="icon" onClick={addTextBlock}>
                         <Plus className="h-4 w-4"/>
                     </Button>
