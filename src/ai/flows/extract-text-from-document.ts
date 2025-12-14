@@ -24,7 +24,6 @@ export type ExtractTextFromDocumentInput = z.infer<typeof ExtractTextFromDocumen
 
 const ExtractTextFromDocumentOutputSchema = z.object({
   extractedText: z.string().describe('The extracted text from the document.'),
-  previewDataUris: z.array(z.string()).optional().describe('Image previews of the document pages, as data URIs.'),
 });
 export type ExtractTextFromDocumentOutput = z.infer<typeof ExtractTextFromDocumentOutputSchema>;
 
@@ -42,43 +41,23 @@ const extractTextTool = ai.defineTool({
     
     const documentDataBase64 = input.documentDataUri.split(',')[1];
     
-    // This is a simplified, canvas-free SVG placeholder.
-    const generateGenericPreview = (fileType: string): string => {
-        const svg = `<svg width="400" height="500" xmlns="http://www.w3.org/2000/svg">
-            <rect width="400" height="500" fill="#2d3748" />
-            <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="30" fill="white" font-weight="bold">${fileType.toUpperCase()}</text>
-            <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, sans-serif" font-size="20" fill="white">Preview not available</text>
-        </svg>`;
-        return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-    };
-
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
       console.log('Detected PDF document.');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
       
-      // Temporarily disable worker for server-side execution and restore it after.
       const originalWorkerSrc = GlobalWorkerOptions.workerSrc;
-      GlobalWorkerOptions.workerSrc = false as any;
+      GlobalWorkerOptions.workerSrc = false as any; // Temporarily disable for server-side
       
       try {
         const doc = await getDocument({ data: new Uint8Array(pdfData.buffer) }).promise;
-
         let fullText = '';
-        const previewDataUris: string[] = [];
-
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
           const textContent = await page.getTextContent();
           fullText += textContent.items.map(item => (item as any).str).join(' ');
-          
-          // Since canvas is not available on the server, we generate a generic preview for each page.
-          previewDataUris.push(generateGenericPreview(`PDF Page ${i}`));
         }
-        
-        return { extractedText: fullText, previewDataUris };
-
+        return { extractedText: fullText };
       } finally {
-        // Restore the original worker source for client-side rendering.
         GlobalWorkerOptions.workerSrc = originalWorkerSrc;
       }
 
@@ -86,26 +65,15 @@ const extractTextTool = ai.defineTool({
       console.log('Detected DOCX document.');
       const documentBuffer = Buffer.from(documentDataBase64, 'base64');
       const { value: extractedText } = await mammoth.extractRawText({ buffer: documentBuffer });
-      const previewDataUris = [generateGenericPreview('DOCX')];
-      return { extractedText, previewDataUris };
+      return { extractedText };
     } else {
       console.log('Unsupported document type.');
       const fileType = input.documentDataUri.substring(input.documentDataUri.indexOf('/') + 1, input.documentDataUri.indexOf(';'));
-      const previewDataUris = [generateGenericPreview(fileType)];
-      return { extractedText: `Content from ${fileType} file.`, previewDataUris };
+      return { extractedText: `Content from ${fileType} file.` };
     }
   }
 );
 
-const extractTextFromDocumentPrompt = ai.definePrompt({
-  name: 'extractTextFromDocumentPrompt',
-  tools: [extractTextTool],
-  prompt: `You are a helpful assistant designed to extract text from a document.
-
-  The user will provide a document. Extract the text from the document, and return it to the user.
-  Use the extractText tool to extract the text from the document.
-  `,
-});
 
 const extractTextFromDocumentFlow = ai.defineFlow(
   {

@@ -5,21 +5,18 @@ import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Loader, AlertTriangle, GripVertical, Image as ImageIcon, Plus, File as FileIcon, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ArrowLeft, Save, Loader, AlertTriangle, Image as ImageIcon, Plus, File as FileIcon, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { NoteEditor } from '@/components/note-editor';
 import { FileUploader } from '@/components/file-uploader';
-import { Badge } from '@/components/ui/badge';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
-import { extractTextAction } from '@/actions/generation';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { Separator } from '@/components/ui/separator';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
@@ -58,7 +55,7 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
                     name={block.fileName || 'Document'}
                     type={block.fileType || 'File'}
                     url={block.downloadUrl || '#'}
-                    previewUrls={block.previewUrls || []}
+                    previewUrls={block.previewUrls || (block.file ? [URL.createObjectURL(block.file)] : [])}
                  />
             ) : null}
              <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100" onClick={() => removeBlock(block.id)}>
@@ -115,28 +112,11 @@ export default function NoteEditPage() {
                      await uploadBytes(fileRef, block.file);
                      const downloadUrl = await getDownloadURL(fileRef);
 
-                     let previewUrls: string[] = [];
-                     if(block.file.type.startsWith('image/')) {
-                         previewUrls = [downloadUrl];
-                     } else if (block.file.type === 'application/pdf') {
-                         // Set worker source for pdfjs-dist
-                         GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
-
-                         const reader = new FileReader();
-                         const fileDataPromise = new Promise<string>((resolve, reject) => {
-                             reader.onload = e => resolve(e.target?.result as string);
-                             reader.onerror = e => reject(e);
-                             reader.readAsDataURL(block.file as Blob);
-                         });
-                         const documentDataUri = await fileDataPromise;
-                         const result = await extractTextAction({ documentDataUri });
-                         if(result.previewDataUris) {
-                             previewUrls = result.previewDataUris;
-                         }
-                     }
+                     let finalPreviewUrls = block.previewUrls || [];
+                     
                      // Create a new block object without the 'file' property
                      const { file, ...rest } = block;
-                     return { ...rest, downloadUrl, previewUrls };
+                     return { ...rest, downloadUrl, previewUrls: finalPreviewUrls };
                 }
                 // Make sure to remove the 'file' property from already uploaded blocks
                 if (block.file) {
@@ -165,14 +145,40 @@ export default function NoteEditPage() {
 
     const addTextBlock = () => setBlocks(prev => [...prev, { id: `text-${Date.now()}`, type: 'text', content: '<p></p>' }]);
     
-    const handleDocumentUpload = (file: File) => {
-        const newBlock = {
+    const handleDocumentUpload = async (file: File) => {
+        const newBlock: Block = {
             id: `doc-${Date.now()}`,
             type: 'document' as const,
             file: file,
             fileName: file.name,
             fileType: file.type || 'Unknown',
+            previewUrls: []
         };
+
+        if (file.type === 'application/pdf') {
+            try {
+                GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
+                const doc = await getDocument(URL.createObjectURL(file)).promise;
+                const previewUrls: string[] = [];
+                for (let i = 1; i <= doc.numPages; i++) {
+                    const page = await doc.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    if(context){
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        previewUrls.push(canvas.toDataURL());
+                    }
+                }
+                newBlock.previewUrls = previewUrls;
+            } catch (error) {
+                console.error("Error generating PDF preview:", error);
+                toast({ title: "PDF Preview Error", description: "Could not generate PDF preview.", variant: "destructive" });
+            }
+        }
+        
         setBlocks(prev => [...prev, newBlock]);
     };
     
@@ -183,6 +189,7 @@ export default function NoteEditPage() {
             file: file,
             fileName: file.name,
             fileType: file.type || 'Unknown',
+            previewUrls: [URL.createObjectURL(file)]
         };
         setBlocks(prev => [...prev, newBlock]);
     };
