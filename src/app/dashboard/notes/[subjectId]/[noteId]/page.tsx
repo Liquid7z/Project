@@ -11,12 +11,14 @@ import {
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { WithId } from '@/firebase/firestore/use-collection';
+import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Edit, Loader, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoteEditor } from '@/components/note-editor';
 import { DocumentPreviewer } from '@/components/document-previewer';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type NoteBlock = {
   id: string;
@@ -28,6 +30,8 @@ type NoteBlock = {
 type Note = WithId<{
   title: string;
   blocks: NoteBlock[];
+  subjectName?: string;
+  subjectDescription?: string;
 }>;
 
 
@@ -38,15 +42,13 @@ const BlockViewer = ({ block }: { block: NoteBlock }) => {
     
     if (block.type === 'pdf' || block.type === 'document') {
         return (
-            <div className="my-4 not-prose">
-                <div className={`p-4 rounded-lg bg-card border-l-4 ${block.type === 'pdf' ? 'border-accent' : 'border-primary'} shadow-md`}>
-                    <h3 className="text-sm font-semibold mb-2 text-foreground">{block.content.fileName}</h3>
-                    <DocumentPreviewer 
-                        fileURL={block.content.fileURL}
-                        fileType={block.content.fileType}
-                        fileName={block.content.fileName}
-                    />
-                </div>
+            <div className="my-4 not-prose p-4 rounded-lg bg-card border-l-4 border-primary shadow-md">
+                <h3 className="text-sm font-semibold mb-2 text-foreground">{block.content.fileName}</h3>
+                <DocumentPreviewer 
+                    fileURL={block.content.fileURL}
+                    fileType={block.content.fileType}
+                    fileName={block.content.fileName}
+                />
             </div>
         )
     }
@@ -71,6 +73,8 @@ export default function NoteViewPage() {
   );
   const { data: note, isLoading: isLoadingNote, error } = useDoc<Note>(noteDocRef);
 
+  const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
+
   if (isUserLoading || isLoadingNote) {
     return (
         <div className="space-y-6">
@@ -78,6 +82,7 @@ export default function NoteViewPage() {
                  <Skeleton className="h-10 w-24" />
                  <Skeleton className="h-10 w-24" />
             </div>
+             <Skeleton className="h-48 w-full" />
             <Skeleton className="h-12 w-1/2" />
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-48 w-full" />
@@ -102,22 +107,39 @@ export default function NoteViewPage() {
   const sortedBlocks = note.blocks.sort((a, b) => a.order - b.order);
 
   return (
-    <div>
-      <header className="flex items-center justify-between gap-4 mb-6">
+    <div className="max-w-4xl mx-auto">
+      <header className="flex items-center justify-between gap-4 mb-6 sticky top-16 bg-background/80 backdrop-blur-md py-4 z-20">
         <Button asChild variant="outline" size="icon">
           <Link href={`/dashboard/notes/${subjectId}`}><ArrowLeft /></Link>
         </Button>
          <Button asChild variant="glow">
-            <Link href={`/dashboard/notes/${subjectId}/${noteId}/edit`}><Edit className="mr-2" /> Edit</Link>
+            <Link href={`/dashboard/notes/${subjectId}/${noteId}/edit`}><Edit className="mr-2" /> Edit Note</Link>
         </Button>
       </header>
+
+      <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
+        {heroImage && <Image
+          src={heroImage.imageUrl}
+          alt={heroImage.description}
+          fill
+          quality={100}
+          className="object-cover"
+          data-ai-hint={heroImage.imageHint}
+          priority
+        />}
+      </div>
       
-      <h1 className="text-4xl font-headline text-glow mb-8">{note.title}</h1>
-      
-      <div className="space-y-2">
-        {sortedBlocks.map((block) => (
-          <BlockViewer key={block.id} block={block} />
-        ))}
+      <div className="glass-pane p-6 rounded-lg">
+          <div className="pb-4 border-b">
+            <h1 className="text-3xl font-headline text-glow">{note.subjectName || note.title}</h1>
+            {note.subjectDescription && <p className="text-muted-foreground">{note.subjectDescription}</p>}
+          </div>
+
+          <div className="pt-4">
+            {sortedBlocks.map((block) => (
+              <BlockViewer key={block.id} block={block} />
+            ))}
+          </div>
       </div>
 
     </div>

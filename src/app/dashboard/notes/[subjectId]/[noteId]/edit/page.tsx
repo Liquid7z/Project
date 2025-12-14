@@ -17,15 +17,17 @@ import { useDebouncedCallback } from 'use-debounce';
 import { DndProvider, useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { v4 as uuidv4 } from 'uuid';
+import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, GripVertical, Loader, X, AlertTriangle, Save } from 'lucide-react';
+import { ArrowLeft, GripVertical, Loader, X, AlertTriangle, Save, Plus, FileText } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoteEditor } from '@/components/note-editor';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { LoadingAnimation } from '@/components/loading-animation';
 import { useToast } from '@/hooks/use-toast';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
 const ItemTypes = {
@@ -42,6 +44,8 @@ type NoteBlock = {
 type Note = WithId<{
   title: string;
   blocks: NoteBlock[];
+  subjectName?: string;
+  subjectDescription?: string;
 }>;
 
 interface BlockProps {
@@ -94,8 +98,8 @@ const Block = ({ block, index, moveBlock, updateBlockContent, removeBlock }: Blo
       style={{ opacity: isDragging ? 0.3 : 1 }}
       className="relative transition-opacity"
     >
-      <div ref={ref} className="p-4 my-2 rounded-lg glass-pane border border-transparent hover:border-accent/50 transition-all group">
-        <button ref={drag} className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 cursor-grab p-2 text-muted-foreground hover:text-foreground transition-all opacity-0 group-hover:opacity-100 focus:outline-none">
+      <div ref={ref} className="p-4 my-2 rounded-lg glass-pane border border-transparent hover:border-accent/50 transition-all group bg-card">
+        <button ref={drag} className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 cursor-grab p-2 text-muted-foreground hover:text-foreground transition-all opacity-0 group-hover:opacity-100 focus:outline-none z-10">
           <GripVertical />
         </button>
         <Button
@@ -112,11 +116,13 @@ const Block = ({ block, index, moveBlock, updateBlockContent, removeBlock }: Blo
             />
         )}
         {(block.type === 'document' || block.type === 'pdf') && (
-            <DocumentPreviewer
-                fileName={block.content.fileName}
-                fileType={block.content.fileType}
-                fileURL={block.content.fileURL}
-            />
+             <div className="not-prose">
+                <DocumentPreviewer
+                    fileName={block.content.fileName}
+                    fileType={block.content.fileType}
+                    fileURL={block.content.fileURL}
+                />
+            </div>
         )}
       </div>
     </div>
@@ -143,6 +149,8 @@ export default function NoteEditPage() {
 
   const [title, setTitle] = useState(note?.title || '');
   const [blocks, setBlocks] = useState<NoteBlock[]>([]);
+  
+  const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
 
   useEffect(() => {
     if (note) {
@@ -195,7 +203,11 @@ export default function NoteEditPage() {
           const fileURL = await getDownloadURL(fileStorageRef);
           
           let blockType: 'text' | 'document' | 'pdf' = 'document';
-          if(fileType.startsWith('image/')) blockType = 'text';
+          if(fileType.startsWith('image/')) {
+             toast({ variant: 'destructive', title: "Invalid block type", description: "Please add images directly into a text block."});
+             setIsUploading(false);
+             return;
+          }
           if(fileType === 'application/pdf') blockType = 'pdf';
 
           const fileContent = {
@@ -205,24 +217,13 @@ export default function NoteEditPage() {
               fileSize: file.size,
           };
           
-          let newBlock: NoteBlock;
-
-          if (blockType === 'text') { // Image
-               newBlock = {
-                  id: newBlockId,
-                  type: 'text',
-                  content: { type: 'doc', content: [{ type: 'image', attrs: { src: fileURL }}, {type: 'paragraph'}]},
-                  order: blocks.length,
-              };
-          } else { // Document or PDF
-               newBlock = {
-                  id: newBlockId,
-                  type: blockType,
-                  content: fileContent,
-                  order: blocks.length,
-              };
-          }
-           setBlocks(prev => [...prev, newBlock]);
+          const newBlock: NoteBlock = {
+              id: newBlockId,
+              type: blockType,
+              content: fileContent,
+              order: blocks.length,
+          };
+          setBlocks(prev => [...prev, newBlock]);
 
       } catch (err) {
           console.error("File upload failed", err);
@@ -267,7 +268,18 @@ export default function NoteEditPage() {
 
 
   if (isLoading || !noteId) {
-    return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
+    return (
+         <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                 <Skeleton className="h-10 w-24" />
+                 <Skeleton className="h-10 w-24" />
+            </div>
+             <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-12 w-1/2" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-48 w-full" />
+        </div>
+    );
   }
   
   if (error) {
@@ -287,39 +299,57 @@ export default function NoteEditPage() {
   return (
     <DndProvider backend={HTML5Backend}>
       {isUploading && <LoadingAnimation text="Uploading file..." />}
-      <div>
-        <header className="flex items-center justify-between gap-4 mb-6">
+      <div className="max-w-4xl mx-auto relative">
+         <div className="fixed right-4 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2">
+            <Button onClick={addTextBlock} variant="secondary" size="icon" title="Add Text Block"><Plus/></Button>
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="application/pdf,.doc,.docx,.ppt,.pptx,.txt" className="hidden" />
+            <Button variant="secondary" size="icon" onClick={() => fileInputRef.current?.click()} title="Add Document"><FileText/></Button>
+        </div>
+        
+        <header className="flex items-center justify-between gap-4 mb-6 sticky top-16 bg-background/80 backdrop-blur-md py-4 z-20">
           <div className="flex items-center gap-4">
             <Button asChild variant="outline" size="icon">
               <Link href={`/dashboard/notes/${subjectId}`}><ArrowLeft /></Link>
             </Button>
-            <Input 
-              value={title}
-              onChange={handleTitleChange}
-              className="text-2xl font-headline h-auto p-0 border-none focus-visible:ring-0 bg-transparent text-glow"
-              placeholder="Untitled Note"
-            />
           </div>
           <Button variant="glow" onClick={handleSave}><Save className="mr-2"/>Save Note</Button>
         </header>
 
-        <div className="space-y-2">
-            {blocks.map((block, i) => (
-                <Block 
-                    key={block.id} 
-                    block={block} 
-                    index={i} 
-                    moveBlock={moveBlock}
-                    updateBlockContent={updateBlockContent}
-                    removeBlock={removeBlock}
-                />
-            ))}
+        <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
+            {heroImage && <Image
+            src={heroImage.imageUrl}
+            alt={heroImage.description}
+            fill
+            quality={100}
+            className="object-cover"
+            data-ai-hint={heroImage.imageHint}
+            priority
+            />}
         </div>
-        
-        <div className="mt-4 flex justify-center gap-4">
-            <Button onClick={addTextBlock} variant="secondary">Add Text Block</Button>
-             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="application/pdf,.doc,.docx,.ppt,.pptx,.txt" className="hidden" />
-            <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>Add Document</Button>
+
+        <div className="glass-pane p-6 rounded-lg">
+            <div className="pb-4 border-b">
+                 <Input 
+                    value={title}
+                    onChange={handleTitleChange}
+                    className="text-3xl font-headline h-auto p-0 border-none focus-visible:ring-0 bg-transparent text-glow"
+                    placeholder="Untitled Note"
+                />
+                 {note.subjectDescription && <p className="text-muted-foreground">{note.subjectDescription}</p>}
+            </div>
+
+            <div className="space-y-2 pt-4">
+                {blocks.map((block, i) => (
+                    <Block 
+                        key={block.id} 
+                        block={block} 
+                        index={i} 
+                        moveBlock={moveBlock}
+                        updateBlockContent={updateBlockContent}
+                        removeBlock={removeBlock}
+                    />
+                ))}
+            </div>
         </div>
 
       </div>

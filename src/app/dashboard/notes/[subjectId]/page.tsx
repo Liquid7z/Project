@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Subject = WithId<{
   name: string;
+  description: string;
 }>;
 
 type NoteBlock = {
@@ -55,12 +56,13 @@ const noteFormSchema = z.object({
 });
 
 
-const NewNoteDialog = ({ subjectId }: { subjectId: string }) => {
+const NewNoteDialog = ({ subjectId, subject }: { subjectId: string, subject: Subject | null }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const router = useRouter();
 
     const form = useForm<z.infer<typeof noteFormSchema>>({
         resolver: zodResolver(noteFormSchema),
@@ -110,6 +112,8 @@ const NewNoteDialog = ({ subjectId }: { subjectId: string }) => {
 
         const newNoteData = {
             title: values.title,
+            subjectName: subject?.name,
+            subjectDescription: subject?.description,
             blocks: [{ id: uuidv4(), type: 'text', content: { type: 'doc', content: [{ type: 'paragraph', content: values.content ? [{type: 'text', text: values.content }] : undefined }] }, order: 0 }],
             lastEdited: serverTimestamp(),
             userId: user.uid,
@@ -117,10 +121,11 @@ const NewNoteDialog = ({ subjectId }: { subjectId: string }) => {
         };
 
         try {
-            await addDoc(notesCollectionRef, newNoteData);
+            const newDoc = await addDoc(notesCollectionRef, newNoteData);
             toast({ title: 'Note Created!', description: `${values.title} has been added.` });
             setIsOpen(false);
             form.reset();
+            router.push(`/dashboard/notes/${subjectId}/${newDoc.id}`);
         } catch (error) {
             console.error("Error creating new note: ", error);
             toast({ variant: 'destructive', title: 'Creation Failed', description: 'There was an error creating your note.' });
@@ -141,7 +146,7 @@ const NewNoteDialog = ({ subjectId }: { subjectId: string }) => {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <DialogHeader>
                             <DialogTitle className="font-headline">Create a New Note</DialogTitle>
-                            <DialogDescription>Add a title and content to start your new note.</DialogDescription>
+                            <DialogDescription>Add a title and content to start your new note. You'll be taken to the note page after creation.</DialogDescription>
                         </DialogHeader>
                         
                         <FormField
@@ -234,7 +239,7 @@ const NoteCard = ({ note, subjectId }: { note: Note, subjectId: string }) => {
     );
 }
 
-const NotesSection = ({ subjectId }: { subjectId: string }) => {
+const NotesSection = ({ subjectId, subject }: { subjectId: string, subject: Subject | null }) => {
   const firestore = useFirestore();
   const { user } = useUser();
   const router = useRouter();
@@ -253,7 +258,7 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <NewNoteDialog subjectId={subjectId} />
+        <NewNoteDialog subjectId={subjectId} subject={subject} />
       </div>
        {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -312,10 +317,13 @@ export default function SubjectPage() {
         <Button asChild variant="outline" size="icon">
           <Link href="/dashboard/notes"><ArrowLeft /></Link>
         </Button>
-        <h1 className="text-3xl font-headline text-glow">{subject?.name || 'Subject'}</h1>
+        <div>
+            <h1 className="text-3xl font-headline text-glow">{subject?.name || 'Subject'}</h1>
+            {subject?.description && <p className="text-muted-foreground">{subject.description}</p>}
+        </div>
       </header>
       
-      <NotesSection subjectId={subjectId} />
+      <NotesSection subjectId={subjectId} subject={subject} />
 
     </div>
   );
