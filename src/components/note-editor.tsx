@@ -7,20 +7,12 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, Pilcrow, ImageIcon } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
+import React from 'react';
 
 const TipTapToolbar = ({ editor }: { editor: any }) => {
   if (!editor) {
     return null;
   }
-
-  const addImage = () => {
-    const url = window.prompt('URL');
-
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-  };
-
 
   return (
     <div className="border border-input bg-transparent rounded-md p-1 flex flex-wrap gap-1 mb-4 sticky top-16 z-10 bg-background/80 backdrop-blur-sm">
@@ -42,7 +34,24 @@ const TipTapToolbar = ({ editor }: { editor: any }) => {
       <Toggle size="sm" pressed={editor.isActive('orderedList')} onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}>
         <ListOrdered className="h-4 w-4" />
       </Toggle>
-      <Toggle size="sm" onPressedChange={addImage}>
+      <Toggle size="sm"
+        onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  editor.chain().focus().setImage({ src: e.target?.result as string }).run();
+                };
+                reader.readAsDataURL(file);
+              }
+            };
+            input.click();
+        }}
+      >
         <ImageIcon className="h-4 w-4" />
       </Toggle>
     </div>
