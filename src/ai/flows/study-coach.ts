@@ -13,6 +13,7 @@ import { getFirestore, collectionGroup, query, where, getDocs, collection } from
 import { initializeFirebase } from '@/firebase';
 
 // Helper to get Firestore instance
+// This function needs to be adapted for server-side execution
 function getDb() {
   const { firestore } = initializeFirebase();
   return firestore;
@@ -49,35 +50,39 @@ const findNotesTool = ai.defineTool(
             subjectId: z.string(),
             contentType: z.string(),
             content: z.string(),
+            userId: z.string(), // Added userId for querying
         })),
     },
     async ({ userId, topic }) => {
         const db = getDb();
         const contentTypes = ['notes', 'examQuestions', 'syllabus', 'resources'];
-        const allNotes: any[] = [];
-        
+        const allContent: any[] = [];
+
         // In a real, production-grade app, you would use a dedicated search service like Algolia or Elasticsearch
         // for efficient text search. Firestore queries are not well-suited for full-text search.
         // This implementation is a simplified stand-in.
         
         for (const contentType of contentTypes) {
-            const contentQuery = query(collectionGroup(db, contentType), where('userId', '==', userId));
+            const contentQuery = query(collectionGroup(db, contentType));
             const querySnapshot = await getDocs(contentQuery);
             querySnapshot.forEach(doc => {
                 const data = doc.data();
-                const combinedText = `${data.title} ${data.blocks?.map((b: any) => b.content || '').join(' ')}`.toLowerCase();
-                if (combinedText.includes(topic.toLowerCase())) {
-                    allNotes.push({
-                        id: doc.id,
-                        title: data.title,
-                        subjectId: doc.ref.parent.parent?.id || '',
-                        contentType: contentType,
-                        content: data.blocks?.map((b: any) => b.content || '').join('\n\n') || '',
-                    });
+                 if (doc.ref.parent.parent?.parent.id === 'users' && doc.ref.parent.parent.id === userId) {
+                    const combinedText = `${data.title} ${data.blocks?.map((b: any) => b.content || '').join(' ')}`.toLowerCase();
+                    if (combinedText.includes(topic.toLowerCase())) {
+                        allContent.push({
+                            id: doc.id,
+                            title: data.title,
+                            subjectId: doc.ref.parent.parent?.id || '',
+                            contentType: contentType,
+                            content: data.blocks?.map((b: any) => b.content || '').join('\n\n') || '',
+                            userId: userId,
+                        });
+                    }
                 }
             });
         }
-        return allNotes;
+        return allContent;
     }
 );
 
