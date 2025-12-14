@@ -73,6 +73,14 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
       });
       return;
     }
+    
+    // Auto-populate title from content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    const suggestedTitle = textContent.trim().split(/\s+/).slice(0, 5).join(' ');
+    form.setValue('title', suggestedTitle || 'Quick Note');
+
     setIsSaveDialogOpen(true);
   };
   
