@@ -53,16 +53,17 @@ export default function DashboardLayout({
   const { user, isUserLoading, userError } = useUser();
   
   useEffect(() => {
-    // Redirect if loading is complete and there's no user or an error.
-    if (!isUserLoading && (userError || !user)) {
-      if (auth) { // prevent router push if auth is not ready
+    // Only perform check if auth is initialized and user loading has finished.
+    if (auth && !isUserLoading) {
+      if (userError || !user) {
         router.replace('/login');
       }
     }
   }, [isUserLoading, user, userError, auth, router]);
 
   if (isUserLoading || !user) {
-    // Show a loader while checking auth state or before redirecting.
+    // Show a loader while checking auth state. This prevents a flash of content
+    // before the redirect can happen.
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
@@ -70,15 +71,7 @@ export default function DashboardLayout({
     );
   }
   
-  if (userError) {
-    // Handle auth errors, maybe show an error message
-    // For now, we redirect which is handled by the useEffect
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="text-destructive">An error occurred during authentication. Redirecting...</div>
-      </div>
-    );
-  }
+  // No need to check for userError here, as the useEffect will handle the redirect.
 
   return (
     <SidebarProvider>
