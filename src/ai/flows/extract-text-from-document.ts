@@ -13,10 +13,11 @@ import {z} from 'genkit';
 import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
 
-// WORKAROUND: In a serverless environment, the worker is not available.
-// This forces pdfjs-dist to run in a single-threaded mode by pointing to a CDN.
-// This line is problematic on the server, so we handle preview generation differently.
-// GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
+// On the client, the worker is needed for previews. This sets the path.
+if (typeof window !== 'undefined') {
+  GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(getDocument as any).version}/pdf.worker.min.mjs`;
+}
+
 
 const ExtractTextFromDocumentInputSchema = z.object({
   documentDataUri: z
