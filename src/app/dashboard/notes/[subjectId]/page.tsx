@@ -1,16 +1,15 @@
 'use client';
 
-import { use, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import {
   useUser,
   useFirestore,
   useCollection,
   useDoc,
   useMemoFirebase,
-  addDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, query, orderBy, addDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { v4 as uuidv4 } from 'uuid';
@@ -76,7 +75,7 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
     };
 
     try {
-        const docRef = await addDocumentNonBlocking(notesCollectionRef, newNoteData);
+        const docRef = await addDoc(notesCollectionRef, newNoteData);
         toast({ title: 'Note Created!', description: 'Redirecting to your new note...' });
         router.push(`/dashboard/notes/${subjectId}/${docRef.id}/edit`);
     } catch (error) {
@@ -120,8 +119,9 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
 };
 
 
-export default function SubjectPage({ params }: { params: { subjectId: string } }) {
-  const { subjectId } = params;
+export default function SubjectPage() {
+  const params = useParams();
+  const subjectId = params.subjectId as string;
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -156,19 +156,19 @@ export default function SubjectPage({ params }: { params: { subjectId: string } 
         </TabsContent>
         <TabsContent value="exam_questions" className="py-6">
             <Card className="glass-pane">
-                <CardHeader><CardTitle>Exam Questions</CardTitle><CardDescription>Coming soon...</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Exam Questions</CardTitle></CardHeader>
                 <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
             </Card>
         </TabsContent>
         <TabsContent value="syllabus" className="py-6">
             <Card className="glass-pane">
-                <CardHeader><CardTitle>Syllabus</CardTitle><CardDescription>Coming soon...</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Syllabus</CardTitle></CardHeader>
                 <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
             </Card>
         </TabsContent>
         <TabsContent value="resources" className="py-6">
              <Card className="glass-pane">
-                <CardHeader><CardTitle>Other Resources</CardTitle><CardDescription>Coming soon...</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Other Resources</CardTitle></CardHeader>
                 <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
             </Card>
         </TabsContent>
