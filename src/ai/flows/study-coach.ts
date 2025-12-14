@@ -20,13 +20,13 @@ function getDb() {
 
 // --- Summarize and Evaluate Topic Flow ---
 
-export const SummarizeInputSchema = z.object({
+const SummarizeInputSchema = z.object({
   userId: z.string().describe('The ID of the user whose notes to search.'),
   topic: z.string().describe('The topic to search for.'),
 });
-export type SummarizeInput = z.infer<typeof SummarizeInputSchema>;
+type SummarizeInput = z.infer<typeof SummarizeInputSchema>;
 
-export const SummarizeOutputSchema = z.array(
+const SummarizeOutputSchema = z.array(
     z.object({
         id: z.string().describe('The ID of the note.'),
         title: z.string().describe('The title of the note.'),
@@ -36,7 +36,7 @@ export const SummarizeOutputSchema = z.array(
         coverage: z.enum(['Well Covered', 'Partially Covered', 'Weak']).describe('An evaluation of the topic\'s coverage in the note.'),
     })
 );
-export type SummarizeOutput = z.infer<typeof SummarizeOutputSchema>;
+type SummarizeOutput = z.infer<typeof SummarizeOutputSchema>;
 
 const findNotesTool = ai.defineTool(
     {
@@ -133,14 +133,14 @@ export async function summarizeAndEvaluateTopic(input: SummarizeInput): Promise<
 
 // --- Explain Topic Flow ---
 
-export const ExplainInputSchema = z.object({
+const ExplainInputSchema = z.object({
   userId: z.string().describe('The ID of the user.'),
   topic: z.string().describe('The topic to explain.'),
 });
-export type ExplainInput = z.infer<typeof ExplainInputSchema>;
+type ExplainInput = z.infer<typeof ExplainInputSchema>;
 
-export const ExplainOutputSchema = z.string().describe('A detailed explanation of the topic, formatted as HTML.');
-export type ExplainOutput = z.infer<typeof ExplainOutputSchema>;
+const ExplainOutputSchema = z.string().describe('A detailed explanation of the topic, formatted as HTML.');
+type ExplainOutput = z.infer<typeof ExplainOutputSchema>;
 
 
 const explainTopicFlow = ai.defineFlow(
@@ -191,19 +191,19 @@ export async function explainTopic(input: ExplainInput): Promise<ExplainOutput> 
 
 // --- Proactive Suggestion Flow (Placeholder) ---
 
-export const RevisionInputSchema = z.object({
+const RevisionInputSchema = z.object({
     userId: z.string(),
 });
-export type RevisionInput = z.infer<typeof RevisionInputSchema>;
+type RevisionInput = z.infer<typeof RevisionInputSchema>;
 
-export const RevisionOutputSchema = z.object({
+const RevisionOutputSchema = z.object({
     id: z.string(),
     title: z.string(),
     subjectId: z.string(),
     contentType: z.string(),
     reason: z.string(),
 });
-export type RevisionOutput = z.infer<typeof RevisionOutputSchema>;
+type RevisionOutput = z.infer<typeof RevisionOutputSchema>;
 
 
 const getNextRevisionTopicFlow = ai.defineFlow(
