@@ -129,50 +129,60 @@ export default function GeneratePage() {
         setIsLoading(true);
         setLoadingText('Creating PDF...');
 
-        const { default: jsPDF } = await import('jspdf');
-        
-        const doc = new jsPDF();
-        
-        for (let i = 0; i < generatedPages.length; i++) {
-            if (i > 0) {
-                doc.addPage();
-            }
-            const imgData = generatedPages[i].pageDataUri;
+        try {
+            const { default: jsPDF } = await import('jspdf');
             
-            const img = document.createElement('img');
-            img.src = imgData;
-
-            await new Promise<void>((resolve) => {
-                img.onload = () => {
-                    const pdfWidth = doc.internal.pageSize.getWidth();
-                    const pdfHeight = doc.internal.pageSize.getHeight();
-                    const imgWidth = img.width;
-                    const imgHeight = img.height;
-                    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-
-                    const newWidth = imgWidth * ratio;
-                    const newHeight = imgHeight * ratio;
-
-                    const x = (pdfWidth - newWidth) / 2;
-                    const y = (pdfHeight - newHeight) / 2;
-                    
-                    doc.addImage(imgData, 'PNG', x, y, newWidth, newHeight);
-                    resolve();
+            const doc = new jsPDF();
+            
+            for (let i = 0; i < generatedPages.length; i++) {
+                if (i > 0) {
+                    doc.addPage();
                 }
-                 img.onerror = () => {
-                    console.error(`Failed to load image for page ${i+1}`);
-                    toast({
-                        variant: 'destructive',
-                        title: 'PDF Generation Error',
-                        description: `Could not load page ${i+1} for the PDF.`,
-                    });
-                    resolve(); // Resolve to not block the process
-                };
+                const imgData = generatedPages[i].pageDataUri;
+                
+                const img = document.createElement('img');
+                img.src = imgData;
+
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => {
+                        const pdfWidth = doc.internal.pageSize.getWidth();
+                        const pdfHeight = doc.internal.pageSize.getHeight();
+                        const imgWidth = img.width;
+                        const imgHeight = img.height;
+                        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+
+                        const newWidth = imgWidth * ratio;
+                        const newHeight = imgHeight * ratio;
+
+                        const x = (pdfWidth - newWidth) / 2;
+                        const y = (pdfHeight - newHeight) / 2;
+                        
+                        doc.addImage(imgData, 'PNG', x, y, newWidth, newHeight);
+                        resolve();
+                    }
+                     img.onerror = () => {
+                        console.error(`Failed to load image for page ${i+1}`);
+                        toast({
+                            variant: 'destructive',
+                            title: 'PDF Generation Error',
+                            description: `Could not load page ${i+1} for the PDF.`,
+                        });
+                        reject(new Error(`Image load error for page ${i+1}`));
+                    };
+                });
+            }
+            
+            doc.save('assignment.pdf');
+        } catch (error) {
+            console.error("PDF generation failed", error);
+            toast({
+                variant: 'destructive',
+                title: 'PDF Generation Error',
+                description: 'An unexpected error occurred while creating the PDF.',
             });
+        } finally {
+            setIsLoading(false);
         }
-        
-        doc.save('assignment.pdf');
-        setIsLoading(false);
     };
     
     const renderOutputContent = () => {
