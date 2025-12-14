@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { notFound, useParams } from 'next/navigation';
+import { useParams, notFound } from 'next/navigation';
 import {
   useUser,
   useFirestore,
@@ -16,8 +16,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Edit, Loader, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoteEditor } from '@/components/note-editor';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DocumentPreviewer } from '@/components/document-previewer';
 
 type NoteBlock = {
@@ -104,26 +102,24 @@ export default function NoteViewPage() {
   const sortedBlocks = note.blocks.sort((a, b) => a.order - b.order);
 
   return (
-     <DndProvider backend={HTML5Backend}>
-        <div>
-          <header className="flex items-center justify-between gap-4 mb-6">
-            <Button asChild variant="outline" size="icon">
-              <Link href={`/dashboard/notes/${subjectId}`}><ArrowLeft /></Link>
-            </Button>
-             <Button asChild variant="glow">
-                <Link href={`/dashboard/notes/${subjectId}/${noteId}/edit`}><Edit className="mr-2" /> Edit</Link>
-            </Button>
-          </header>
-          
-          <h1 className="text-4xl font-headline text-glow mb-8">{note.title}</h1>
-          
-          <div className="space-y-2">
-            {sortedBlocks.map((block) => (
-              <BlockViewer key={block.id} block={block} />
-            ))}
-          </div>
+    <div>
+      <header className="flex items-center justify-between gap-4 mb-6">
+        <Button asChild variant="outline" size="icon">
+          <Link href={`/dashboard/notes/${subjectId}`}><ArrowLeft /></Link>
+        </Button>
+         <Button asChild variant="glow">
+            <Link href={`/dashboard/notes/${subjectId}/${noteId}/edit`}><Edit className="mr-2" /> Edit</Link>
+        </Button>
+      </header>
+      
+      <h1 className="text-4xl font-headline text-glow mb-8">{note.title}</h1>
+      
+      <div className="space-y-2">
+        {sortedBlocks.map((block) => (
+          <BlockViewer key={block.id} block={block} />
+        ))}
+      </div>
 
-        </div>
-    </DndProvider>
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Plus, Folder, Search, MoreVertical, Trash2, Edit, BookOpen } from 'lucide-react';
+import { Plus, Folder, Search, MoreVertical, Trash2, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -27,11 +27,9 @@ type Subject = WithId<{
   description: string;
   userId: string;
   createdAt: any; // Firestore Timestamp
-  noteCount?: number; // Optional, might be calculated client-side
 }>;
 
 const SubjectCard = ({ subject }: { subject: Subject }) => {
-    const router = useRouter();
     const firestore = useFirestore();
     const { user } = useUser();
     

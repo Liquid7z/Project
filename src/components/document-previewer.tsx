@@ -17,10 +17,9 @@ interface DocumentPreviewerProps {
     fileURL: string;
     fileType: string;
     fileName: string;
-    isCardPreview?: boolean;
 }
 
-const PDFViewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPreview?: boolean }) => {
+const PDFViewer = ({ fileUrl }: { fileUrl: string }) => {
     const [pdfDoc, setPdfDoc] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -80,16 +79,14 @@ const PDFViewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPreview?
 
     return (
          <div className="space-y-2">
-            {!isCardPreview && (
-                <div className="flex items-center justify-center gap-2 p-2 rounded-md bg-muted sticky top-0 z-10">
-                    <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}><ChevronLeft/></Button>
-                    <span>Page {currentPage} of {numPages}</span>
-                    <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.min(numPages, p + 1))} disabled={currentPage >= numPages}><ChevronRight/></Button>
-                    <div className="w-[1px] h-6 bg-border mx-2" />
-                    <Button variant="ghost" size="icon" onClick={() => setScale(s => s * 1.2)}><ZoomIn/></Button>
-                    <Button variant="ghost" size="icon" onClick={() => setScale(s => s / 1.2)}><ZoomOut/></Button>
-                </div>
-            )}
+            <div className="flex items-center justify-center gap-2 p-2 rounded-md bg-muted sticky top-0 z-10">
+                <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}><ChevronLeft/></Button>
+                <span>Page {currentPage} of {numPages}</span>
+                <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.min(numPages, p + 1))} disabled={currentPage >= numPages}><ChevronRight/></Button>
+                <div className="w-[1px] h-6 bg-border mx-2" />
+                <Button variant="ghost" size="icon" onClick={() => setScale(s => s * 1.2)}><ZoomIn/></Button>
+                <Button variant="ghost" size="icon" onClick={() => setScale(s => s / 1.2)}><ZoomOut/></Button>
+            </div>
             <div className="flex justify-center bg-muted/20 overflow-auto">
                 <canvas ref={canvasRef} />
             </div>
@@ -97,7 +94,7 @@ const PDFViewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPreview?
     );
 };
 
-const DocxPreviewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPreview?: boolean }) => {
+const DocxPreviewer = ({ fileUrl }: { fileUrl: string }) => {
     const [content, setContent] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -123,7 +120,7 @@ const DocxPreviewer = ({ fileUrl, isCardPreview }: { fileUrl: string; isCardPrev
     if (isLoading) return <Skeleton className="w-full h-64" />;
     if (error) return <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
 
-    return <div className={`prose prose-sm dark:prose-invert p-4 rounded-md bg-muted/20 ${isCardPreview ? 'max-h-64 overflow-hidden' : ''}`} dangerouslySetInnerHTML={{ __html: content?.replace(/\n/g, '<br />') || '' }} />;
+    return <div className={`prose prose-sm dark:prose-invert p-4 rounded-md bg-muted/20`} dangerouslySetInnerHTML={{ __html: content?.replace(/\n/g, '<br />') || '' }} />;
 };
 
 
@@ -136,7 +133,7 @@ const FallbackPreview = ({ fileName }: { fileName: string }) => (
 );
 
 
-export const DocumentPreviewer = ({ fileURL, fileType, fileName, isCardPreview = false }: DocumentPreviewerProps) => {
+export const DocumentPreviewer = ({ fileURL, fileType, fileName }: DocumentPreviewerProps) => {
     
     if (!fileType || !fileURL) {
         return <FallbackPreview fileName={fileName || 'File'} />;
@@ -148,11 +145,11 @@ export const DocumentPreviewer = ({ fileURL, fileType, fileName, isCardPreview =
     }
 
     if (fileType === 'application/pdf') {
-        return <PDFViewer fileUrl={fileURL} isCardPreview={isCardPreview} />;
+        return <PDFViewer fileUrl={fileURL} />;
     }
     
     if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType.startsWith('text/') || fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
-        return <DocxPreviewer fileUrl={fileURL} isCardPreview={isCardPreview} />;
+        return <DocxPreviewer fileUrl={fileURL} />;
     }
 
     return <FallbackPreview fileName={fileName} />;

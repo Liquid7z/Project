@@ -1,10 +1,9 @@
-
 'use client';
 
-import { useEditor, EditorContent, ReactNodeViewRenderer } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Image as ImageIcon, Paperclip, Undo, Redo, Quote, Code, Underline, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Image as ImageIcon, Undo, Redo, Quote, Code, Underline, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { useCallback, useRef, useState } from 'react';
 import { useUser, useStorage } from '@/firebase';
@@ -115,7 +114,7 @@ export const NoteEditor = ({ value, onChange, isEditable = true }: { value: any;
     },
     editorProps: {
       attributes: {
-        class: `prose prose-sm md:prose-base dark:prose-invert max-w-none focus:outline-none p-4 h-full ${isEditable ? 'min-h-[200px]' : ''}`,
+        class: `prose prose-sm md:prose-base dark:prose-invert max-w-none focus:outline-none p-4 ${isEditable ? 'min-h-[200px]' : ''}`,
       },
     },
   });
@@ -123,9 +122,7 @@ export const NoteEditor = ({ value, onChange, isEditable = true }: { value: any;
   return (
     <div className="relative h-full flex flex-col">
         {isEditable && <EditorToolbar editor={editor} />}
-        <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
+        <EditorContent editor={editor} className={`flex-1 overflow-y-auto ${isEditable ? '' : 'py-4'}`} />
     </div>
   );
 };
-
-    

@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, notFound, useParams } from 'next/navigation';
+import { useRouter, useParams, notFound } from 'next/navigation';
 import {
   useUser,
   useFirestore,
@@ -319,5 +318,3 @@ export default function NoteEditPage() {
     </DndProvider>
   );
 }
-
-    

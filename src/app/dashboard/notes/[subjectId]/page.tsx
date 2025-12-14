@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -18,11 +16,11 @@ import { WithId } from '@/firebase/firestore/use-collection';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Book, FileText, Bot, Plus, Loader } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ArrowLeft, BookOpen, FileText, Plus, Loader } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,6 +30,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FileUploader } from '@/components/file-uploader';
 import { extractTextAction } from '@/actions/generation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 type Subject = WithId<{
@@ -102,7 +101,7 @@ const NewNoteDialog = ({ subjectId }: { subjectId: string }) => {
         };
     };
 
-    const onSubmit = async (values: z.infer<typeof noteFormSchema>) => {
+    const onSubmit = async (values: z.infer<typeof noteFormSchema>>) => {
         if (!user || !notesCollectionRef) {
             toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a note.'});
             return;
@@ -205,6 +204,36 @@ const NewNoteDialog = ({ subjectId }: { subjectId: string }) => {
     );
 };
 
+const NoteCard = ({ note, subjectId }: { note: Note, subjectId: string }) => {
+    const lastEdited = note.lastEdited?.toDate ? formatDistanceToNow(note.lastEdited.toDate(), { addSuffix: true }) : 'just now';
+    
+    const textContent = note.blocks.find(b => b.type === 'text');
+    let previewText = 'No content preview.';
+    if (textContent) {
+        const p = textContent.content?.content?.find((c:any) => c.type === 'paragraph' && c.content);
+        if (p) {
+            previewText = p.content.map((t:any) => t.text).join('');
+        }
+    }
+
+    return (
+        <Link href={`/dashboard/notes/${subjectId}/${note.id}`} className="block">
+            <Card className="mb-4 glass-pane hover:border-accent transition-colors cursor-pointer h-full flex flex-col justify-between">
+                <CardHeader>
+                    <CardTitle className="font-headline text-glow truncate">{note.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <CardDescription className="line-clamp-3 text-sm">
+                       {previewText}
+                    </CardDescription>
+                </CardContent>
+                <div className="p-6 pt-0">
+                    <p className="text-xs text-muted-foreground">Updated {lastEdited}</p>
+                </div>
+            </Card>
+        </Link>
+    );
+}
 
 const NotesSection = ({ subjectId }: { subjectId: string }) => {
   const firestore = useFirestore();
@@ -227,25 +256,21 @@ const NotesSection = ({ subjectId }: { subjectId: string }) => {
       <div className="flex justify-end mb-4">
         <NewNoteDialog subjectId={subjectId} />
       </div>
-       {isLoading && <Skeleton className="h-24 w-full" />}
-      {!isLoading && notes?.map(note => (
-        <Link key={note.id} href={`/dashboard/notes/${subjectId}/${note.id}`} className="block">
-            <Card className="mb-4 glass-pane hover:border-accent transition-colors cursor-pointer">
-                <CardHeader>
-                    <CardTitle>{note.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3">
-                       {note.blocks.find(b => b.type === 'text')?.content?.content?.[0]?.content?.[0]?.text || 'No content preview.'}
-                    </div>
-                </CardContent>
-            </Card>
-        </Link>
-      ))}
+       {isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+        </div>
+       )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {!isLoading && notes?.map(note => (
+            <NoteCard key={note.id} note={note} subjectId={subjectId} />
+        ))}
+      </div>
        {!isLoading && !notes?.length && (
-         <div className="text-center py-12 text-muted-foreground">
-             <Book className="mx-auto h-12 w-12"/>
-             <p className="mt-4">No notes created yet.</p>
+         <div className="text-center py-12 text-muted-foreground col-span-full">
+             <FileText className="mx-auto h-12 w-12"/>
+             <p className="mt-4">No notes in this subject yet.</p>
+             <p className="text-sm">Click "New Note" to get started.</p>
          </div>
        )}
     </div>
@@ -266,7 +291,20 @@ export default function SubjectPage() {
   const { data: subject, isLoading: isLoadingSubject } = useDoc<Subject>(subjectDocRef);
 
   if (isLoadingSubject) {
-    return <Skeleton className="h-screen w-full" />;
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <Skeleton className="h-10 w-10" />
+                <Skeleton className="h-10 w-1/3" />
+            </div>
+             <Skeleton className="h-10 w-full" />
+             <div className="grid grid-cols-3 gap-6 pt-6">
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-48 w-full" />
+            </div>
+        </div>
+    );
   }
 
   return (
@@ -278,35 +316,8 @@ export default function SubjectPage() {
         <h1 className="text-3xl font-headline text-glow">{subject?.name || 'Subject'}</h1>
       </header>
       
-      <Tabs defaultValue="notes">
-        <TabsList className="grid w-full grid-cols-4 bg-card/60 p-1 h-auto">
-          <TabsTrigger value="notes"><Book className="mr-2" />Notes</TabsTrigger>
-          <TabsTrigger value="exam_questions"><FileText className="mr-2" />Exam Questions</TabsTrigger>
-          <TabsTrigger value="syllabus"><Bot className="mr-2" />Syllabus</TabsTrigger>
-          <TabsTrigger value="resources"><Plus className="mr-2" />Other Resources</TabsTrigger>
-        </TabsList>
-        <TabsContent value="notes" className="py-6">
-           <NotesSection subjectId={subjectId} />
-        </TabsContent>
-        <TabsContent value="exam_questions" className="py-6">
-            <Card className="glass-pane">
-                <CardHeader><CardTitle>Exam Questions</CardTitle></CardHeader>
-                <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="syllabus" className="py-6">
-            <Card className="glass-pane">
-                <CardHeader><CardTitle>Syllabus</CardTitle></CardHeader>
-                <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="resources" className="py-6">
-             <Card className="glass-pane">
-                <CardHeader><CardTitle>Other Resources</CardTitle></CardHeader>
-                <CardContent className="text-center text-muted-foreground py-12">Feature under construction.</CardContent>
-            </Card>
-        </TabsContent>
-      </Tabs>
+      <NotesSection subjectId={subjectId} />
+
     </div>
   );
 }

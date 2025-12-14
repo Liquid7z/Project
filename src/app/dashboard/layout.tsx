@@ -20,7 +20,6 @@ import {
   ScanLine,
   User,
   LogOut,
-  ChevronRight,
   Menu,
   Loader,
   Notebook,
