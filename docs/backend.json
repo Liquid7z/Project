@@ -29,47 +29,6 @@
         "isCancelled": { "type": "boolean", "description": "Indicates if the subscription has been cancelled." }
       },
       "required": ["id", "tier", "startDate", "endDate"]
-    },
-    "Subject": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Subject",
-      "type": "object",
-      "description": "Represents a subject or category for organizing study materials.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the subject." },
-        "userId": { "type": "string", "description": "The ID of the user who owns this subject." },
-        "name": { "type": "string", "description": "The name of the subject." },
-        "description": { "type": "string", "description": "An optional description for the subject." },
-        "createdAt": { "type": "string", "description": "Timestamp indicating when the subject was created.", "format": "date-time" }
-      },
-      "required": ["id", "userId", "name", "createdAt"]
-    },
-    "Note": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Note",
-      "type": "object",
-      "description": "Represents a single note within a subject, composed of multiple content blocks.",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "subjectId": { "type": "string" },
-        "title": { "type": "string" },
-        "blocks": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": { "type": "string" },
-              "type": { "type": "string", "enum": ["text", "document"] },
-              "content": { "type": "object" },
-              "order": { "type": "number" }
-            },
-            "required": ["id", "type", "content", "order"]
-          }
-        },
-        "lastEdited": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "userId", "subjectId", "title", "blocks", "lastEdited"]
     }
   },
   "auth": {
@@ -84,14 +43,6 @@
       {
         "path": "/users/{userId}/subscriptions/{subscriptionId}",
         "definition": { "entityName": "Subscription", "schema": { "$ref": "#/backend/entities/Subscription" }, "description": "Stores subscription information for each user.", "params": [{ "name": "userId", "description": "The unique identifier of the user." }, { "name": "subscriptionId", "description": "The unique identifier of the subscription." }] }
-      },
-      {
-        "path": "/users/{userId}/subjects/{subjectId}",
-        "definition": { "entityName": "Subject", "schema": { "$ref": "#/backend/entities/Subject" }, "description": "Stores subjects for organizing notes.", "params": [{ "name": "userId", "description": "The unique identifier of the user." }, { "name": "subjectId", "description": "The unique identifier for the subject." }] }
-      },
-      {
-        "path": "/users/{userId}/subjects/{subjectId}/notes/{noteId}",
-        "definition": { "entityName": "Note", "schema": { "$ref": "#/backend/entities/Note" }, "description": "Stores notes within a subject.", "params": [{ "name": "userId", "description": "The unique identifier of the user." }, { "name": "subjectId", "description": "The unique identifier of the subject." }, { "name": "noteId", "description": "The unique identifier for the note." }] }
       }
     ]
   }
