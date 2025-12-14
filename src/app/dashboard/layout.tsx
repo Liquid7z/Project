@@ -173,19 +173,17 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                   </SheetTrigger>
                   <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
                       <SheetHeader>
-                          <SheetTitle>LiqAI</SheetTitle>
+                          <SheetTitle>
+                            <Link href="/dashboard/notes">
+                                <Logo />
+                            </Link>
+                          </SheetTitle>
                       </SheetHeader>
-                      <nav className="grid gap-2 text-lg font-medium">
-                          <SheetClose asChild>
-                              <Link href="/dashboard/notes" className="mb-4">
-                                  <Logo />
-                              </Link>
-                          </SheetClose>
+                      <nav className="grid gap-2 text-lg font-medium mt-4">
                           <SheetClose asChild>
                             <Button
                               variant="ghost"
                               onClick={() => {
-                                setOpenMobile(false);
                                 setIsQuickNoteOpen(true);
                               }}
                               className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:text-foreground justify-start"
