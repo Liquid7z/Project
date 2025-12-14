@@ -45,9 +45,6 @@ const extractTextTool = ai.defineTool({
       console.log('Detected PDF document.');
       const pdfData = Buffer.from(documentDataBase64, 'base64');
       
-      // Set worker path for server-side execution
-      GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
-      
       try {
         const doc = await getDocument({ data: new Uint8Array(pdfData.buffer) }).promise;
         let fullText = '';
@@ -57,9 +54,9 @@ const extractTextTool = ai.defineTool({
           fullText += textContent.items.map(item => (item as any).str).join(' ');
         }
         return { extractedText: fullText };
-      } finally {
-        // Important: Clean up the worker source to avoid conflicts in different environments.
-        (GlobalWorkerOptions as any).workerSrc = null;
+      } catch (e) {
+          console.error(e)
+          return { extractedText: '' };
       }
 
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
@@ -88,5 +85,7 @@ const extractTextFromDocumentFlow = ai.defineFlow(
     return response;
   }
 );
+
+    
 
     

@@ -33,10 +33,10 @@ const BlockViewer = ({ block }: { block: Block }) => {
         );
     }
     
-    if (block.type === 'image' && block.downloadUrl) {
+    if (block.type === 'image' && (block.downloadUrl || (block.previewUrls && block.previewUrls[0]))) {
         return (
             <div className="not-prose my-4">
-                <Image src={block.downloadUrl} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md mx-auto" />
+                <Image src={block.previewUrls?.[0] || block.downloadUrl!} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md mx-auto" />
             </div>
         )
     }
@@ -84,8 +84,7 @@ export default function NotePreviewPage() {
 
     const isLoading = isUserLoading || isNoteLoading || isSubjectLoading;
     
-    const textBlocks = note?.blocks?.filter((b: Block) => b.type === 'text' || b.type === 'image') || [];
-    const docBlocks = note?.blocks?.filter((b: Block) => b.type === 'document') || [];
+    const blocks = note?.blocks || [];
 
     if (isLoading) {
         return (
@@ -150,7 +149,7 @@ export default function NotePreviewPage() {
         <div className="max-w-5xl mx-auto space-y-8 pb-12">
             {heroImage && (
                 <div className="h-64 w-full relative rounded-lg overflow-hidden">
-                    <Image src={heroImage.imageUrl} alt={heroImage.description} layout="fill" objectFit="cover" className="opacity-20" />
+                    <Image src={heroImage.imageUrl} alt={heroImage.description} fill objectFit="cover" className="opacity-20" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
                 </div>
             )}
@@ -181,25 +180,15 @@ export default function NotePreviewPage() {
 
                 <Card className="glass-pane">
                     <CardContent className="p-6 space-y-6">
-                        {textBlocks.map((block: Block) => (
+                        {blocks.map((block: Block) => (
                            <BlockViewer key={block.id} block={block} />
                         ))}
                     </CardContent>
                 </Card>
 
-                {docBlocks.length > 0 && (
-                    <Card className="glass-pane">
-                         <CardHeader>
-                            <CardTitle className="font-headline text-lg">Attached Documents</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {docBlocks.map((block: Block) => (
-                               <BlockViewer key={block.id} block={block} />
-                            ))}
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         </div>
     );
 }
+
+    
