@@ -29,6 +29,28 @@
         "isCancelled": { "type": "boolean", "description": "Indicates if the subscription has been cancelled." }
       },
       "required": ["id", "tier", "startDate", "endDate"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "type": "object",
+      "description": "Represents a subject or topic for organizing notes.",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the subject." },
+        "description": { "type": "string", "description": "A brief description of the subject." },
+        "isImportant": { "type": "boolean", "description": "Indicates if the subject is marked as important." }
+      },
+      "required": ["name"]
+    },
+    "Note": {
+      "title": "Note",
+      "type": "object",
+      "description": "Represents a single note within a subject.",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the note." },
+        "blocks": { "type": "array", "description": "The content blocks of the note.", "items": { "type": "object" } },
+        "isImportant": { "type": "boolean", "description": "Indicates if the note is marked as important." }
+      },
+      "required": ["title", "blocks"]
     }
   },
   "auth": {
@@ -43,7 +65,17 @@
       {
         "path": "/users/{userId}/subscriptions/{subscriptionId}",
         "definition": { "entityName": "Subscription", "schema": { "$ref": "#/backend/entities/Subscription" }, "description": "Stores subscription information for each user.", "params": [{ "name": "userId", "description": "The unique identifier of the user." }, { "name": "subscriptionId", "description": "The unique identifier of the subscription." }] }
+      },
+       {
+        "path": "/users/{userId}/subjects/{subjectId}",
+        "definition": { "entityName": "Subject", "schema": { "$ref": "#/backend/entities/Subject" }, "description": "Stores subjects for each user." }
+      },
+      {
+        "path": "/users/{userId}/subjects/{subjectId}/notes/{noteId}",
+        "definition": { "entityName": "Note", "schema": { "$ref": "#/backend/entities/Note" }, "description": "Stores notes within a subject." }
       }
     ]
   }
 }
+
+    

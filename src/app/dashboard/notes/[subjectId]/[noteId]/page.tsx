@@ -12,6 +12,7 @@ import { DocumentPreviewer } from '@/components/document-previewer';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface Block {
     id: string;
@@ -163,7 +164,7 @@ export default function NotePreviewPage() {
             </div>
             
             <div className="space-y-6 px-4 md:px-8">
-                <Card className="glass-pane overflow-hidden p-6">
+                <Card className={cn("glass-pane overflow-hidden p-6 transition-all", note.isImportant && "important-glow")}>
                     <CardHeader className="!p-0 !pb-4 border-b">
                          <CardTitle className="font-headline text-lg">
                             From subject: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
@@ -186,3 +187,5 @@ export default function NotePreviewPage() {
         </div>
     );
 }
+
+    

@@ -6,7 +6,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Loader, AlertTriangle, Image as ImageIcon, Plus, File as FileIcon, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader, AlertTriangle, Image as ImageIcon, Plus, File as FileIcon, Trash2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +21,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { Separator } from '@/components/ui/separator';
 import { extractTextAction } from '@/actions/generation';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+
 
 interface Block {
     id: string;
@@ -74,6 +78,7 @@ export default function NoteEditPage() {
 
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [title, setTitle] = useState('');
+    const [isImportant, setIsImportant] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
     const subjectRef = useMemoFirebase(() => {
@@ -86,6 +91,7 @@ export default function NoteEditPage() {
         if (note) {
             setTitle(note.title || '');
             setBlocks(note.blocks || []);
+            setIsImportant(note.isImportant || false);
         }
     }, [note]);
 
@@ -112,6 +118,7 @@ export default function NoteEditPage() {
             await updateDoc(noteRef, {
                 title,
                 blocks: updatedBlocks,
+                isImportant,
                 lastUpdated: serverTimestamp(),
             });
             toast({ title: "Note Saved!", description: "Your changes have been saved successfully." });
@@ -224,11 +231,18 @@ export default function NoteEditPage() {
             </div>
 
             <div className="space-y-6 px-4 md:px-8 relative">
-                <Card className="glass-pane overflow-hidden p-6">
-                    <CardHeader className="!p-0 !pb-4 border-b">
+                <Card className={cn("glass-pane overflow-hidden p-6 transition-all", isImportant && "important-glow")}>
+                    <CardHeader className="!p-0 !pb-4 border-b flex-row justify-between items-center">
                         <CardTitle className="font-headline text-lg">
                             From subject: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
                         </CardTitle>
+                        <div className="flex items-center space-x-2">
+                           <Label htmlFor="important-note" className="flex items-center gap-2 text-sm font-medium text-accent cursor-pointer">
+                               <Sparkles className="h-4 w-4"/>
+                                Important Note
+                           </Label>
+                           <Switch id="important-note" checked={isImportant} onCheckedChange={setIsImportant} />
+                        </div>
                     </CardHeader>
                     <CardContent className="!p-0 !pt-6">
                          <Input
@@ -284,5 +298,7 @@ export default function NoteEditPage() {
         </div>
     );
 }
+
+    
 
     

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,7 +6,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical } from 'lucide-react';
+import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical, Sparkles } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
 const noteFormSchema = z.object({
   title: z.string().min(1, 'Note title is required.'),
@@ -67,7 +70,7 @@ export default function SubjectPage() {
         defaultValues: { title: '' },
     });
     
-    const handleCreateNote = async (values: z.infer<typeof noteFormSchema>) => {
+    const handleCreateNote = async (values: z.infer<typeof noteFormSchema>>) => {
         if (!notesCollectionRef) return;
         try {
             const newNoteDoc = await addDoc(notesCollectionRef, {
@@ -75,6 +78,7 @@ export default function SubjectPage() {
                 blocks: [{ id: `text-${Date.now()}`, type: 'text', content: '<p>Start writing your new note here!</p>' }],
                 createdAt: serverTimestamp(),
                 lastUpdated: serverTimestamp(),
+                isImportant: false,
             });
             toast({ title: 'Note Created', description: `Note "${values.title}" has been added.` });
             setIsNewNoteDialogOpen(false);
@@ -96,6 +100,17 @@ export default function SubjectPage() {
             console.error("Error deleting note:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete note.' });
         }
+    };
+
+    const toggleNoteImportance = async (note: any) => {
+      if (!user || !subjectId) return;
+      const noteRef = doc(firestore, 'users', user.uid, 'subjects', subjectId, 'notes', note.id);
+      try {
+        await updateDoc(noteRef, { isImportant: !note.isImportant });
+         toast({ title: 'Note Updated', description: `"${note.title}" marked as ${!note.isImportant ? 'important' : 'not important'}.` });
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update note importance.' });
+      }
     };
     
     const isLoading = isUserLoading || isSubjectLoading || areNotesLoading;
@@ -196,7 +211,7 @@ export default function SubjectPage() {
                     const previewText = firstTextBlock?.content?.replace(/<[^>]+>/g, '') || 'No additional content.';
 
                     return (
-                        <Card key={note.id} className="flex flex-col glass-pane hover:border-accent transition-colors group">
+                        <Card key={note.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", note.isImportant && "important-glow")}>
                             <Link href={`/dashboard/notes/${subjectId}/${note.id}`} className="flex-grow flex flex-col">
                                 <CardHeader>
                                     <CardTitle className="font-headline group-hover:text-accent transition-colors">{note.title}</CardTitle>
@@ -219,6 +234,10 @@ export default function SubjectPage() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                         <DropdownMenuItem asChild><Link href={`/dashboard/notes/${subjectId}/${note.id}/edit`}>Edit</Link></DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => toggleNoteImportance(note)}>
+                                            <Sparkles className={cn("mr-2 h-4 w-4", note.isImportant && "text-accent")} />
+                                            Mark as Important
+                                        </DropdownMenuItem>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Delete</DropdownMenuItem>
@@ -280,3 +299,5 @@ export default function SubjectPage() {
         </div>
     );
 }
+
+    

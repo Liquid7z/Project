@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Folder, Plus, Loader, AlertTriangle, MoreVertical } from 'lucide-react';
+import { Folder, Plus, Loader, AlertTriangle, MoreVertical, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
 
 const subjectFormSchema = z.object({
@@ -57,7 +60,7 @@ export default function NotesDashboardPage() {
         },
     });
 
-    const handleCreateOrUpdateSubject = async (values: z.infer<typeof subjectFormSchema>) => {
+    const handleCreateOrUpdateSubject = async (values: z.infer<typeof subjectFormSchema>>) => {
         if (editingSubject) { // Update existing subject
             if (!user) return;
             const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', editingSubject.id);
@@ -74,6 +77,7 @@ export default function NotesDashboardPage() {
                 await addDoc(subjectsCollectionRef, {
                     ...values,
                     noteCount: 0,
+                    isImportant: false,
                     createdAt: serverTimestamp(),
                     lastUpdated: serverTimestamp(),
                 });
@@ -114,6 +118,19 @@ export default function NotesDashboardPage() {
         setIsNewSubjectDialogOpen(false);
         setEditingSubject(null);
         form.reset();
+    };
+
+    const toggleSubjectImportance = async (subject: any, e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!user) return;
+      const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', subject.id);
+      try {
+        await updateDoc(subjectDocRef, { isImportant: !subject.isImportant });
+        toast({ title: 'Subject Updated', description: `"${subject.name}" marked as ${!subject.isImportant ? 'important' : 'not important'}.` });
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update subject importance.' });
+      }
     };
     
     const isLoading = isUserLoading || areSubjectsLoading;
@@ -169,7 +186,7 @@ export default function NotesDashboardPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {!isLoading && !subjectsError && subjects && subjects.map((subject) => (
-                    <Card key={subject.id} className="flex flex-col glass-pane hover:border-primary transition-colors group">
+                    <Card key={subject.id} className={cn("flex flex-col glass-pane hover:border-primary transition-colors group", subject.isImportant && 'important-glow' )}>
                         <Link href={`/dashboard/notes/${subject.id}`} className="flex-grow flex flex-col justify-between">
                             <CardHeader>
                                 <div>
@@ -211,6 +228,9 @@ export default function NotesDashboardPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
+                         <button onClick={(e) => toggleSubjectImportance(subject, e)} className="absolute bottom-4 right-4 z-10 p-1 rounded-full text-muted-foreground hover:text-accent transition-colors">
+                            <Sparkles className={cn("h-5 w-5", subject.isImportant && "text-accent fill-accent/50")} />
+                        </button>
                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                               <Folder className="w-16 h-16 text-muted-foreground/5 transition-all duration-300 group-hover:scale-110 group-hover:text-muted-foreground/10" />
                         </div>
@@ -270,3 +290,5 @@ export default function NotesDashboardPage() {
         </div>
     );
 }
+
+    
