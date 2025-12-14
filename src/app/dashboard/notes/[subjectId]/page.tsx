@@ -8,9 +8,8 @@ import {
   useCollection,
   useDoc,
   useMemoFirebase,
-  addDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, query, orderBy, addDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { v4 as uuidv4 } from 'uuid';
@@ -118,7 +117,7 @@ const NewNoteDialog = ({ subjectId }: { subjectId: string }) => {
         };
 
         try {
-            await addDocumentNonBlocking(notesCollectionRef, newNoteData);
+            await addDoc(notesCollectionRef, newNoteData);
             toast({ title: 'Note Created!', description: `${values.title} has been added.` });
             setIsOpen(false);
             form.reset();
@@ -321,5 +320,3 @@ export default function SubjectPage() {
     </div>
   );
 }
-
-    

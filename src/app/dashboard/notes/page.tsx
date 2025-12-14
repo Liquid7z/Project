@@ -10,8 +10,8 @@ import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, serverTimestamp, query, orderBy, addDoc, deleteDoc } from 'firebase/firestore';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,7 +42,7 @@ const SubjectCard = ({ subject }: { subject: Subject }) => {
         const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', subject.id);
         // In a real app, you'd also want to delete all notes within this subject (or handle them otherwise)
         // This is a complex operation and might be better handled by a Firebase Function.
-        await deleteDocumentNonBlocking(subjectDocRef);
+        await deleteDoc(subjectDocRef);
         setIsDeleteDialogOpen(false);
     };
 
@@ -129,7 +129,7 @@ const NewSubjectDialog = ({ onSubjectCreated }: { onSubjectCreated: () => void }
             createdAt: serverTimestamp(),
         };
 
-        await addDocumentNonBlocking(subjectsRef, newSubject);
+        await addDoc(subjectsRef, newSubject);
         onSubjectCreated();
         setIsOpen(false);
         form.reset();

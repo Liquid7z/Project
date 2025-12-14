@@ -2,16 +2,15 @@
 
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams, notFound } from 'next/navigation';
+import { useParams, notFound } from 'next/navigation';
 import {
   useUser,
   useFirestore,
   useStorage,
   useDoc,
   useMemoFirebase,
-  updateDocumentNonBlocking,
 } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { WithId } from '@/firebase/firestore/use-collection';
 import { useDebouncedCallback } from 'use-debounce';
@@ -152,15 +151,24 @@ export default function NoteEditPage() {
     }
   }, [note]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!noteDocRef) return;
     const blocksWithOrder = blocks.map((block, index) => ({ ...block, order: index }));
-    updateDocumentNonBlocking(noteDocRef, {
-      title: title,
-      blocks: blocksWithOrder,
-      lastEdited: serverTimestamp(),
-    });
-    toast({ title: "Note Saved!", description: "Your changes have been saved." });
+    try {
+      await updateDoc(noteDocRef, {
+        title: title,
+        blocks: blocksWithOrder,
+        lastEdited: serverTimestamp(),
+      });
+      toast({ title: "Note Saved!", description: "Your changes have been saved." });
+    } catch (e: any) {
+        console.error(e);
+        toast({
+            variant: 'destructive',
+            title: 'Uh oh! Something went wrong.',
+            description: e.message || 'Could not save note.',
+        });
+    }
   };
   
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
