@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
 import { useParams, notFound } from 'next/navigation';
 import {
   useUser,
@@ -18,6 +17,7 @@ import { DndProvider, useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,7 +134,7 @@ export default function NoteEditPage() {
   const params = useParams();
   const subjectId = params.subjectId as string;
   const noteId = params.noteId as string;
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
@@ -145,7 +145,7 @@ export default function NoteEditPage() {
     [firestore, user, subjectId, noteId]
   );
   
-  const { data: note, isLoading, error } = useDoc<Note>(noteDocRef);
+  const { data: note, isLoading: isLoadingNote, error } = useDoc<Note>(noteDocRef);
 
   const [title, setTitle] = useState(note?.title || '');
   const [blocks, setBlocks] = useState<NoteBlock[]>([]);
@@ -267,7 +267,7 @@ export default function NoteEditPage() {
   };
 
 
-  if (isLoading || !noteId) {
+  if (isUserLoading || isLoadingNote) {
     return (
          <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -327,18 +327,18 @@ export default function NoteEditPage() {
             />}
         </div>
 
-        <div className="glass-pane p-6 rounded-lg">
-            <div className="pb-4 border-b">
-                 <Input 
-                    value={title}
-                    onChange={handleTitleChange}
-                    className="text-3xl font-headline h-auto p-0 border-none focus-visible:ring-0 bg-transparent text-glow"
-                    placeholder="Untitled Note"
-                />
-                 {note.subjectDescription && <p className="text-muted-foreground">{note.subjectDescription}</p>}
-            </div>
+        <div className="glass-pane p-6 rounded-lg mb-4">
+             <Input 
+                value={title}
+                onChange={handleTitleChange}
+                className="text-3xl font-headline h-auto p-0 border-none focus-visible:ring-0 bg-transparent text-glow"
+                placeholder="Untitled Note"
+            />
+             {note.subjectDescription && <p className="text-muted-foreground">{note.subjectDescription}</p>}
+        </div>
 
-            <div className="space-y-2 pt-4">
+        <div className="glass-pane p-6 rounded-lg">
+            <div className="space-y-2">
                 {blocks.map((block, i) => (
                     <Block 
                         key={block.id} 
@@ -349,6 +349,12 @@ export default function NoteEditPage() {
                         removeBlock={removeBlock}
                     />
                 ))}
+                {blocks.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                        <p>This note is empty.</p>
+                        <p className="text-sm">Use the toolbar on the right to add content.</p>
+                    </div>
+                )}
             </div>
         </div>
 

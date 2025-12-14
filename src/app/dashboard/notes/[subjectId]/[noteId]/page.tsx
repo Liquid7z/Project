@@ -42,8 +42,7 @@ const BlockViewer = ({ block }: { block: NoteBlock }) => {
     
     if (block.type === 'pdf' || block.type === 'document') {
         return (
-            <div className="my-4 not-prose p-4 rounded-lg bg-card border-l-4 border-primary shadow-md">
-                <h3 className="text-sm font-semibold mb-2 text-foreground">{block.content.fileName}</h3>
+            <div className="my-4 not-prose p-4 rounded-lg bg-card border">
                 <DocumentPreviewer 
                     fileURL={block.content.fileURL}
                     fileType={block.content.fileType}
@@ -83,9 +82,8 @@ export default function NoteViewPage() {
                  <Skeleton className="h-10 w-24" />
             </div>
              <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-12 w-1/2" />
+            <Skeleton className="h-24 w-full" />
             <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-48 w-full" />
         </div>
     );
   }
@@ -129,16 +127,22 @@ export default function NoteViewPage() {
         />}
       </div>
       
+      <div className="glass-pane p-6 rounded-lg mb-4">
+        <h1 className="text-3xl font-headline text-glow">{note.subjectName || note.title}</h1>
+        {note.subjectDescription && <p className="text-muted-foreground">{note.subjectDescription}</p>}
+      </div>
+      
       <div className="glass-pane p-6 rounded-lg">
-          <div className="pb-4 border-b">
-            <h1 className="text-3xl font-headline text-glow">{note.subjectName || note.title}</h1>
-            {note.subjectDescription && <p className="text-muted-foreground">{note.subjectDescription}</p>}
-          </div>
-
           <div className="pt-4">
             {sortedBlocks.map((block) => (
               <BlockViewer key={block.id} block={block} />
             ))}
+            {sortedBlocks.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                    <p>This note is empty.</p>
+                    <p className="text-sm">Click "Edit Note" to add content.</p>
+                </div>
+            )}
           </div>
       </div>
 
