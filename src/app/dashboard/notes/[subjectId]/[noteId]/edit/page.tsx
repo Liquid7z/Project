@@ -210,7 +210,7 @@ export default function NoteEditPage() {
         <div className="max-w-5xl mx-auto space-y-8 pb-12">
              {heroImage && (
                 <div className="h-64 w-full relative rounded-lg overflow-hidden">
-                    <Image src={heroImage.imageUrl} alt={heroImage.description} fill objectFit="cover" className="opacity-20" />
+                    <Image src={heroImage.imageUrl} alt={heroImage.description} fill objectFit="cover" className="opacity-20" data-ai-hint={heroImage.imageHint} />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
                 </div>
             )}
@@ -250,6 +250,12 @@ export default function NoteEditPage() {
                                 updateContent={updateContent}
                             />
                         ))}
+                         {blocks.length === 0 && (
+                           <div className="text-center p-8 text-muted-foreground">
+                                <p>This note is empty.</p>
+                                <p className="text-sm">Add a text block, image, or document to get started.</p>
+                           </div>
+                        )}
                     </div>
                 </Card>
             </div>
@@ -278,3 +284,5 @@ export default function NoteEditPage() {
         </div>
     );
 }
+
+    
