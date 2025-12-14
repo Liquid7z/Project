@@ -37,7 +37,7 @@ import { Label } from '@/components/ui/label';
 
 const navItems = [
   { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
-  { href: '/dashboard', icon: Bot, label: 'Generate' },
+  { href: '/dashboard/generate', icon: Bot, label: 'Generate' },
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
   { href: '/dashboard/account', icon: User, label: 'Account' },
 ];
@@ -157,7 +157,7 @@ export default function DashboardLayout({
                       </SheetHeader>
                       <nav className="grid gap-2 text-lg font-medium">
                           <SheetClose asChild>
-                              <Link href="/dashboard" className="mb-4">
+                              <Link href="/dashboard/notes" className="mb-4">
                                   <Logo />
                               </Link>
                           </SheetClose>
