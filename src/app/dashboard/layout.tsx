@@ -34,6 +34,7 @@ import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useTheme } from '@/components/theme-provider';
 
 const navItems = [
   { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
@@ -42,11 +43,18 @@ const navItems = [
   { href: '/dashboard/account', icon: User, label: 'Account' },
 ];
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function GlowModeToggle({ id }: { id: string }) {
+    const { isGlowMode, setIsGlowMode } = useTheme();
+    return (
+        <Switch 
+            id={id} 
+            checked={isGlowMode}
+            onCheckedChange={setIsGlowMode}
+        />
+    )
+}
+
+function DashboardNav() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
@@ -83,12 +91,12 @@ export default function DashboardLayout({
             <SidebarGroup>
               <SidebarGroupLabel>
                 <Sun />
-                <span>Light</span>
+                <span>Display</span>
               </SidebarGroupLabel>
               <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 group-data-[collapsible=icon]:hidden">
                 <div className="flex items-center justify-between w-full">
                   <Label htmlFor="glow-mode-desktop">Glow mode</Label>
-                  <Switch id="glow-mode-desktop" />
+                  <GlowModeToggle id="glow-mode-desktop" />
                 </div>
               </div>
             </SidebarGroup>
@@ -174,7 +182,7 @@ export default function DashboardLayout({
                           <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
                               <div className="flex items-center justify-between w-full">
                                  <Label htmlFor="glow-mode-mobile">Glow mode</Label>
-                                 <Switch id="glow-mode-mobile" />
+                                 <GlowModeToggle id="glow-mode-mobile" />
                               </div>
                           </div>
                           <Button variant="ghost" onClick={async () => { if(auth) await signOut(auth); router.push('/')}} className="w-full justify-start">
@@ -218,4 +226,14 @@ export default function DashboardLayout({
       </div>
     </SidebarProvider>
   );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <DashboardNav />
+  )
 }

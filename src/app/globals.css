@@ -72,6 +72,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  [data-glow-mode="true"] body {
+    background-image: radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 40%), radial-gradient(circle at bottom right, hsl(var(--accent) / 0.1), transparent 40%);
+  }
 }
 
 @layer utilities {
@@ -79,8 +83,17 @@
     @apply bg-card/50 backdrop-blur-lg border border-border;
   }
   
+  [data-glow-mode="true"] .glass-pane {
+     border-color: hsl(var(--border) / 0.5);
+     background-color: hsl(var(--card) / 0.7);
+  }
+
   .text-glow {
     text-shadow: 0 0 5px hsl(var(--accent)), 0 0 10px hsl(var(--primary));
+  }
+
+  [data-glow-mode="true"] .text-glow {
+     animation: neon-glow 2.5s ease-in-out infinite;
   }
 
   .light-sweep {
@@ -101,19 +114,14 @@
       transform: translateX(200%) skewX(-15deg);
     }
   }
-
-  @keyframes tab-change-trail {
-    from {
-        transform: scaleX(0);
-        transform-origin: left;
-    }
-    to {
-        transform: scaleX(1);
-        transform-origin: left;
-    }
+  
+  [data-glow-mode="true"] .sidebar-glow {
+      box-shadow: 0 0 10px hsl(var(--accent)), 0 0 20px hsl(var(--primary));
+      border-color: hsl(var(--accent));
   }
-
-  .tab-change-trail {
-      animation: tab-change-trail 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  
+  [data-glow-mode="true"] button[data-sidebar="menu-button"][data-active="true"] {
+      background-color: hsl(var(--sidebar-accent) / 0.9);
+      box-shadow: 0 0 8px hsl(var(--sidebar-accent) / 0.7), 0 0 15px hsl(var(--sidebar-accent) / 0.5);
   }
 }
