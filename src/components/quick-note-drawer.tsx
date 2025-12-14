@@ -30,7 +30,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, updateDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -362,5 +362,3 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
     </>
   );
 }
-
-    
