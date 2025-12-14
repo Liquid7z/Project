@@ -64,16 +64,17 @@ export default function ItemEditPage() {
     const params = useParams();
     const router = useRouter();
     const subjectId = params.subjectId as string;
-    const [contentType, itemPathId] = params.contentTypeAndNoteId as string[];
+    const contentType = params.contentType as string;
+    const itemId = params.itemId as string;
 
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
 
     const itemRef = useMemoFirebase(() => {
-        if (!user || !subjectId || !itemPathId || !contentType) return null;
-        return doc(firestore, 'users', user.uid, 'subjects', subjectId, contentType, itemPathId);
-    }, [user, subjectId, itemPathId, firestore, contentType]);
+        if (!user || !subjectId || !itemId || !contentType) return null;
+        return doc(firestore, 'users', user.uid, 'subjects', subjectId, contentType, itemId);
+    }, [user, subjectId, itemId, firestore, contentType]);
 
     const { data: item, isLoading: isItemLoading, error: itemError } = useDoc(itemRef);
 
@@ -105,7 +106,7 @@ export default function ItemEditPage() {
 
                 if (file) {
                      const storage = getStorage();
-                     const filePath = `users/${user.uid}/${contentType}/${itemPathId}/${uuidv4()}-${file.name}`;
+                     const filePath = `users/${user.uid}/${contentType}/${itemId}/${uuidv4()}-${file.name}`;
                      const fileRef = ref(storage, filePath);
                      await uploadBytes(fileRef, file);
                      storableBlock.downloadUrl = await getDownloadURL(fileRef);
@@ -121,7 +122,7 @@ export default function ItemEditPage() {
                 lastUpdated: serverTimestamp(),
             });
             toast({ title: "Item Saved!", description: "Your changes have been saved successfully." });
-            router.push(`/dashboard/notes/${subjectId}/${contentType}/${itemPathId}`);
+            router.push(`/dashboard/notes/${subjectId}/${contentType}/${itemId}`);
         } catch (error) {
             console.error("Error saving item:", error);
             toast({ title: "Error", description: "Failed to save item.", variant: "destructive" });
@@ -210,7 +211,7 @@ export default function ItemEditPage() {
     if (itemError) return <div className="flex items-center justify-center h-full text-destructive"><AlertTriangle className="h-8 w-8 mr-2"/> Error loading item.</div>;
 
     const getBackLink = () => {
-         return `/dashboard/notes/${subjectId}/${contentType}/${itemPathId}`;
+         return `/dashboard/notes/${subjectId}/${contentType}/${itemId}`;
     }
 
     return (

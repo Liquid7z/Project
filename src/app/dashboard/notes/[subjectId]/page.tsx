@@ -41,8 +41,8 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
-const noteFormSchema = z.object({
-  title: z.string().min(1, 'Note title is required.'),
+const itemFormSchema = z.object({
+  title: z.string().min(1, 'Title is required.'),
 });
 
 const ContentList = ({ type }: { type: 'notes' | 'examQuestions' | 'syllabus' | 'resources' }) => {
@@ -61,12 +61,12 @@ const ContentList = ({ type }: { type: 'notes' | 'examQuestions' | 'syllabus' | 
     
     const { data: items, isLoading, error } = useCollection(contentCollectionRef);
 
-     const form = useForm<z.infer<typeof noteFormSchema>>({
-        resolver: zodResolver(noteFormSchema),
+     const form = useForm<z.infer<typeof itemFormSchema>>({
+        resolver: zodResolver(itemFormSchema),
         defaultValues: { title: '' },
     });
     
-    const handleCreateItem = async (values: z.infer<typeof noteFormSchema>) => {
+    const handleCreateItem = async (values: z.infer<typeof itemFormSchema>) => {
         if (!contentCollectionRef) return;
         try {
             const newItemDoc = await addDoc(contentCollectionRef, {
@@ -79,7 +79,7 @@ const ContentList = ({ type }: { type: 'notes' | 'examQuestions' | 'syllabus' | 
             toast({ title: 'Item Created', description: `New item "${values.title}" has been added.` });
             setIsNewItemDialogOpen(false);
             form.reset();
-            router.push(`/dashboard/notes/${subjectId}/${type}/${newItemDoc.id}`);
+            router.push(`/dashboard/notes/${subjectId}/${type}/${newItemDoc.id}/edit`);
         } catch (error) {
             console.error(`Error creating ${type}:`, error);
             toast({ variant: 'destructive', title: 'Error', description: `Failed to create ${type.slice(0, -1)}.` });

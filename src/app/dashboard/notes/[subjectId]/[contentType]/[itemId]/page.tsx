@@ -60,15 +60,16 @@ export default function ContentPreviewPage() {
     const params = useParams();
     const router = useRouter();
     const subjectId = params.subjectId as string;
-    const [contentType, itemPathId] = params.contentTypeAndNoteId as string[];
+    const contentType = params.contentType as string;
+    const itemId = params.itemId as string;
 
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
     const itemRef = useMemoFirebase(() => {
-        if (!user || !subjectId || !contentType || !itemPathId) return null;
-        return doc(firestore, 'users', user.uid, 'subjects', subjectId, contentType, itemPathId);
-    }, [user, subjectId, contentType, itemPathId, firestore]);
+        if (!user || !subjectId || !contentType || !itemId) return null;
+        return doc(firestore, 'users', user.uid, 'subjects', subjectId, contentType, itemId);
+    }, [user, subjectId, contentType, itemId, firestore]);
 
     const { data: item, isLoading: isItemLoading, error: itemError } = useDoc(itemRef);
     
@@ -86,7 +87,7 @@ export default function ContentPreviewPage() {
     const blocks = item?.blocks || [];
 
     const getEditUrl = () => {
-        return `/dashboard/notes/${subjectId}/${contentType}/${itemPathId}/edit`;
+        return `/dashboard/notes/${subjectId}/${contentType}/${itemId}/edit`;
     }
 
     if (isLoading) {
@@ -198,4 +199,3 @@ export default function ContentPreviewPage() {
         </div>
     );
 }
-
