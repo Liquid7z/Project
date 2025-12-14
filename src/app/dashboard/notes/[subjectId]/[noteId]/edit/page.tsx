@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -153,8 +154,9 @@ export default function NoteEditPage() {
                             previewUrls = [documentDataUri];
                          }
                      }
-
-                     return { ...block, downloadUrl, previewUrls, file: undefined }; // remove file object
+                     // Create a new block object without the 'file' property
+                     const { file, ...rest } = block;
+                     return { ...rest, downloadUrl, previewUrls };
                 }
                 return block;
             }));
@@ -179,35 +181,25 @@ export default function NoteEditPage() {
     const addTextBlock = () => setBlocks(prev => [...prev, { id: `text-${Date.now()}`, type: 'text', content: '<p></p>' }]);
     
     const handleDocumentUpload = (file: File) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const downloadUrl = e.target?.result as string;
-            setBlocks(prev => [...prev, {
-                id: `doc-${Date.now()}`,
-                type: 'document',
-                file: file,
-                fileName: file.name,
-                fileType: file.type || 'Unknown',
-                downloadUrl: downloadUrl, 
-            }]);
-        }
-        reader.readAsDataURL(file);
+        setBlocks(prev => [...prev, {
+            id: `doc-${Date.now()}`,
+            type: 'document',
+            file: file,
+            fileName: file.name,
+            fileType: file.type || 'Unknown',
+            downloadUrl: '', // Will be populated on save
+        }]);
     };
     
     const handleImageUpload = (file: File) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const downloadUrl = e.target?.result as string;
-            setBlocks(prev => [...prev, {
-                id: `img-${Date.now()}`,
-                type: 'image',
-                file: file,
-                fileName: file.name,
-                fileType: file.type || 'Unknown',
-                downloadUrl: downloadUrl
-            }]);
-        }
-        reader.readAsDataURL(file);
+        setBlocks(prev => [...prev, {
+            id: `img-${Date.now()}`,
+            type: 'image',
+            file: file,
+            fileName: file.name,
+            fileType: file.type || 'Unknown',
+            downloadUrl: '', // Will be populated on save
+        }]);
     };
 
     const moveBlock = (dragIndex: number, hoverIndex: number) => {
