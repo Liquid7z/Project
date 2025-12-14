@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -36,12 +35,22 @@ interface Block {
 }
 
 const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; removeBlock: (id: string) => void; updateContent: (id: string, content: string) => void }) => {
+    
+    const localImageUrl = useMemo(() => {
+        if (block.type === 'image' && block.file) {
+            return URL.createObjectURL(block.file);
+        }
+        return null;
+    }, [block.type, block.file]);
+
     return (
         <div data-testid="note-block-container" className="relative group p-4 rounded-lg bg-background/30 border border-transparent hover:border-border transition-colors">
             {block.type === 'text' ? (
                 <NoteEditor value={block.content || ''} onChange={(newContent) => updateContent(block.id, newContent)} />
-            ) : block.type === 'image' && block.downloadUrl ? (
-                <Image src={block.downloadUrl} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md" />
+            ) : block.type === 'image' ? (
+                 (localImageUrl || block.downloadUrl) && (
+                    <Image src={localImageUrl || block.downloadUrl!} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md" />
+                 )
             ) : block.type === 'document' ? (
                 <DocumentPreviewer
                     name={block.fileName || 'Document'}
