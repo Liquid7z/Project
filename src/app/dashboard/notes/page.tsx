@@ -192,16 +192,16 @@ export default function NotesDashboardPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {!isLoading && !subjectsError && subjects && subjects.map((subject) => (
-                            <Card key={subject.id} className={cn("flex flex-col glass-pane hover:border-primary transition-colors group", subject.isImportant && 'important-glow' )}>
+                            <Card key={subject.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", subject.isImportant && 'important-glow' )}>
                                 <Link href={`/dashboard/notes/${subject.id}`} className="flex-grow flex flex-col justify-between">
                                     <CardHeader>
                                         <div>
-                                            <CardTitle className="font-headline group-hover:text-primary transition-colors">{subject.name}</CardTitle>
-                                            <CardDescription className="line-clamp-2 mt-1">{subject.description}</CardDescription>
+                                            <CardTitle className="font-headline group-hover:text-accent transition-colors">{subject.name}</CardTitle>
+                                            <CardDescription className="line-clamp-2 mt-1">{subject.description || 'No chapter name'}</CardDescription>
                                         </div>
                                     </CardHeader>
                                     <CardFooter className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>{subject.noteCount || 0} notes</span>
+                                        <span>{subject.noteCount || 0} items</span>
                                         <span>{subject.lastUpdated ? `Updated ${formatDistanceToNow(subject.lastUpdated.toDate(), { addSuffix: true })}` : ''}</span>
                                     </CardFooter>
                                 </Link>
