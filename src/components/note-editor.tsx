@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
-import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, Pilcrow } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, Pilcrow, ImageIcon } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 
 const TipTapToolbar = ({ editor }: { editor: any }) => {
