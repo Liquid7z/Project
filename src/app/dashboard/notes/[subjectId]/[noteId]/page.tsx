@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface Block {
     id: string;
-    type: 'text' | 'document';
+    type: 'text' | 'document' | 'image';
     content?: string;
     fileName?: string;
     fileType?: string;
@@ -31,6 +31,14 @@ const BlockViewer = ({ block }: { block: Block }) => {
                 dangerouslySetInnerHTML={{ __html: block.content || '' }}
             />
         );
+    }
+    
+    if (block.type === 'image' && block.downloadUrl) {
+        return (
+            <div className="not-prose my-4">
+                <Image src={block.downloadUrl} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md mx-auto" />
+            </div>
+        )
     }
 
     if (block.type === 'document') {
@@ -75,6 +83,9 @@ export default function NotePreviewPage() {
     const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
 
     const isLoading = isUserLoading || isNoteLoading || isSubjectLoading;
+    
+    const textBlocks = note?.blocks?.filter((b: Block) => b.type === 'text' || b.type === 'image') || [];
+    const docBlocks = note?.blocks?.filter((b: Block) => b.type === 'document') || [];
 
     if (isLoading) {
         return (
@@ -170,11 +181,24 @@ export default function NotePreviewPage() {
 
                 <Card className="glass-pane">
                     <CardContent className="p-6 space-y-6">
-                        {(note.blocks || []).map((block: Block) => (
+                        {textBlocks.map((block: Block) => (
                            <BlockViewer key={block.id} block={block} />
                         ))}
                     </CardContent>
                 </Card>
+
+                {docBlocks.length > 0 && (
+                    <Card className="glass-pane">
+                         <CardHeader>
+                            <CardTitle className="font-headline text-lg">Attached Documents</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {docBlocks.map((block: Block) => (
+                               <BlockViewer key={block.id} block={block} />
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
     );

@@ -28,11 +28,11 @@ import { DocumentPreviewer } from '@/components/document-previewer';
 
 interface Block {
     id: string;
-    type: 'text' | 'document';
+    type: 'text' | 'document' | 'image';
     content?: string; // HTML for text
     file?: File;
     fileName?: string;
-    fileType?: string;
+f    fileType?: string;
     downloadUrl?: string;
     previewUrls?: string[];
 }
@@ -73,14 +73,16 @@ const DraggableBlock = ({ block, index, moveBlock, removeBlock, updateContent }:
             </div>
             {block.type === 'text' ? (
                 <NoteEditor value={block.content || ''} onChange={(newContent) => updateContent(block.id, newContent)} />
-            ) : (
+            ) : block.type === 'image' && block.downloadUrl ? (
+                <Image src={block.downloadUrl} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md" />
+            ) : block.type === 'document' ? (
                 <DocumentPreviewer
                     name={block.fileName || 'Document'}
                     type={block.fileType || 'File'}
                     url={block.downloadUrl || '#'}
                     previewUrls={block.previewUrls || []}
                  />
-            )}
+            ) : null}
              <Button variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100" onClick={() => removeBlock(block.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
@@ -128,7 +130,7 @@ export default function NoteEditPage() {
         try {
             // This is a simplified approach. A real app might handle uploads separately.
             const updatedBlocks = await Promise.all(blocks.map(async (block) => {
-                if (block.type === 'document' && block.file && !block.downloadUrl) {
+                if ((block.type === 'document' || block.type === 'image') && block.file && !block.downloadUrl) {
                      const storage = getStorage();
                      const filePath = `users/${user?.uid}/notes/${noteId}/${uuidv4()}-${block.file.name}`;
                      const fileRef = ref(storage, filePath);
@@ -185,6 +187,16 @@ export default function NoteEditPage() {
         }]);
     };
     
+    const handleImageUpload = (file: File) => {
+        setBlocks(prev => [...prev, {
+            id: `img-${Date.now()}`,
+            type: 'image',
+            file: file,
+            fileName: file.name,
+            fileType: file.type || 'Unknown'
+        }]);
+    };
+
     const moveBlock = (dragIndex: number, hoverIndex: number) => {
         setBlocks(prev => {
             const newBlocks = [...prev];
@@ -263,6 +275,11 @@ export default function NoteEditPage() {
                         <Button variant="outline" size="icon" onClick={addTextBlock}>
                             <Plus className="h-4 w-4"/>
                         </Button>
+                         <FileUploader onFileUpload={handleImageUpload} acceptedFiles={['image/png', 'image/jpeg', 'image/gif']}>
+                           <Button variant="outline" size="icon" className="w-10 h-10">
+                               <ImageIcon className="h-4 w-4"/>
+                           </Button>
+                        </FileUploader>
                          <FileUploader onFileUpload={handleDocumentUpload} acceptedFiles={['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}>
                            <Button variant="outline" size="icon" className="w-10 h-10">
                                <FileIcon className="h-4 w-4"/>
