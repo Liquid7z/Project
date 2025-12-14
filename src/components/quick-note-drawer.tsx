@@ -80,16 +80,16 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
         toast({ variant: 'destructive', title: 'Not authenticated' });
         return;
     }
-    const notesCollectionRef = collection(firestore, 'users', user.uid, 'subjects', values.subjectId, 'notes');
+    const resourcesCollectionRef = collection(firestore, 'users', user.uid, 'subjects', values.subjectId, 'resources');
     try {
-      const newNoteDoc = await addDoc(notesCollectionRef, {
+      const newResourceDoc = await addDoc(resourcesCollectionRef, {
         title: values.title,
         blocks: [{ id: `text-${Date.now()}`, type: 'text', content }],
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
         isImportant: false,
       });
-      toast({ title: 'Note Saved!', description: 'Your quick note has been saved.' });
+      toast({ title: 'Note Saved!', description: 'Your quick note has been saved to Other Resources.' });
       
       // Reset state and close dialogs
       setContent('');
@@ -97,8 +97,8 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
       setIsSaveDialogOpen(false);
       onOpenChange(false);
       
-      // Navigate to the new note
-      router.push(`/dashboard/notes/${values.subjectId}/notes/${newNoteDoc.id}`);
+      // Navigate to the new resource
+      router.push(`/dashboard/notes/${values.subjectId}/resources/${newResourceDoc.id}`);
 
     } catch (error) {
       console.error("Error saving quick note:", error);
@@ -144,7 +144,7 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
           <DialogHeader>
             <DialogTitle className="font-headline">Save Quick Note</DialogTitle>
             <DialogDescription>
-              Choose a subject and give your new note a title.
+              Choose a subject and give your new resource a title.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -180,9 +180,9 @@ export function QuickNoteDrawer({ isOpen, onOpenChange }: QuickNoteDrawerProps) 
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Note Title</FormLabel>
+                    <FormLabel>Resource Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Photosynthesis reminder" {...field} />
+                      <Input placeholder="e.g., Quick thought on..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
