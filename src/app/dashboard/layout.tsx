@@ -54,7 +54,7 @@ function GlowModeToggle({ id }: { id: string }) {
     )
 }
 
-function DashboardNav() {
+function DashboardNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
@@ -234,6 +234,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <DashboardNav />
+    <DashboardNav>{children}</DashboardNav>
   )
 }
