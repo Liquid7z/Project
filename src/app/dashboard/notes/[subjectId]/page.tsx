@@ -40,6 +40,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 const itemFormSchema = z.object({
@@ -342,12 +343,15 @@ export default function SubjectPage() {
             </div>
             
             <Tabs defaultValue="notes" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="notes"><Notebook className="w-4 h-4 mr-2"/>Notes</TabsTrigger>
-                    <TabsTrigger value="examQuestions"><FileQuestion className="w-4 h-4 mr-2"/>Exam Questions</TabsTrigger>
-                    <TabsTrigger value="syllabus"><BookCopy className="w-4 h-4 mr-2"/>Syllabus</TabsTrigger>
-                    <TabsTrigger value="resources"><Package className="w-4 h-4 mr-2"/>Other Resources</TabsTrigger>
-                </TabsList>
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <TabsList className="inline-flex w-auto">
+                        <TabsTrigger value="notes"><Notebook className="w-4 h-4 mr-2 sm:mr-2"/>Notes</TabsTrigger>
+                        <TabsTrigger value="examQuestions"><FileQuestion className="w-4 h-4 mr-2 sm:mr-2"/>Exam Questions</TabsTrigger>
+                        <TabsTrigger value="syllabus"><BookCopy className="w-4 h-4 mr-2 sm:mr-2"/>Syllabus</TabsTrigger>
+                        <TabsTrigger value="resources"><Package className="w-4 h-4 mr-2 sm:mr-2"/>Resources</TabsTrigger>
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
                 <TabsContent value="notes" className="mt-6">
                     <ContentList type="notes" />
                 </TabsContent>
