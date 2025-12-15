@@ -17,14 +17,14 @@ const SkillTreeEdgeSchema = z.object({
   target: z.string(),
 });
 
-const GenerateSkillTreeImageInputSchema = z.object({
+export const GenerateSkillTreeImageInputSchema = z.object({
     topic: z.string().describe("The central topic of the skill tree."),
     nodes: z.array(SkillTreeNodeSchema).describe("A list of all the topics and sub-topics in the skill tree."),
     edges: z.array(SkillTreeEdgeSchema).describe("A list of all the connections between the nodes."),
 });
 export type GenerateSkillTreeImageInput = z.infer<typeof GenerateSkillTreeImageInputSchema>;
 
-const GenerateSkillTreeImageOutputSchema = z.object({
+export const GenerateSkillTreeImageOutputSchema = z.object({
     imageDataUri: z.string().describe("The generated skill tree image as a data URI."),
 });
 export type GenerateSkillTreeImageOutput = z.infer<typeof GenerateSkillTreeImageOutputSchema>;
@@ -43,12 +43,12 @@ Topic: "{{topic}}"
 
 Nodes:
 {{#each nodes}}
-- id: {{id}}, label: "{{label}}", type: {{type}}
+- id: {{this.id}}, label: "{{this.label}}", type: {{this.type}}
 {{/each}}
 
 Edges:
 {{#each edges}}
-- from: {{source}} to {{target}}
+- from: {{this.source}} to {{this.target}}
 {{/each}}
 
 Instructions:
