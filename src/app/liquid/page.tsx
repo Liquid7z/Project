@@ -650,5 +650,3 @@ const FeatureManagementPanel = () => {
         </Card>
     )
 }
-
-    
