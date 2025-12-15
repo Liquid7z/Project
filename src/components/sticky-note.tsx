@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -18,38 +18,39 @@ export interface StickyNoteData {
   title: string;
   content: string;
   color: StickyNoteColor;
+  isNew?: boolean;
 }
 
 interface StickyNoteProps {
   note: StickyNoteData;
   onUpdate: (id: string, newTitle: string, newContent:string) => void;
   onDelete: (id: string) => void;
+  onBlurNew: (id: string, title: string, content: string) => void;
 }
 
-export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
+export function StickyNote({ note, onUpdate, onDelete, onBlurNew }: StickyNoteProps) {
   const [title, setTitle] = React.useState(note.title);
   const [content, setContent] = React.useState(note.content);
   const cardRef = React.useRef<HTMLDivElement>(null);
+  const isNewRef = useRef(note.isNew);
   
   const [debouncedTitle] = useDebounce(title, 500);
   const [debouncedContent] = useDebounce(content, 500);
+  
+  useEffect(() => {
+    isNewRef.current = note.isNew;
+  }, [note.isNew]);
 
   React.useEffect(() => {
-    // Check if the debounced value is different from the original note prop before updating.
-    // This prevents firing an update on initial render.
-    if (debouncedTitle !== note.title || debouncedContent !== note.content) {
+    // Only call update if it's not a new note that's just been added
+    if (!isNewRef.current && (debouncedTitle !== note.title || debouncedContent !== note.content)) {
         onUpdate(note.id, debouncedTitle, debouncedContent);
     }
   }, [debouncedTitle, debouncedContent, note.id, note.title, note.content, onUpdate]);
 
-  // When the note prop changes from upstream (e.g., initial load from DB),
-  // update the local state, but only if it's not currently being edited.
-  // This avoids overwriting user input.
   React.useEffect(() => {
-      if (document.activeElement !== cardRef.current?.querySelector('input') && document.activeElement !== cardRef.current?.querySelector('textarea')) {
-          if(note.title !== title) setTitle(note.title);
-          if(note.content !== content) setContent(note.content);
-      }
+      if (note.title !== title) setTitle(note.title);
+      if (note.content !== content) setContent(note.content);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.title, note.content]);
   
@@ -69,6 +70,16 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
     }
   }, [content]);
 
+  const handleBlur = () => {
+    if (isNewRef.current) {
+      onBlurNew(note.id, title, content);
+      if(title || content) {
+          onUpdate(note.id, title, content);
+          isNewRef.current = false;
+      }
+    }
+  };
+
   return (
     <motion.div
       layout
@@ -77,6 +88,7 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
       exit={{ opacity: 0, scale: 0.5 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       className="break-inside-avoid"
+      onBlur={handleBlur}
     >
       <Card ref={cardRef} className={cn(
         "p-4 flex flex-col rounded-lg border shadow-md w-full relative group",
@@ -86,7 +98,7 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
             variant="ghost" 
             size="icon" 
             className="h-6 w-6 shrink-0 text-black/30 hover:bg-black/10 hover:text-black/70 absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity" 
-            onClick={() => onDelete(note.id)}
+            onMouseDown={() => onDelete(note.id)} // use onMouseDown to prevent blur event from firing first
         >
             <X className="h-4 w-4" />
         </Button>
@@ -95,6 +107,7 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
             onChange={(e) => setTitle(e.target.value)}
             className="font-bold text-lg border-none bg-transparent focus-visible:ring-0 p-0 h-auto placeholder:text-inherit/70 mb-2"
             placeholder="Title"
+            autoFocus={note.isNew}
         />
         
         <Textarea

@@ -1,24 +1,27 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { StickyNote } from '@/components/sticky-note';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import type { WithId } from '@/firebase';
+import { v4 as uuidv4 } from 'uuid';
+
 
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green';
 
 export interface StickyNoteData {
-  id?: string;
+  id: string; // Now always present, client-generated for temp notes
   title: string;
   content: string;
   color: StickyNoteColor;
   createdAt?: any;
   updatedAt?: any;
+  isNew?: boolean; // Flag for temporary notes
 }
 
 
@@ -41,40 +44,91 @@ export default function DashboardPage() {
     return query(notesCollectionRef, orderBy('createdAt', 'desc'));
   }, [notesCollectionRef]);
 
-  const { data: notes, isLoading: areNotesLoading, error } = useCollection<StickyNoteData>(notesQuery);
+  const { data: serverNotes, isLoading: areNotesLoading, error } = useCollection<Omit<StickyNoteData, 'id'>>(notesQuery);
 
-  const addNote = async () => {
-    if (!notesCollectionRef) return;
-    const newNote: StickyNoteData = {
-      title: 'New Note',
-      content: 'Start writing here...',
-      color: getNextColor(notes?.length || 0),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-    try {
-      await addDoc(notesCollectionRef, newNote);
-    } catch (error) {
-      console.error("Error adding note:", error);
+  const [localNotes, setLocalNotes] = useState<StickyNoteData[]>([]);
+
+  React.useEffect(() => {
+    if (serverNotes) {
+      // Merge server notes with any local-only new notes
+      setLocalNotes(prevLocalNotes => {
+        const newNotes = prevLocalNotes.filter(n => n.isNew);
+        const serverNotesWithId = serverNotes.map(n => ({...n, id: n.id}));
+        const existingIds = new Set(serverNotesWithId.map(n => n.id));
+        const filteredNewNotes = newNotes.filter(n => !existingIds.has(n.id));
+        return [...filteredNewNotes, ...serverNotesWithId];
+      });
     }
+  }, [serverNotes]);
+
+
+  const addNote = () => {
+    const tempId = uuidv4();
+    const newNote: StickyNoteData = {
+      id: tempId,
+      title: '',
+      content: '',
+      color: getNextColor(localNotes.length || 0),
+      isNew: true,
+    };
+    setLocalNotes(prev => [newNote, ...prev]);
   };
 
   const updateNote = async (id: string, newTitle: string, newContent: string) => {
-    if (!user) return;
-    const noteRef = doc(firestore, 'users', user.uid, 'stickyNotes', id);
-    try {
-      await updateDoc(noteRef, {
+    const note = localNotes.find(n => n.id === id);
+    if (!note || !user) return;
+
+    // If it's a new note, we create it in Firestore
+    if (note.isNew) {
+      // Don't save if it's empty
+      if (!newTitle && !newContent) {
+        // It might be removed by the blur handler, but as a fallback:
+        setLocalNotes(prev => prev.filter(n => n.id !== id));
+        return;
+      }
+      
+      if (!notesCollectionRef) return;
+      const { isNew, ...noteToSave } = note;
+      const finalNote = {
+        ...noteToSave,
         title: newTitle,
         content: newContent,
-        updatedAt: serverTimestamp()
-      });
-    } catch (error) {
-      console.error("Error updating note:", error);
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+      try {
+        // Use the client-generated ID to create the document
+        const noteRef = doc(firestore, 'users', user.uid, 'stickyNotes', id);
+        await addDoc(notesCollectionRef, finalNote);
+      } catch (error) {
+         console.error("Error adding note:", error);
+      }
+
+    } else { // It's an existing note, so update it
+      const noteRef = doc(firestore, 'users', user.uid, 'stickyNotes', id);
+      try {
+        await updateDoc(noteRef, {
+          title: newTitle,
+          content: newContent,
+          updatedAt: serverTimestamp()
+        });
+      } catch (error) {
+        console.error("Error updating note:", error);
+      }
     }
   };
   
   const deleteNote = async (id: string) => {
      if (!user) return;
+    const note = localNotes.find(n => n.id === id);
+    
+    // If it's a new, unsaved note, just remove it from local state
+    if (note && note.isNew) {
+        setLocalNotes(prev => prev.filter(n => n.id !== id));
+        return;
+    }
+
+    // Otherwise, delete from Firestore
     const noteRef = doc(firestore, 'users', user.uid, 'stickyNotes', id);
     try {
       await deleteDoc(noteRef);
@@ -82,10 +136,16 @@ export default function DashboardPage() {
       console.error("Error deleting note:", error);
     }
   };
+
+  const handleBlurNewNote = (id: string, title: string, content: string) => {
+    if (!title && !content) {
+      setLocalNotes(prev => prev.filter(n => n.id !== id));
+    }
+  };
   
   const isLoading = isUserLoading || areNotesLoading;
 
-  if (isLoading) {
+  if (isLoading && localNotes.length === 0) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader className="animate-spin" />
@@ -100,17 +160,18 @@ export default function DashboardPage() {
           className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4"
         >
           <AnimatePresence>
-            {notes && notes.map(note => (
+            {localNotes && localNotes.map(note => (
                  <StickyNote 
                     key={note.id}
                     note={note}
                     onUpdate={updateNote}
                     onDelete={deleteNote}
+                    onBlurNew={handleBlurNewNote}
                  />
             ))}
           </AnimatePresence>
         </div>
-         {notes && notes.length === 0 && !isLoading && (
+         {localNotes && localNotes.length === 0 && !isLoading && (
             <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-semibold">No sticky notes yet.</h2>
