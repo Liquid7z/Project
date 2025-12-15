@@ -37,7 +37,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { useUser, useAuth, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
+import { useUser, useAuth, useDoc, useMemoFirebase, useFirestore, useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -75,9 +75,9 @@ function GlowModeToggle({ id }: { id: string }) {
 }
 
 function NotificationsPanel() {
-    const { user, firestore } = useUser();
+    const { user, firestore } = useFirebase();
     const notificationsRef = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !firestore) return null;
         return collection(firestore, 'users', user.uid, 'notifications');
     }, [user, firestore]);
     const notificationsQuery = useMemoFirebase(() => {
@@ -90,7 +90,7 @@ function NotificationsPanel() {
     const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
 
     const markAsRead = async (notificationId: string) => {
-        if (!user) return;
+        if (!user || !firestore) return;
         const notifRef = doc(firestore, 'users', user.uid, 'notifications', notificationId);
         await updateDoc(notifRef, { isRead: true });
     };
@@ -124,7 +124,7 @@ function NotificationsPanel() {
                                 >
                                     <p className="text-sm font-medium">{notif.message}</p>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        {formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true })}
+                                        {notif.createdAt?.toDate ? formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true }) : ''}
                                     </p>
                                 </div>
                             </Link>
@@ -342,3 +342,5 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
+
+    
