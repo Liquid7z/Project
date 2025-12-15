@@ -147,6 +147,12 @@ service cloud.firestore {
       // The AI flow is responsible for filtering by the user's ID.
       allow list: if isSignedIn();
     }
+     /**
+     * @description Allows an admin to list all subjects across all users.
+     */
+    match /{path=**}/subjects/{subjectId} {
+        allow list: if isAdmin();
+    }
   }
 }
 

@@ -119,7 +119,7 @@ export default function AdminDashboard() {
   }, [user, isAdmin, isUserLoading, isProfileLoading, router]);
 
   // While loading, show a full-screen loader to prevent showing content prematurely.
-  if (isUserLoading || isProfileLoading) {
+  if (isUserLoading || isProfileLoading || !isAdmin) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ContentTable />
+                        <ContentTable isAdmin={isAdmin} />
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -393,12 +393,21 @@ const UserTable = () => {
   );
 };
 
-const ContentTable = () => {
+const ContentTable = ({ isAdmin }: { isAdmin: boolean }) => {
     const firestore = useFirestore();
-    const subjectsQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'subjects')), [firestore]);
+    
+    // Only attempt to create the query if the user is an admin.
+    const subjectsQuery = useMemoFirebase(() => {
+        if (!isAdmin) return null;
+        return query(collectionGroup(firestore, 'subjects'));
+    }, [firestore, isAdmin]);
+
     const { data: subjects, isLoading, error } = useCollection(subjectsQuery);
 
-    const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+    const usersRef = useMemoFirebase(() => {
+        if (!isAdmin) return null;
+        return collection(firestore, 'users');
+    }, [firestore, isAdmin]);
     const { data: users, isLoading: usersLoading } = useCollection(usersRef);
 
     const usersMap = React.useMemo(() => {
