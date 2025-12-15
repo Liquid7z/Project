@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Pin, PinOff } from 'lucide-react';
+import { Plus, Pin, PinOff, LayoutGrid } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { StickyNote, StickyNoteData, StickyNoteColor } from '@/components/sticky-note';
 
@@ -61,6 +61,16 @@ export default function DashboardPage() {
   const deleteNote = (id: string) => {
     setNotes(prevNotes => prevNotes.filter(note => note.id !== id));
   };
+  
+  const formatNotes = () => {
+    const newNotes = notes.map((note, index) => {
+      const x = 50 + (index % 5) * 30; // Cascade horizontally
+      const y = 120 + index * 40; // Cascade vertically
+      return { ...note, position: { x, y } };
+    });
+    setNotes(newNotes);
+  };
+
 
   return (
     <div className="w-full h-full relative">
@@ -68,6 +78,9 @@ export default function DashboardPage() {
             <CardHeader className="p-4 flex-row items-center justify-between">
                 <CardTitle className="font-headline">Sticky Notes</CardTitle>
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={formatNotes}>
+                        <LayoutGrid />
+                    </Button>
                     <Button variant="outline" size="icon" onClick={() => setShowNotes(!showNotes)}>
                         {showNotes ? <PinOff /> : <Pin />}
                     </Button>
