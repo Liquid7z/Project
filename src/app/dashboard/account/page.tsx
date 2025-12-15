@@ -1,15 +1,24 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { sendEmailVerification, signOut } from 'firebase/auth';
-import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone } from 'lucide-react';
+import { sendEmailVerification, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
+import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone, Save, Upload, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { WipPage } from '@/components/wip-page';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const freePlanFeatures = [
     '3 handwriting generations per month',
@@ -25,12 +34,22 @@ const premiumPlanFeatures = [
     'Priority support',
 ];
 
+const profileFormSchema = z.object({
+  displayName: z.string().min(1, 'Display name is required.'),
+});
+
+
 export default function AccountPage() {
     const { user, isUserLoading } = useUser();
     const auth = useAuth();
     const firestore = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
+    
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
+
 
     const userProfileRef = useMemoFirebase(() => {
       if (!user) return null;
@@ -40,6 +59,74 @@ export default function AccountPage() {
 
     const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
     const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
+    
+    const profileForm = useForm<z.infer<typeof profileFormSchema>>({
+        resolver: zodResolver(profileFormSchema),
+        defaultValues: {
+            displayName: '',
+        },
+    });
+    
+    useEffect(() => {
+        if (user) {
+            profileForm.setValue('displayName', user.displayName || '');
+            setAvatarPreview(user.photoURL);
+        }
+    }, [user, profileForm]);
+
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setAvatarFile(file);
+            setAvatarPreview(URL.createObjectURL(file));
+        }
+    };
+    
+     const handleProfileSave = async (values: z.infer<typeof profileFormSchema>) => {
+        if (!user || !auth.currentUser) return;
+        setIsSavingProfile(true);
+
+        try {
+            let newPhotoURL = user.photoURL;
+
+            // Upload new avatar if one was selected
+            if (avatarFile) {
+                const storage = getStorage();
+                const avatarRef = ref(storage, `users/${user.uid}/avatar/${avatarFile.name}`);
+                const snapshot = await uploadBytes(avatarRef, avatarFile);
+                newPhotoURL = await getDownloadURL(snapshot.ref);
+            }
+
+            // Update Firebase Auth profile
+            await updateProfile(auth.currentUser, {
+                displayName: values.displayName,
+                photoURL: newPhotoURL,
+            });
+
+            // Update Firestore user document
+            if (userProfileRef) {
+                await updateDoc(userProfileRef, {
+                    displayName: values.displayName,
+                    photoURL: newPhotoURL,
+                });
+            }
+
+            toast({
+                title: "Profile Updated",
+                description: "Your account information has been saved.",
+            });
+
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Update Failed",
+                description: error.message,
+            });
+        } finally {
+            setIsSavingProfile(false);
+        }
+    };
+
 
     const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
 
@@ -61,7 +148,7 @@ export default function AccountPage() {
     }
 
     // This would come from user data in a real app
-    const currentUserPlan = 'Free';
+    const currentUserPlan = userProfile?.plan || 'Free';
 
     const handleVerifyEmail = async () => {
         if (!user) return;
@@ -80,8 +167,69 @@ export default function AccountPage() {
         }
     };
 
+    const handlePasswordReset = async () => {
+        if (!user || !user.email) return;
+        try {
+            await sendPasswordResetEmail(auth, user.email);
+            toast({
+                title: "Password Reset Email Sent",
+                description: "A link to reset your password has been sent to your email.",
+            });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message,
+            });
+        }
+    };
+
     return (
         <div className="grid gap-6">
+             <Card className="glass-pane">
+                <CardHeader>
+                    <CardTitle className="font-headline">Your Profile</CardTitle>
+                    <CardDescription>Manage your public profile and personal information.</CardDescription>
+                </CardHeader>
+                <Form {...profileForm}>
+                    <form onSubmit={profileForm.handleSubmit(handleProfileSave)}>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center gap-6">
+                                <div className="relative">
+                                    <Avatar className="h-24 w-24 border-2 border-accent">
+                                        <AvatarImage src={avatarPreview || `https://avatar.vercel.sh/${user?.email}.png`} alt={user.displayName || 'user'}/>
+                                        <AvatarFallback>{user.displayName?.[0]}</AvatarFallback>
+                                    </Avatar>
+                                     <label htmlFor="avatar-upload" className="absolute -bottom-2 -right-2 bg-secondary text-secondary-foreground rounded-full p-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">
+                                        <Upload className="h-4 w-4" />
+                                        <input id="avatar-upload" type="file" className="sr-only" accept="image/png, image/jpeg" onChange={handleAvatarChange} />
+                                    </label>
+                                </div>
+                                 <FormField
+                                    control={profileForm.control}
+                                    name="displayName"
+                                    render={({ field }) => (
+                                        <FormItem className="flex-grow">
+                                            <FormLabel>Display Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Your Name" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button variant="glow" type="submit" disabled={isSavingProfile}>
+                                {isSavingProfile ? <Loader className="animate-spin mr-2"/> : <Save className="mr-2"/>}
+                                Save Profile
+                            </Button>
+                        </CardFooter>
+                    </form>
+                </Form>
+            </Card>
+
             <Card className="glass-pane">
                 <CardHeader>
                     <CardTitle className="font-headline">Manage Your Subscription</CardTitle>
@@ -134,7 +282,7 @@ export default function AccountPage() {
 
              <Card className="glass-pane">
                 <CardHeader>
-                    <CardTitle className="font-headline">Account Information</CardTitle>
+                    <CardTitle className="font-headline">Security Settings</CardTitle>
                 </CardHeader>
                  <CardContent className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                     <div className="flex items-start gap-3 p-4 rounded-md bg-background/50">
@@ -176,7 +324,7 @@ export default function AccountPage() {
                         <Shield className="w-5 h-5 text-accent mt-1"/>
                         <div>
                             <p className="font-semibold">Password</p>
-                            <Button variant="secondary" size="sm" className="h-auto px-2 py-1 mt-1">Change Password</Button>
+                            <Button variant="secondary" size="sm" className="h-auto px-2 py-1 mt-1" onClick={handlePasswordReset}>Change Password</Button>
                         </div>
                     </div>
                  </CardContent>
@@ -184,3 +332,6 @@ export default function AccountPage() {
         </div>
     );
 }
+
+
+    
