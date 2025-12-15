@@ -88,7 +88,14 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
         toast({ title: 'Step 2/3: Uploading Image...' });
         const filePath = `users/${user.uid}/skill-trees/${uuidv4()}.png`;
         const storageRef = ref(storage, filePath);
-        const uploadResult = await uploadString(storageRef, imageResult.imageDataUri, 'data_url');
+        
+        // Correctly handle the data URI for upload
+        const base64String = imageResult.imageDataUri.split(',')[1];
+        if (!base64String) {
+          throw new Error('Invalid image data URI received from AI.');
+        }
+
+        const uploadResult = await uploadString(storageRef, base64String, 'base64', { contentType: 'image/png' });
         const downloadUrl = await getDownloadURL(uploadResult.ref);
         const imageBlock = {
             id: `skill-tree-img-${Date.now()}`,
@@ -114,10 +121,22 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
 
         if (keyConcept) {
             textContent += `<h2>${keyConcept.label}</h2><p>${allExplanations[keyConcept.id] || '...'}</p>`;
-            const mainIdeas = nodes.filter(n => n.parent?.id === keyConcept.id);
+            
+            const positionMap = new Map<string, any[]>();
+            edges.forEach(edge => {
+              if(!positionMap.has(edge.source)) {
+                positionMap.set(edge.source, []);
+              }
+              const targetNode = nodes.find(n => n.id === edge.target);
+              if(targetNode) {
+                positionMap.get(edge.source)?.push(targetNode);
+              }
+            });
+
+            const mainIdeas = positionMap.get(keyConcept.id) || [];
             mainIdeas.forEach(idea => {
                 textContent += `<h3>${idea.label}</h3><p>${allExplanations[idea.id] || '...'}</p>`;
-                const details = nodes.filter(n => n.parent?.id === idea.id);
+                const details = positionMap.get(idea.id) || [];
                 if (details.length > 0) {
                     textContent += `<ul>`;
                     details.forEach(detail => {
@@ -184,6 +203,7 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
   
   const isSaveDisabled = isSaving || (targetType === 'new' && (!selectedSubject || !newItemTitle)) || (targetType === 'existing' && (!selectedSubject || !selectedItem));
   const typeName = contentType === 'notes' ? 'Note' : 'Resource';
+  const singularContentType = contentType === 'notes' ? 'note' : 'resource';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
