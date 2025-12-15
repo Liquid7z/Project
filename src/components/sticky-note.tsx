@@ -55,10 +55,10 @@ export function StickyNote({ note, onUpdate, onDelete, onBlurNew }: StickyNotePr
   }, [note.title, note.content]);
   
   const noteColorClasses = {
-      yellow: 'bg-yellow-200/80 border-yellow-300/80 text-neutral-900',
-      pink: 'bg-pink-200/80 border-pink-300/80 text-neutral-900',
-      blue: 'bg-blue-200/80 border-blue-300/80 text-neutral-900',
-      green: 'bg-green-200/80 border-green-300/80 text-neutral-900',
+      yellow: 'bg-yellow-300/80 border-yellow-400/80 text-neutral-900',
+      pink: 'bg-pink-300/80 border-pink-400/80 text-neutral-900',
+      blue: 'bg-blue-300/80 border-blue-400/80 text-neutral-900',
+      green: 'bg-green-400/80 border-green-500/80 text-neutral-900',
   }
 
   // Adjust textarea height
@@ -113,7 +113,10 @@ export function StickyNote({ note, onUpdate, onDelete, onBlurNew }: StickyNotePr
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="w-full h-auto flex-grow resize-none border-none focus-visible:ring-0 bg-transparent text-lg placeholder:text-inherit/70 p-0 leading-relaxed font-code"
+          className={cn("w-full h-auto flex-grow resize-none border-none focus-visible:ring-0 bg-transparent text-sm placeholder:text-inherit/70 p-0 leading-relaxed", 
+            // Check if content looks like code and apply code font
+            /([<>/;{}()#]|\b(int|void|char|const|if|else|for|while)\b)/.test(content) ? 'font-code' : 'font-body'
+          )}
           placeholder="Take a note..."
         />
       </Card>
