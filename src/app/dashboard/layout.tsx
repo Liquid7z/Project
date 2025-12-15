@@ -24,7 +24,8 @@ import {
   Notebook,
   Sun,
   LayoutDashboard,
-  Bot
+  Bot,
+  Shield
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,6 +47,10 @@ const navItems = [
   { href: '/dashboard/account', icon: User, label: 'Account' },
 ];
 
+const adminNavItems = [
+    { href: '/dashboard/admin', icon: Shield, label: 'Admin' }
+]
+
 
 function GlowModeToggle({ id }: { id: string }) {
     const { isGlowMode, setIsGlowMode } = useTheme();
@@ -62,7 +67,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const { user, isUserLoading, userError } = useUser();
+  const { user, decodedClaims, isUserLoading, userError } = useUser();
   const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(() => {
@@ -84,6 +89,8 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+  
+  const currentNavItems = decodedClaims?.admin ? [...navItems, ...adminNavItems] : navItems;
   
   return (
     <SidebarProvider>
@@ -110,7 +117,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
               </div>
             </SidebarGroup>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {currentNavItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
                   <Link href={item.href}>
                     <SidebarMenuButton
@@ -177,7 +184,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                           </SheetTitle>
                       </SheetHeader>
                       <nav className="grid gap-2 text-lg font-medium mt-4">
-                          {navItems.map(item => (
+                          {currentNavItems.map(item => (
                               <SheetClose key={item.href} asChild>
                                   <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                                       <item.icon className="h-4 w-4" />

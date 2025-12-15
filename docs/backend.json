@@ -106,7 +106,13 @@
     }
   },
   "auth": {
-    "providers": ["password", "google.com"]
+    "providers": ["password", "google.com"],
+    "customClaims": {
+      "admin": {
+        "type": "boolean",
+        "description": "Grants administrator-level access to the application."
+      }
+    }
   },
   "firestore": {
     "structure": [
