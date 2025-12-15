@@ -36,7 +36,7 @@ interface Block {
     fileType?: string;
     // Client-side only properties
     file?: File; // The actual file object, for upload
-    previewUrl?: string; // data URI for client-side image preview
+    previewUrl?: string; // data URI for client-side image/pdf preview
 }
 
 const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; removeBlock: (id: string) => void; updateContent: (id: string, content: string) => void }) => {
@@ -51,7 +51,7 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
                     <Image src={block.downloadUrl} alt={block.fileName || 'Uploaded image'} width={800} height={600} className="rounded-md" />
                  ) : null
             ) : block.type === 'document' ? (
-                <DocumentPreviewer name={block.fileName!} type={block.fileType!} url={block.downloadUrl!} />
+                <DocumentPreviewer name={block.fileName!} type={block.fileType!} url={block.downloadUrl || block.previewUrl!} />
             ) : null}
              <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100" onClick={() => removeBlock(block.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -105,12 +105,13 @@ export default function ItemEditPage() {
             const updatedBlocks = await Promise.all(blocks.map(async (block) => {
                 const { file, previewUrl, ...storableBlock } = block;
 
-                if (file) {
+                if (file && previewUrl) { // Check for both file and previewUrl to indicate it's a new upload
                      const storage = getStorage();
                      const filePath = `users/${user.uid}/${contentType}/${itemId}/${uuidv4()}-${file.name}`;
                      const fileRef = ref(storage, filePath);
                      await uploadBytes(fileRef, file);
                      storableBlock.downloadUrl = await getDownloadURL(fileRef);
+                     URL.revokeObjectURL(previewUrl); // Clean up the temporary URL
                 }
                 
                 return storableBlock;
@@ -172,7 +173,7 @@ export default function ItemEditPage() {
                 file: file,
                 fileName: file.name,
                 fileType: file.type || 'Unknown',
-                downloadUrl: URL.createObjectURL(file) 
+                previewUrl: URL.createObjectURL(file) 
             };
             setBlocks(prev => [...prev, newBlock]);
             toast({title: "PDF Added", description: "Your PDF has been added. Save to complete the upload."});
@@ -193,12 +194,8 @@ export default function ItemEditPage() {
 
     const removeBlock = (id: string) => {
         setBlocks(prev => prev.filter(b => {
-            const block = prev.find(block => block.id === id);
-            if (block?.previewUrl && block.type === 'image') {
-                URL.revokeObjectURL(block.previewUrl);
-            }
-            if (block?.downloadUrl && (block.type === 'document' || (block.type === 'image' && !block.file))) {
-                 if (block.file) URL.revokeObjectURL(block.downloadUrl);
+            if (b.id === id && b.previewUrl) {
+                URL.revokeObjectURL(b.previewUrl);
             }
             return b.id !== id;
         }));
@@ -300,3 +297,5 @@ export default function ItemEditPage() {
         </div>
     );
 }
+
+    
