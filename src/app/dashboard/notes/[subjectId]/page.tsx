@@ -68,7 +68,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
         defaultValues: { title: '' },
     });
     
-    const handleCreateItem = async (values: z.infer<typeof itemFormSchema>) => {
+    const handleCreateItem = async (values: z.infer<typeof itemFormSchema>>) => {
         if (!contentCollectionRef) return;
         try {
             const newItemDoc = await addDoc(contentCollectionRef, {
@@ -353,13 +353,13 @@ export default function SubjectPage() {
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
                 <TabsContent value="notes" className="mt-6">
-                    <ContentList type="notes" />
+                    <ContentList type="notes" subjectName={subject.name} />
                 </TabsContent>
                 <TabsContent value="examQuestions" className="mt-6">
-                    <ContentList type="examQuestions" />
+                    <ContentList type="examQuestions" subjectName={subject.name} />
                 </TabsContent>
                 <TabsContent value="syllabus" className="mt-6">
-                   <ContentList type="syllabus" />
+                   <ContentList type="syllabus" subjectName={subject.name} />
                 </TabsContent>
                 <TabsContent value="resources" className="mt-6">
                     <ContentList type="resources" subjectName={subject.name} />
@@ -368,5 +368,3 @@ export default function SubjectPage() {
         </div>
     );
 }
-
-    
