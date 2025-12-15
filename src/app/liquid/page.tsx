@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 type PlanConfig = {
@@ -245,12 +246,15 @@ export default function LiquidAdminPage() {
         <div className="space-y-6">
             <h1 className="text-4xl font-bold font-headline text-glow">Liquid Cooled | Admin</h1>
             
-            <Tabs defaultValue="plans">
-                <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="plans"><DollarSign/> Plan Management</TabsTrigger>
-                    <TabsTrigger value="users"><User/> User Management</TabsTrigger>
-                    <TabsTrigger value="site"><Wrench/> Site Settings</TabsTrigger>
-                </TabsList>
+             <Tabs defaultValue="plans" className="w-full">
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <TabsList className="inline-flex w-auto">
+                        <TabsTrigger value="plans"><DollarSign className="w-4 h-4 mr-2"/> Plan Management</TabsTrigger>
+                        <TabsTrigger value="users"><User className="w-4 h-4 mr-2"/> User Management</TabsTrigger>
+                        <TabsTrigger value="site"><Wrench className="w-4 h-4 mr-2"/> Site Settings</TabsTrigger>
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
                 
                 <TabsContent value="plans" className="mt-6 space-y-6">
                    <PlanConfigForm planId="free" planData={freePlanConfig as PlanConfig} onSave={handlePlanConfigSave} />
@@ -263,71 +267,73 @@ export default function LiquidAdminPage() {
                             <CardTitle className="font-headline text-accent">User Management</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="border-accent/20 hover:bg-accent/10">
-                                        <TableHead><User className="inline-block" /> User</TableHead>
-                                        <TableHead>Subscription</TableHead>
-                                        <TableHead>Joined</TableHead>
-                                        <TableHead className="text-center"><Shield className="inline-block" /> Admin</TableHead>
-                                        <TableHead className="text-center">Suspended</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users?.map(u => (
-                                        <TableRow key={u.id} className="border-accent/20 hover:bg-accent/10">
-                                            <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar>
-                                                        <AvatarImage src={u.photoURL} alt={u.displayName} />
-                                                        <AvatarFallback>{u.displayName?.[0]}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-medium">{u.displayName}</p>
-                                                        <p className="text-xs text-muted-foreground">{u.email}</p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={u.plan === 'Premium' ? 'default' : 'secondary'} className={u.plan === 'Premium' ? 'bg-primary' : ''}>
-                                                    {u.plan || 'Free'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground text-xs">
-                                                {u.creationTime ? formatDistanceToNow(new Date(u.creationTime), { addSuffix: true }) : 'N/A'}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <Switch
-                                                    checked={u.isAdmin}
-                                                    onCheckedChange={() => handleAdminToggle(u)}
-                                                    disabled={u.id === user?.uid}
-                                                    aria-label={`Toggle admin for ${u.displayName}`}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                 <Switch
-                                                    checked={u.isSuspended}
-                                                    onCheckedChange={() => handleSuspendToggle(u)}
-                                                    disabled={u.id === user?.uid}
-                                                    aria-label={`Toggle suspension for ${u.displayName}`}
-                                                />
-                                            </TableCell>
+                             <div className="w-full overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-accent/20 hover:bg-accent/10">
+                                            <TableHead><User className="inline-block" /> User</TableHead>
+                                            <TableHead>Subscription</TableHead>
+                                            <TableHead>Joined</TableHead>
+                                            <TableHead className="text-center"><Shield className="inline-block" /> Admin</TableHead>
+                                            <TableHead className="text-center">Suspended</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {users?.map(u => (
+                                            <TableRow key={u.id} className="border-accent/20 hover:bg-accent/10">
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar>
+                                                            <AvatarImage src={u.photoURL} alt={u.displayName} />
+                                                            <AvatarFallback>{u.displayName?.[0]}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-medium whitespace-nowrap">{u.displayName}</p>
+                                                            <p className="text-xs text-muted-foreground break-all">{u.email}</p>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={u.plan === 'Premium' ? 'default' : 'secondary'} className={u.plan === 'Premium' ? 'bg-primary' : ''}>
+                                                        {u.plan || 'Free'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                                    {u.creationTime ? formatDistanceToNow(new Date(u.creationTime), { addSuffix: true }) : 'N/A'}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Switch
+                                                        checked={u.isAdmin}
+                                                        onCheckedChange={() => handleAdminToggle(u)}
+                                                        disabled={u.id === user?.uid}
+                                                        aria-label={`Toggle admin for ${u.displayName}`}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                     <Switch
+                                                        checked={u.isSuspended}
+                                                        onCheckedChange={() => handleSuspendToggle(u)}
+                                                        disabled={u.id === user?.uid}
+                                                        aria-label={`Toggle suspension for ${u.displayName}`}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
                 
                 <TabsContent value="site" className="mt-6">
-                    <div className="grid md:grid-cols-3 gap-6">
-                       <Card className="glass-pane border-accent/50 md:col-span-2">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                       <Card className="glass-pane border-accent/50 md:col-span-3 lg:col-span-2">
                            <CardHeader>
                                <CardTitle className="font-headline text-accent flex items-center gap-2"><Wrench/>Site Status</CardTitle>
                                <CardDescription>Toggle features on or off. 'Off' puts the feature into maintenance mode for non-admins.</CardDescription>
                            </CardHeader>
-                           <CardContent className="space-y-4">
+                           <CardContent className="grid sm:grid-cols-2 gap-4">
                                <div className="flex items-center justify-between rounded-lg border border-border p-3">
                                    <Label htmlFor="siteWideMaintenance" className="font-semibold">Enable Site-wide Maintenance</Label>
                                    <Switch id="siteWideMaintenance" checked={siteConfig?.siteWideMaintenance || false} onCheckedChange={(c) => handleConfigToggle('siteWideMaintenance', c)} />
@@ -358,7 +364,7 @@ export default function LiquidAdminPage() {
                                </div>
                            </CardContent>
                        </Card>
-                        <Card className="glass-pane border-accent/50">
+                        <Card className="glass-pane border-accent/50 md:col-span-3 lg:col-span-1">
                             <CardHeader>
                                <CardTitle className="font-headline text-accent flex items-center gap-2"><Coffee/>Support</CardTitle>
                                <CardDescription>Manage support links and other resources.</CardDescription>

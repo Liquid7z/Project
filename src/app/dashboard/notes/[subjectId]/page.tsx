@@ -122,7 +122,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
         <div className="space-y-6">
              <div className="flex items-start justify-between">
                 <div className="flex-1"/>
-                <Button variant="glow" onClick={() => setIsNewItemDialogOpen(true)}>
+                <Button variant="glow" onClick={() => setIsNewItemDialogOpen(true)} className="w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" />
                     New {typeName}
                 </Button>
@@ -328,7 +328,7 @@ export default function SubjectPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
                      <Link href="/dashboard/notes">
                         <Button variant="outline" size="icon">

@@ -254,7 +254,7 @@ function LiquidLayoutNav({ children }: { children: React.ReactNode }) {
               </DropdownMenu>
           </header>
           
-          <main className="flex-1 p-4 md:p-6 relative">
+          <main className="flex-1 p-4 sm:p-6 relative">
             {children}
           </main>
         </div>

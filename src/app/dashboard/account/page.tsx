@@ -136,12 +136,12 @@ export default function AccountPage() {
                 <CardHeader>
                     <CardTitle className="font-headline">Account Information</CardTitle>
                 </CardHeader>
-                 <CardContent className="grid sm:grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                 <CardContent className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                     <div className="flex items-start gap-3 p-4 rounded-md bg-background/50">
                         <User className="w-5 h-5 text-accent mt-1"/>
                         <div>
                             <p className="font-semibold">Email</p>
-                            <p className="text-muted-foreground">{user.email}</p>
+                            <p className="text-muted-foreground break-all">{user.email}</p>
                             {user.emailVerified ? (
                                 <div className="flex items-center gap-1 text-xs text-green-400 mt-2">
                                     <MailCheck className="w-3 h-3" />
