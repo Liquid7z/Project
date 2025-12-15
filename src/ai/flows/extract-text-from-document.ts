@@ -42,7 +42,8 @@ const extractTextTool = ai.defineTool({
     const documentDataBase64 = input.documentDataUri.split(',')[1];
     
     if (input.documentDataUri.startsWith('data:application/pdf;base64,')) {
-      // PDF text extraction is disabled per user request.
+      // For all PDFs (including image-based), return empty string.
+      // This signals the frontend to treat it as a file upload rather than text insertion.
       return { extractedText: '' };
     } else if (input.documentDataUri.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,')) {
       const documentBuffer = Buffer.from(documentDataBase64, 'base64');
@@ -85,4 +86,3 @@ const extractTextFromDocumentFlow = ai.defineFlow(
     return response;
   }
 );
-
