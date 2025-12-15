@@ -139,18 +139,56 @@ const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
 
 const SubjectNotes = ({ subject, onNotesLoaded }: { subject: any; onNotesLoaded: (subjectId: string, notes: any[]) => void }) => {
     const { user, firestore } = useFirebase();
+    
+    // Fetch notes for the given subject
     const notesCollectionRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return collection(firestore, 'users', user.uid, 'subjects', subject.id, 'notes');
     }, [user, firestore, subject.id]);
 
-    const { data: notes } = useCollection(notesCollectionRef);
+    const { data: notes, isLoading: areNotesLoading } = useCollection(notesCollectionRef);
+    
+    // Fetch exam questions
+    const examQuestionsCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'subjects', subject.id, 'examQuestions');
+    }, [user, firestore, subject.id]);
+
+    const { data: examQuestions, isLoading: areExamQuestionsLoading } = useCollection(examQuestionsCollectionRef);
+
+    // Fetch syllabus items
+    const syllabusCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'subjects', subject.id, 'syllabus');
+    }, [user, firestore, subject.id]);
+
+    const { data: syllabus, isLoading: isSyllabusLoading } = useCollection(syllabusCollectionRef);
+
+    // Fetch resources
+    const resourcesCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'subjects', subject.id, 'resources');
+    }, [user, firestore, subject.id]);
+
+    const { data: resources, isLoading: areResourcesLoading } = useCollection(resourcesCollectionRef);
 
     useEffect(() => {
-        if (notes) {
-            onNotesLoaded(subject.id, notes);
+        if (!areNotesLoading && !areExamQuestionsLoading && !isSyllabusLoading && !areResourcesLoading) {
+            const allItems = [
+                ...(notes || []).map(item => ({ ...item, itemType: 'notes' })),
+                ...(examQuestions || []).map(item => ({ ...item, itemType: 'examQuestions' })),
+                ...(syllabus || []).map(item => ({ ...item, itemType: 'syllabus' })),
+                ...(resources || []).map(item => ({ ...item, itemType: 'resources' })),
+            ];
+            onNotesLoaded(subject.id, allItems);
         }
-    }, [notes, subject.id, onNotesLoaded]);
+    }, [
+        notes, areNotesLoading,
+        examQuestions, areExamQuestionsLoading,
+        syllabus, isSyllabusLoading,
+        resources, areResourcesLoading,
+        subject.id, onNotesLoaded
+    ]);
 
     return null; // This component does not render anything itself
 };
@@ -166,13 +204,15 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const router = useRouter();
     const { toast } = useToast();
     const [allNotes, setAllNotes] = useState<{[key: string]: any[]}>({});
+    const [subjectsWithNotes, setSubjectsWithNotes] = useState<Set<string>>(new Set());
 
-    const handleNotesLoaded = (subjectId: string, notes: any[]) => {
+    const handleNotesLoaded = React.useCallback((subjectId: string, notes: any[]) => {
         setAllNotes(prevNotes => ({
             ...prevNotes,
             [subjectId]: notes,
         }));
-    };
+        setSubjectsWithNotes(prev => new Set(prev).add(subjectId));
+    }, []);
 
     const layoutNodes = (subjectsToLayout: any[], notesData: {[key: string]: any[]}) => {
         const newNodes: Node[] = [];
@@ -209,6 +249,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     subjectId: subject.id,
                     isImportant: note.isImportant || false,
                     isPlaceholder: note.isPlaceholder,
+                    itemType: note.itemType,
                 });
                 newEdges.push({
                     id: `edge-${subjectId}-${noteId}`,
@@ -224,16 +265,22 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     useEffect(() => {
         if (!subjects) return;
 
-        const allSubjectsHaveNotes = subjects.every(s => allNotes.hasOwnProperty(s.id));
+        if (subjects.length === 0) {
+            setIsInitialLoading(false);
+            setNodes([]);
+            setEdges([]);
+            return;
+        }
 
-        if(allSubjectsHaveNotes || subjects.length === 0) {
-            const flattenedNotes = Object.values(allNotes).flat();
+        const allSubjectsAreLoaded = subjects.every(s => subjectsWithNotes.has(s.id));
+
+        if(allSubjectsAreLoaded) {
             const { newNodes, newEdges } = layoutNodes(subjects, allNotes);
             setNodes(newNodes);
             setEdges(newEdges);
             setIsInitialLoading(false);
         }
-    }, [subjects, allNotes]);
+    }, [subjects, allNotes, subjectsWithNotes]);
 
 
     const handleGenerateTree = async (newTopic: string) => {
@@ -258,7 +305,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                 description: "The AI could not generate a skill tree for this topic.",
                 variant: "destructive"
             });
-            const flattenedNotes = Object.values(allNotes).flat();
             const { newNodes, newEdges } = layoutNodes(subjects, allNotes);
             setNodes(newNodes);
             setEdges(newEdges);
@@ -304,9 +350,9 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                 handleGenerateTree(node.label);
             }
         } 
-        else if (node.type === 'note' && node.subjectId) {
+        else if (node.type === 'note' && node.subjectId && node.itemType) {
              const noteId = node.id.startsWith('note-') ? node.id.replace('note-','') : node.id;
-             router.push(`/dashboard/notes/${node.subjectId}/notes/${noteId}`);
+             router.push(`/dashboard/notes/${node.subjectId}/${node.itemType}/${noteId}`);
         }
     }
     
@@ -471,3 +517,5 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         </div>
     );
 }
+
+    
