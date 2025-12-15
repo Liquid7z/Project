@@ -77,7 +77,7 @@ export default function Home() {
             </div>
             <div className="container px-4 md:px-6 z-10">
                 <div className="flex flex-col items-center space-y-6">
-                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter font-headline animate-neon-glow">
+                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter font-headline text-gradient">
                        From Scattered Notes
                        <br />
                        to Structured Knowledge.

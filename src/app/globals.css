@@ -92,6 +92,10 @@
     text-shadow: 0 0 5px hsl(var(--accent)), 0 0 10px hsl(var(--primary));
   }
 
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
   [data-glow-mode="true"] .text-glow {
      animation: neon-glow 2.5s ease-in-out infinite;
   }
@@ -132,5 +136,3 @@
       box-shadow: 0 0 8px hsl(var(--sidebar-accent) / 0.7), 0 0 15px hsl(var(--sidebar-accent) / 0.5);
   }
 }
-
-    
