@@ -15,13 +15,14 @@
         "phoneNumber": { "type": ["string", "null"], "description": "The user's phone number." },
         "creationTime": { "type": "string", "description": "Timestamp indicating when the user profile was created.", "format": "date-time" },
         "lastSignInTime": { "type": "string", "description": "Timestamp indicating when the user last signed in.", "format": "date-time" },
-        "subscriptionId": { "type": "string", "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)" },
-        "plan": { "type": "string", "description": "User's subscription plan.", "enum": ["Free", "Premium"] },
+        "plan": { "type": "string", "description": "User's subscription plan.", "enum": ["Free", "Premium", "expired"] },
         "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." },
         "isAdmin": { "type": "boolean", "description": "Indicates if the user has administrative privileges." },
         "skillTreeGenerations": { "type": "number", "description": "Count of skill tree generations for the current day." },
         "lastGenerationDate": { "type": "string", "description": "The date of the last skill tree generation, in ISO 8601 format." },
-        "paymentStatus": { "type": "string", "description": "The user's current payment verification status.", "enum": ["none", "pending"] }
+        "paymentStatus": { "type": "string", "description": "The user's current payment verification status.", "enum": ["none", "pending"] },
+        "premiumUntil": { "type": "string", "format": "date-time", "description": "Timestamp indicating when the user's premium access expires." },
+        "subscriptionStatus": { "type": "string", "description": "The status of the user's subscription.", "enum": ["active", "expired", "cancelled"] }
       },
       "required": ["id", "email"]
     },

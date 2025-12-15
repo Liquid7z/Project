@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -254,14 +254,20 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
     const handleApprovePayment = async (verification: any) => {
         const userRef = doc(firestore, 'users', verification.userId);
         const verificationRef = doc(firestore, 'paymentVerifications', verification.id);
+        const premiumEndDate = addDays(new Date(), 30);
 
         try {
             await writeBatch(firestore)
-                .update(userRef, { plan: 'Premium', paymentStatus: 'none' })
+                .update(userRef, { 
+                    plan: 'Premium', 
+                    paymentStatus: 'none',
+                    premiumUntil: premiumEndDate.toISOString(),
+                    subscriptionStatus: 'active'
+                })
                 .delete(verificationRef)
                 .commit();
             
-            toast({ title: "Payment Approved", description: `${verification.userName}'s plan has been upgraded to Premium.` });
+            toast({ title: "Payment Approved", description: `${verification.userName}'s plan has been upgraded to Premium for 30 days.` });
         } catch (error) {
             console.error("Error approving payment:", error);
             toast({ variant: 'destructive', title: "Approval Failed", description: "Could not update user's plan." });

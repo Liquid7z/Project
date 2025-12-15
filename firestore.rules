@@ -62,7 +62,7 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
-      allow update: if (isOwner(userId) && userProfileIdIsImmutable()) || isAdmin();
+      allow update: if (isOwner(userId) && userProfileIdIsImmutable() && !isUpdatingOwnAdminStatus(userId)) || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
 
       match /subscriptions/{subscriptionId} {
