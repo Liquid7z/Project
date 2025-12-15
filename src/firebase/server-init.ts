@@ -1,6 +1,6 @@
 'use server';
 
-import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { initializeApp, getApps, App, applicationDefault } from 'firebase-admin/app';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export async function initializeServerFirebase(): Promise<App> {
@@ -8,23 +8,22 @@ export async function initializeServerFirebase(): Promise<App> {
     return getApps()[0];
   }
   
-  // Important! initializeApp() is called without any arguments because Firebase App Hosting
-  // integrates with the initializeApp() function to provide the environment variables needed to
-  // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-  // without arguments.
-  let firebaseApp;
   try {
-    // Attempt to initialize via Firebase App Hosting environment variables
-    firebaseApp = initializeApp();
+    // When running in a Google Cloud environment, applicationDefault() will automatically
+    // find the service account credentials.
+    return initializeApp({
+      credential: applicationDefault(),
+    });
   } catch (e) {
-    // Only warn in production because it's normal to use a service account in development
-    if (process.env.NODE_ENV === "production") {
-      console.warn('Automatic server initialization failed. You may need to configure a service account.', e);
+     console.error('Failed to initialize Firebase Admin SDK with Application Default Credentials.', e);
+    // As a fallback for different environments, you might use initializeApp() without arguments,
+    // but explicit credential handling is more robust.
+    try {
+        return initializeApp();
+    } catch (fallbackError) {
+        console.error('Fallback Firebase Admin SDK initialization also failed.', fallbackError);
+        // Re-throw the original error to surface the primary issue.
+        throw e;
     }
-    // For local development, you would typically use a service account JSON file.
-    // Since we don't have that in this environment, this will likely fail if run locally without App Hosting.
-    firebaseApp = initializeApp();
   }
-
-  return firebaseApp;
 }
