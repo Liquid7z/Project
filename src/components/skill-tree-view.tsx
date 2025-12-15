@@ -73,10 +73,10 @@ interface GenerateSkillTreeOutput {
 
 const VIEW_WIDTH = 1200;
 const VIEW_HEIGHT = 800;
-const NODE_WIDTH = 160;
+const NODE_WIDTH = 150;
 const NODE_HEIGHT = 40;
 const HORIZONTAL_SPACING = 20;
-const VERTICAL_SPACING = 60;
+const VERTICAL_SPACING = 80;
 
 
 const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
@@ -272,100 +272,104 @@ export function SkillTreeView() {
                  )}
                  {nodes.length > 0 && (
                     <div className='relative w-full h-full'>
-                        <svg width={VIEW_WIDTH} height={VIEW_HEIGHT} className="absolute inset-0 h-full w-full">
-                            <defs>
-                                <marker
-                                    id="arrow"
-                                    viewBox="0 0 10 10"
-                                    refX="8"
-                                    refY="5"
-                                    markerWidth="6"
-                                    markerHeight="6"
-                                    orient="auto-start-reverse"
-                                >
-                                    <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" />
-                                </marker>
-                            </defs>
-                            {edges.map(edge => {
-                                const sourceNode = nodes.find(n => n.id === edge.source);
-                                const targetNode = nodes.find(n => n.id === edge.target);
-                                if (!sourceNode || !targetNode) return null;
-                                
-                                return (
-                                    <motion.line
-                                        key={edge.id}
-                                        x1={sourceNode.x + NODE_WIDTH / 2}
-                                        y1={sourceNode.y + NODE_HEIGHT}
-                                        x2={targetNode.x + NODE_WIDTH / 2}
-                                        y2={targetNode.y}
-                                        stroke="hsl(var(--border))"
-                                        strokeWidth="1"
-                                        markerEnd="url(#arrow)"
-                                        initial={{ pathLength: 0, opacity: 0 }}
-                                        animate={{ pathLength: 1, opacity: 1 }}
-                                        transition={{ duration: 0.5, delay: 0.2 }}
-                                    />
-                                );
-                            })}
-                        </svg>
-                        
-                        {nodes.map(node => (
-                             <AlertDialog key={node.id}>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                             <motion.div
-                                                drag
-                                                dragMomentum={false}
-                                                className={cn(`absolute p-2 flex items-center justify-center rounded-md cursor-pointer text-xs font-semibold`,
-                                                    getNodeStyles(node.type),
-                                                    node.isImportant && 'important-glow',
-                                                    node.isPlaceholder && 'border-2 border-dashed border-accent'
-                                                )}
-                                                style={{
-                                                    left: node.x,
-                                                    top: node.y,
-                                                    width: NODE_WIDTH,
-                                                    height: NODE_HEIGHT,
-                                                    textAlign: 'center',
-                                                }}
-                                                whileHover={{ scale: 1.1, zIndex: 10 }}
-                                                initial={{ opacity: 0, scale: 0.5 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ duration: 0.3 }}
-                                                onDoubleClick={() => handleNodeDoubleClick(node)}
-                                            >
-                                                <span className="truncate">{node.label}</span>
-                                                {node.isPlaceholder && (
-                                                     <AlertDialogTrigger asChild>
-                                                          <button className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-0.5 h-4 w-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                                                             <Plus className="h-3 w-3" />
-                                                         </button>
-                                                     </AlertDialogTrigger>
-                                                )}
-                                            </motion.div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p className="text-xs">Double-click to expand/navigate.</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Create New Item?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will add "{node.label}" to your collection. You can add content to it later.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => createPlaceholderNode(node)}>Create</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        ))}
+                         <motion.div
+                            className="relative"
+                            drag
+                            dragConstraints={{ left: -VIEW_WIDTH / 2, right: VIEW_WIDTH / 2, top: -VIEW_HEIGHT / 2, bottom: VIEW_HEIGHT / 2 }}
+                         >
+                            <svg width={VIEW_WIDTH} height={VIEW_HEIGHT} className="absolute inset-0 h-full w-full">
+                                <defs>
+                                    <marker
+                                        id="arrow"
+                                        viewBox="0 0 10 10"
+                                        refX="8"
+                                        refY="5"
+                                        markerWidth="6"
+                                        markerHeight="6"
+                                        orient="auto-start-reverse"
+                                    >
+                                        <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" />
+                                    </marker>
+                                </defs>
+                                {edges.map(edge => {
+                                    const sourceNode = nodes.find(n => n.id === edge.source);
+                                    const targetNode = nodes.find(n => n.id === edge.target);
+                                    if (!sourceNode || !targetNode) return null;
+                                    
+                                    return (
+                                        <motion.line
+                                            key={edge.id}
+                                            x1={sourceNode.x + NODE_WIDTH / 2}
+                                            y1={sourceNode.y + NODE_HEIGHT}
+                                            x2={targetNode.x + NODE_WIDTH / 2}
+                                            y2={targetNode.y}
+                                            stroke="hsl(var(--border))"
+                                            strokeWidth="1.5"
+                                            markerEnd="url(#arrow)"
+                                            initial={{ pathLength: 0, opacity: 0 }}
+                                            animate={{ pathLength: 1, opacity: 1 }}
+                                            transition={{ duration: 0.5, delay: 0.2 }}
+                                        />
+                                    );
+                                })}
+                            </svg>
+                            
+                            {nodes.map(node => (
+                                <AlertDialog key={node.id}>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <motion.div
+                                                    className={cn(`absolute p-2 flex items-center justify-center rounded-md cursor-pointer text-xs font-semibold`,
+                                                        getNodeStyles(node.type),
+                                                        node.isImportant && 'important-glow',
+                                                        node.isPlaceholder && 'border-2 border-dashed border-accent'
+                                                    )}
+                                                    style={{
+                                                        left: node.x,
+                                                        top: node.y,
+                                                        width: NODE_WIDTH,
+                                                        height: NODE_HEIGHT,
+                                                        textAlign: 'center',
+                                                    }}
+                                                    whileHover={{ scale: 1.1, zIndex: 10 }}
+                                                    initial={{ opacity: 0, scale: 0.5 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ duration: 0.3 }}
+                                                    onDoubleClick={() => handleNodeDoubleClick(node)}
+                                                >
+                                                    <span className="truncate">{node.label}</span>
+                                                    {node.isPlaceholder && (
+                                                        <AlertDialogTrigger asChild>
+                                                            <button className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-0.5 h-4 w-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                                                                <Plus className="h-3 w-3" />
+                                                            </button>
+                                                        </AlertDialogTrigger>
+                                                    )}
+                                                </motion.div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="text-xs">Double-click to expand/navigate.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Create New Item?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will add "{node.label}" to your collection. You can add content to it later.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => createPlaceholderNode(node)}>Create</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            ))}
+                        </motion.div>
                         <div className="absolute bottom-2 right-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
-                           Double-click to expand/navigate.
+                           Double-click to expand/navigate. Drag to pan.
                         </div>
                     </div>
                  )}
@@ -377,3 +381,4 @@ export function SkillTreeView() {
     
 
     
+
