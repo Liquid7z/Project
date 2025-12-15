@@ -193,20 +193,11 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
     )
 }
 
-export default function LiquidAdminPage() {
-    const router = useRouter();
-    const { user, isUserLoading } = useUser();
+function AdminPageContent({ user }: { user: any }) {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    // --- Data Fetching ---
-
-    const userProfileRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-
+    // Data fetching hooks are now inside the component that is only rendered for admins.
     const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
     const usersQuery = useMemoFirebase(() => query(usersCollectionRef, orderBy('creationTime', 'desc')), [usersCollectionRef]);
     const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
@@ -221,32 +212,18 @@ export default function LiquidAdminPage() {
     const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
 
     const pendingPaymentsQuery = useMemoFirebase(() => {
-        // Wait for profile to load and check admin status before creating the query.
-        if (isProfileLoading || !userProfile?.isAdmin) return null;
         const paymentVerificationsRef = collection(firestore, 'paymentVerifications');
         return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
-    }, [firestore, userProfile?.isAdmin, isProfileLoading]);
-    
+    }, [firestore]);
     const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
 
-
-    // --- Effects and Handlers ---
-
-    useEffect(() => {
-        if (!isProfileLoading && userProfile && !userProfile.isAdmin) {
-            router.replace('/dashboard');
-        }
-    }, [isProfileLoading, userProfile, router]);
-    
     const handleAdminToggle = async (targetUser: any) => {
-        if (!firestore) return;
         const userRef = doc(firestore, "users", targetUser.id);
         await updateDoc(userRef, { isAdmin: !targetUser.isAdmin });
         toast({ title: "Permissions Updated" });
     };
     
     const handleSuspendToggle = async (targetUser: any) => {
-        if (!firestore) return;
         const userRef = doc(firestore, "users", targetUser.id);
         await updateDoc(userRef, { isSuspended: !targetUser.isSuspended });
         toast({ title: "User Status Updated" });
@@ -254,20 +231,15 @@ export default function LiquidAdminPage() {
 
     const handleConfigToggle = async (key: string, value: boolean) => {
         if (!siteConfigRef) return;
-        // The new logic is that the flag being true means it's active.
-        // So we want to set it to true if checked, and false if not.
         await updateDoc(siteConfigRef, { [key]: value });
     };
 
-
     const handlePlanConfigSave = async (planId: string, data: PlanConfig) => {
-        if (!firestore) return;
         const planRef = doc(firestore, 'plan_configs', planId);
         await setDoc(planRef, data, { merge: true });
     };
 
     const handleApprovePayment = async (verification: any) => {
-        if (!firestore) return;
         const userRef = doc(firestore, 'users', verification.userId);
         const verificationRef = doc(firestore, 'paymentVerifications', verification.id);
 
@@ -285,11 +257,9 @@ export default function LiquidAdminPage() {
     };
     
     const handleRejectPayment = async (verificationId: string) => {
-        if (!firestore) return;
         const verificationRef = doc(firestore, 'paymentVerifications', verificationId);
          try {
             await deleteDoc(verificationRef);
-            // Optionally, update user's paymentStatus back to 'none' if needed
             toast({ title: "Payment Rejected", description: "The verification request has been deleted." });
         } catch (error) {
             console.error("Error rejecting payment:", error);
@@ -297,7 +267,7 @@ export default function LiquidAdminPage() {
         }
     };
 
-    const isLoading = isUserLoading || isProfileLoading || areUsersLoading || isConfigLoading || arePaymentsLoading;
+    const isLoading = areUsersLoading || isConfigLoading || arePaymentsLoading;
 
     if (isLoading) {
         return (
@@ -526,7 +496,48 @@ export default function LiquidAdminPage() {
     );
 }
 
+export default function LiquidAdminPage() {
+    const router = useRouter();
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
 
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-
+    useEffect(() => {
+        // Redirect non-admins or if profile fails to load
+        if (!isProfileLoading && (!userProfile || !userProfile.isAdmin)) {
+            router.replace('/dashboard');
+        }
+    }, [isProfileLoading, userProfile, router]);
     
+    const isLoading = isUserLoading || isProfileLoading;
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
+                <Loader className="animate-spin text-accent h-16 w-16" />
+            </div>
+        );
+    }
+    
+    // Once loading is complete, we check for admin status.
+    // If not an admin, show a "Not Authorized" message.
+    if (!userProfile?.isAdmin) {
+         return (
+             <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
+                <Card className="glass-pane p-8 text-center">
+                    <AlertTriangle className="mx-auto h-12 w-12 text-destructive"/>
+                    <h2 className="mt-4 text-2xl font-bold font-headline">Not Authorized</h2>
+                    <p className="mt-2 text-muted-foreground">You do not have permission to view this page.</p>
+                </Card>
+            </div>
+        );
+    }
+
+    // Only render the admin content if the user is confirmed to be an admin.
+    return <AdminPageContent user={user} />;
+}
