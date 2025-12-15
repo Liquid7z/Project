@@ -64,7 +64,14 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges 
     try {
         // 1. Generate image from skill tree
         toast({ title: 'Generating Image...', description: 'Creating a visual representation of the skill tree.' });
-        const imageResult = await generateSkillTreeImageAction({ topic, nodes, edges });
+        
+        // Create a deep copy and remove circular references before sending to server action
+        const cleanNodes = nodes.map(n => {
+            const { parent, children, ...rest } = n;
+            return rest;
+        });
+
+        const imageResult = await generateSkillTreeImageAction({ topic, nodes: cleanNodes, edges });
         
         if (!imageResult || !imageResult.imageDataUri) {
             throw new Error('Failed to generate skill tree image.');
