@@ -138,12 +138,12 @@ export default function NotesDashboardPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-bold font-headline">My Notes</h1>
                     <p className="text-muted-foreground">Organize your thoughts by subject.</p>
                 </div>
-                <Button variant="glow" onClick={openNewDialog}>
+                <Button variant="glow" onClick={openNewDialog} className="w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" />
                     New Subject
                 </Button>

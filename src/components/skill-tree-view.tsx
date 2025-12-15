@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -7,7 +8,8 @@ import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc, collectionGroup, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { generateSkillTreeFromTopic, type GenerateSkillTreeInput, type GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
+import { generateSkillTreeFromTopic } from '@/ai/flows/generate-skill-tree';
+import type { GenerateSkillTreeInput, GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -76,7 +78,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     // Fetch existing notes to merge with AI generated ones
     const notesQuery = useMemoFirebase(() => {
         if (!user) return null;
-        return query(collectionGroup(firestore, 'notes'), where('__name__', '>', `users/${user.uid}/`));
+        return query(collectionGroup(firestore, 'notes'));
     }, [user, firestore]);
     const { data: allNotes } = useCollection(notesQuery);
 
@@ -152,7 +154,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         setEdges([]);
 
         try {
-            const result = await generateSkillTreeFromTopic({ topic });
+            const result: GenerateSkillTreeOutput = await generateSkillTreeFromTopic({ topic });
             
             const aiSubjects = result.nodes.filter(n => n.type === 'subject').map(n => ({ ...n, name: n.label, isPlaceholder: true }));
             const aiNotes = result.nodes.filter(n => n.type === 'note').map(n => {
@@ -233,17 +235,17 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                     type="text"
-                    placeholder="Enter a topic to generate a new skill tree (e.g., 'Calculus')"
+                    placeholder="Enter a topic to generate a new skill tree..."
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     className="flex-grow"
                 />
-                <Button onClick={handleGenerateTree} disabled={isGenerating || !topic}>
+                <Button onClick={handleGenerateTree} disabled={isGenerating || !topic} className="w-full sm:w-auto">
                     {isGenerating ? <Loader className="animate-spin mr-2" /> : <Wand2 className="mr-2" />}
                     Generate with AI
                 </Button>
             </div>
-            <Card className="h-[600px] w-full glass-pane overflow-hidden relative">
+            <Card className="h-[600px] w-full glass-pane overflow-auto relative">
                  {isGenerating && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
                          <Loader className="animate-spin text-primary" />
@@ -258,8 +260,8 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     </div>
                  )}
                  {nodes.length > 0 && (
-                    <>
-                        <svg width="100%" height="100%" className="absolute inset-0">
+                    <div className='relative w-full h-full'>
+                        <svg width={VIEW_WIDTH} height={VIEW_HEIGHT} className="absolute inset-0 h-full w-full">
                             <defs>
                                 <marker
                                     id="arrow"
@@ -355,7 +357,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                         <div className="absolute bottom-2 right-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
                             Double-click a node to open it.
                         </div>
-                    </>
+                    </div>
                  )}
             </Card>
         </div>
