@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -40,9 +39,9 @@ import { useTheme } from '@/components/theme-provider';
 import { doc } from 'firebase/firestore';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Activity' },
   { href: '/dashboard/generate', icon: Bot, label: 'Generate' },
+  { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
   { href: '/dashboard/account', icon: User, label: 'Account' },
 ];
