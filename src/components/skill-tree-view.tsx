@@ -138,152 +138,15 @@ const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
     return { finalNodes: Object.values(nodesMap), finalEdges: aiEdges };
 };
 
-const SubjectNotes = ({ subject, onNotesLoaded }: { subject: any; onNotesLoaded: (subjectId: string, notes: any[]) => void }) => {
-    const { user, firestore } = useFirebase();
-    
-    // Fetch notes for the given subject
-    const notesCollectionRef = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return collection(firestore, 'users', user.uid, 'subjects', subject.id, 'notes');
-    }, [user, firestore, subject.id]);
-
-    const { data: notes, isLoading: areNotesLoading } = useCollection(notesCollectionRef);
-    
-    // Fetch exam questions
-    const examQuestionsCollectionRef = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return collection(firestore, 'users', user.uid, 'subjects', subject.id, 'examQuestions');
-    }, [user, firestore, subject.id]);
-
-    const { data: examQuestions, isLoading: areExamQuestionsLoading } = useCollection(examQuestionsCollectionRef);
-
-    // Fetch syllabus items
-    const syllabusCollectionRef = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return collection(firestore, 'users', user.uid, 'subjects', subject.id, 'syllabus');
-    }, [user, firestore, subject.id]);
-
-    const { data: syllabus, isLoading: isSyllabusLoading } = useCollection(syllabusCollectionRef);
-
-    // Fetch resources
-    const resourcesCollectionRef = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return collection(firestore, 'users', user.uid, 'subjects', subject.id, 'resources');
-    }, [user, firestore, subject.id]);
-
-    const { data: resources, isLoading: areResourcesLoading } = useCollection(resourcesCollectionRef);
-
-    useEffect(() => {
-        if (!areNotesLoading && !areExamQuestionsLoading && !isSyllabusLoading && !areResourcesLoading) {
-            const allItems = [
-                ...(notes || []).map(item => ({ ...item, itemType: 'notes' })),
-                ...(examQuestions || []).map(item => ({ ...item, itemType: 'examQuestions' })),
-                ...(syllabus || []).map(item => ({ ...item, itemType: 'syllabus' })),
-                ...(resources || []).map(item => ({ ...item, itemType: 'resources' })),
-            ];
-            onNotesLoaded(subject.id, allItems);
-        }
-    }, [
-        notes, areNotesLoading,
-        examQuestions, areExamQuestionsLoading,
-        syllabus, isSyllabusLoading,
-        resources, areResourcesLoading,
-        subject.id, onNotesLoaded
-    ]);
-
-    return null; // This component does not render anything itself
-};
-
-
-export function SkillTreeView({ subjects }: { subjects: any[] }) {
+export function SkillTreeView() {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
     const [topic, setTopic] = useState('');
     const { user, firestore } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
-    const [allNotes, setAllNotes] = useState<{[key: string]: any[]}>({});
-    const [subjectsWithNotes, setSubjectsWithNotes] = useState<Set<string>>(new Set());
-
-    const handleNotesLoaded = React.useCallback((subjectId: string, notes: any[]) => {
-        setAllNotes(prevNotes => ({
-            ...prevNotes,
-            [subjectId]: notes,
-        }));
-        setSubjectsWithNotes(prev => new Set(prev).add(subjectId));
-    }, []);
-
-    const layoutNodes = (subjectsToLayout: any[], notesData: {[key: string]: any[]}) => {
-        const newNodes: Node[] = [];
-        const newEdges: Edge[] = [];
-
-        const subjectPositions: { [key: string]: { x: number, y: number } } = {};
-
-        subjectsToLayout.forEach((subject, index) => {
-            const subjectId = `subject-${subject.id}`;
-            const x = (simpleHash(subject.id) % (VIEW_WIDTH - 200)) + 100;
-            const y = (index * 150) + 100;
-            subjectPositions[subject.id] = { x, y };
-
-            newNodes.push({
-                id: subjectId,
-                label: subject.name,
-                type: 'subject',
-                x: x,
-                y: y,
-                isImportant: subject.isImportant,
-                isPlaceholder: subject.isPlaceholder,
-            });
-
-             const relatedNotes = notesData[subject.id] || [];
-
-            relatedNotes.forEach((note, noteIndex) => {
-                const noteId = `note-${note.id}`;
-                newNodes.push({
-                    id: noteId,
-                    label: note.title,
-                    type: 'note',
-                    x: x + 100 + (noteIndex % 3) * 30,
-                    y: y - 30 + (noteIndex * 25),
-                    subjectId: subject.id,
-                    isImportant: note.isImportant || false,
-                    isPlaceholder: note.isPlaceholder,
-                    itemType: note.itemType,
-                });
-                newEdges.push({
-                    id: `edge-${subjectId}-${noteId}`,
-                    source: subjectId,
-                    target: noteId,
-                });
-            });
-        });
-        
-        return { newNodes, newEdges };
-    }
     
-    useEffect(() => {
-        if (!subjects) return;
-
-        if (subjects.length === 0) {
-            setIsInitialLoading(false);
-            setNodes([]);
-            setEdges([]);
-            return;
-        }
-
-        const allSubjectsAreLoaded = subjects.every(s => subjectsWithNotes.has(s.id));
-
-        if(allSubjectsAreLoaded) {
-            const { newNodes, newEdges } = layoutNodes(subjects, allNotes);
-            setNodes(newNodes);
-            setEdges(newEdges);
-            setIsInitialLoading(false);
-        }
-    }, [subjects, allNotes, subjectsWithNotes]);
-
-
     const handleGenerateTree = async (newTopic: string) => {
         if (!newTopic) return;
         setIsGenerating(true);
@@ -306,9 +169,8 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                 description: "The AI could not generate a skill tree for this topic.",
                 variant: "destructive"
             });
-            const { newNodes, newEdges } = layoutNodes(subjects, allNotes);
-            setNodes(newNodes);
-            setEdges(newEdges);
+            setNodes([]);
+            setEdges([]);
         } finally {
             setIsGenerating(false);
         }
@@ -320,7 +182,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         if ((node.type === 'subject' || node.type === 'key-concept' || node.type === 'main-idea') && node.isPlaceholder) {
             const subjectsCollectionRef = collection(firestore, 'users', user.uid, 'subjects');
             try {
-                await addDoc(subjectsCollectionRef, {
+                const newDocRef = await addDoc(subjectsCollectionRef, {
                     name: node.label,
                     description: `AI-generated subject for topic: ${topic}`,
                     isImportant: false,
@@ -328,7 +190,13 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     lastUpdated: serverTimestamp(),
                 });
                 toast({ title: "Subject Created!", description: `You can now find "${node.label}" in your subjects list.`});
-                setNodes(nodes.map(n => n.id === node.id ? { ...n, isPlaceholder: false } : n));
+                
+                // Optimistically update the node to not be a placeholder and navigate
+                const updatedNodes = nodes.map(n => n.id === node.id ? { ...n, isPlaceholder: false, subjectId: newDocRef.id, type: 'subject' as const } : n);
+                setNodes(updatedNodes);
+
+                router.push(`/dashboard/notes/${newDocRef.id}`);
+
             } catch (error) {
                  toast({ title: "Error", description: "Could not create subject.", variant: "destructive"});
             }
@@ -343,14 +211,13 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         if (node.isPlaceholder) {
             return;
         }
-        if (node.type === 'subject' || node.type === 'key-concept' || node.type === 'main-idea' || node.type === 'detail') {
-            const subject = subjects.find(s => s.name === node.label);
-            if(subject) {
-                 router.push(`/dashboard/notes/${subject.id}`);
-            } else {
-                handleGenerateTree(node.label);
-            }
+
+        if (node.type === 'subject' && node.id.startsWith('subject-')) {
+             router.push(`/dashboard/notes/${node.id.replace('subject-','')}`);
         } 
+        else if (node.type === 'key-concept' || node.type === 'main-idea' || node.type === 'detail') {
+            handleGenerateTree(node.label);
+        }
         else if (node.type === 'note' && node.subjectId && node.itemType) {
              const noteId = node.id.startsWith('note-') ? node.id.replace('note-','') : node.id;
              router.push(`/dashboard/notes/${node.subjectId}/${node.itemType}/${noteId}`);
@@ -373,15 +240,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         }
     };
 
-    if (isInitialLoading) {
-        return (
-            <Card className="h-96 flex items-center justify-center glass-pane">
-                <Loader className="animate-spin text-primary" />
-                <p className="ml-2">Loading Skill Tree...</p>
-            </Card>
-        );
-    }
-
     return (
         <div className="space-y-4">
              <div className="flex flex-col sm:flex-row gap-2">
@@ -399,9 +257,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                 </Button>
             </div>
             <Card className="h-[800px] w-full glass-pane overflow-auto relative">
-                {subjects.map(subject => (
-                    <SubjectNotes key={subject.id} subject={subject} onNotesLoaded={handleNotesLoaded} />
-                ))}
                  {isGenerating && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
                          <Loader className="animate-spin text-primary" />
@@ -409,10 +264,10 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     </div>
                 )}
                  {!isGenerating && nodes.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-4 glass-pane border-dashed">
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4">
                         <Network className="w-16 h-16 text-muted-foreground/50" />
                         <h3 className="mt-4 text-lg font-semibold">The canvas is ready</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Generate a new skill tree or view your existing subjects.</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Enter a topic above to generate a new skill tree.</p>
                     </div>
                  )}
                  {nodes.length > 0 && (

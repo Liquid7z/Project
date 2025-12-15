@@ -245,7 +245,7 @@ export default function NotesDashboardPage() {
                     </div>
                 </TabsContent>
                  <TabsContent value="skill-tree" className="mt-6">
-                    <SkillTreeView subjects={subjects || []} />
+                    <SkillTreeView />
                  </TabsContent>
             </Tabs>
             
