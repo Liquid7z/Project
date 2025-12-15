@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -219,8 +220,17 @@ export default function LiquidAdminPage() {
     const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
     const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
 
-    const paymentVerificationsRef = useMemoFirebase(() => collection(firestore, 'paymentVerifications'), [firestore]);
-    const pendingPaymentsQuery = useMemoFirebase(() => query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc')), [paymentVerificationsRef]);
+    const paymentVerificationsRef = useMemoFirebase(() => {
+        // Only fetch if the user is an admin
+        if (!userProfile?.isAdmin) return null;
+        return collection(firestore, 'paymentVerifications');
+    }, [firestore, userProfile?.isAdmin]);
+    
+    const pendingPaymentsQuery = useMemoFirebase(() => {
+        if (!paymentVerificationsRef) return null;
+        return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
+    }, [paymentVerificationsRef]);
+    
     const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
 
 
@@ -519,3 +529,4 @@ export default function LiquidAdminPage() {
         </div>
     );
 }
+
