@@ -94,30 +94,24 @@ export default function Home() {
             </div>
         </section>
         
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32 space-y-24">
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32 space-y-16">
             {/* Feature 1 */}
             <div className="container px-4 md:px-6">
-                <div className="mx-auto grid max-w-5xl items-center gap-8 lg:grid-cols-2 lg:gap-12">
+                <div className="mx-auto grid max-w-3xl items-center justify-center gap-4 text-center">
                      <div className="flex flex-col justify-center space-y-4">
-                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium">Intelligence</div>
+                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium self-center">Intelligence</div>
                         <h3 className="text-3xl font-bold font-headline tracking-tighter sm:text-4xl">Meet Your AI Study Coach</h3>
                         <p className=" text-muted-foreground md:text-lg">
                             Stuck on a concept? Need a quick summary? Our AI assistant is here to help. Search across all your notes, ask for detailed explanations, and get suggestions on what to revise next.
                         </p>
                      </div>
-                     <div className="w-full aspect-video rounded-xl overflow-hidden glass-pane">
-                        <Image src="https://picsum.photos/seed/coach/1280/720" alt="AI Coach" width={1280} height={720} className="object-cover" data-ai-hint="futuristic dashboard" />
-                     </div>
                 </div>
             </div>
             {/* Feature 2 */}
             <div className="container px-4 md:px-6">
-                <div className="mx-auto grid max-w-5xl items-center gap-8 lg:grid-cols-2 lg:gap-12">
-                     <div className="w-full aspect-video rounded-xl overflow-hidden glass-pane lg:order-last">
-                        <Image src="https://picsum.photos/seed/skilltree/1280/720" alt="Skill Tree" width={1280} height={720} className="object-cover" data-ai-hint="knowledge graph" />
-                     </div>
+                <div className="mx-auto grid max-w-3xl items-center justify-center gap-4 text-center">
                      <div className="flex flex-col justify-center space-y-4">
-                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium">Visualization</div>
+                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium self-center">Visualization</div>
                         <h3 className="text-3xl font-bold font-headline tracking-tighter sm:text-4xl">Visualize Your Knowledge</h3>
                         <p className=" text-muted-foreground md:text-lg">
                             Our unique 'Skill Tree' view transforms your subjects and notes into an interactive knowledge map. See how concepts connect and identify areas you need to focus on, all in a beautiful, intuitive interface.
@@ -127,16 +121,13 @@ export default function Home() {
             </div>
             {/* Feature 3 */}
             <div className="container px-4 md:px-6">
-                <div className="mx-auto grid max-w-5xl items-center gap-8 lg:grid-cols-2 lg:gap-12">
+                <div className="mx-auto grid max-w-3xl items-center justify-center gap-4 text-center">
                      <div className="flex flex-col justify-center space-y-4">
-                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium">Organization</div>
+                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium self-center">Organization</div>
                         <h3 className="text-3xl font-bold font-headline tracking-tighter sm:text-4xl">One Place for Everything</h3>
                         <p className=" text-muted-foreground md:text-lg">
                            Keep all your study materials in one place. Create subjects, and within them, organize detailed notes, exam questions, syllabus items, and any other resources you need to succeed.
                         </p>
-                     </div>
-                     <div className="w-full aspect-video rounded-xl overflow-hidden glass-pane">
-                        <Image src="https://picsum.photos/seed/organize/1280/720" alt="Organization" width={1280} height={720} className="object-cover" data-ai-hint="digital notebook" />
                      </div>
                 </div>
             </div>
@@ -191,5 +182,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
