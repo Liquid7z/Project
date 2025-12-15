@@ -425,6 +425,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                                 initial={{ opacity: 0, scale: 0.5 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ duration: 0.3 }}
+                                                onClick={() => handleExplain(node)}
                                                 onDoubleClick={() => handleNodeClick(node)}
                                             >
                                                 <span className="truncate">{node.label}</span>
@@ -438,13 +439,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                             </motion.div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <div className="flex flex-col gap-2 p-1">
-                                                <p className="text-xs">{node.isPlaceholder ? "Click the '+' to create this item" : "Double-click to open"}</p>
-                                                <Button size="sm" variant="secondary" className="h-auto py-1" onClick={() => handleExplain(node)}>
-                                                    <GraduationCap className="w-3 h-3 mr-1.5"/>
-                                                    Explain
-                                                </Button>
-                                            </div>
+                                            <p className="text-xs">Click to explain, double-click to open.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -463,7 +458,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                             </AlertDialog>
                         ))}
                         <div className="absolute bottom-2 right-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
-                            Double-click a node to open it.
+                            Click to explain, double-click to open.
                         </div>
                     </div>
                  )}
