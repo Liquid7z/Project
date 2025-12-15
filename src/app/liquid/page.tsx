@@ -79,11 +79,12 @@ import {
   Legend,
 } from 'recharts';
 import { Separator } from '@/components/ui/separator';
-import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 
 const usageData = [
@@ -98,6 +99,27 @@ const usageData = [
 
 export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = React.useState<any | null>(null);
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = React.useState(false);
+  const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
+
+
+  React.useEffect(() => {
+    if (!isUserLoading && user) {
+      user.getIdTokenResult().then(idTokenResult => {
+        const isAdminClaim = !!idTokenResult.claims.isAdmin;
+        setIsAdmin(isAdminClaim);
+        setIsCheckingAdmin(false);
+        if (!isAdminClaim) {
+          router.replace('/dashboard');
+        }
+      });
+    } else if (!isUserLoading && !user) {
+        // Not logged in, redirect
+        router.replace('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleSelectUser = (user: any) => {
     setSelectedUser(user);
@@ -105,6 +127,14 @@ export default function AdminDashboard() {
   const handleDeselectUser = () => {
     setSelectedUser(null);
   };
+
+  if (isCheckingAdmin || !isAdmin) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (selectedUser) {
     return (

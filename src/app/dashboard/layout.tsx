@@ -44,8 +44,10 @@ const navItems = [
   { href: '/dashboard/generate', icon: Bot, label: 'Generate' },
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
   { href: '/dashboard/account', icon: User, label: 'Account' },
-  { href: '/liquid', icon: Shield, label: 'Admin' },
 ];
+
+const adminNavItem = { href: '/liquid', icon: Shield, label: 'Admin' };
+
 
 function GlowModeToggle({ id }: { id: string }) {
     const { isGlowMode, setIsGlowMode } = useTheme();
@@ -63,11 +65,16 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading, userError } = useUser();
+  const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(() => {
     if (auth && !isUserLoading) {
       if (userError || !user) {
         router.replace('/login');
+      } else {
+        user.getIdTokenResult().then(idTokenResult => {
+            setIsAdmin(!!idTokenResult.claims.isAdmin);
+        })
       }
     }
   }, [isUserLoading, user, userError, auth, router]);
@@ -79,6 +86,8 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  const allNavItems = isAdmin ? [...navItems, adminNavItem] : navItems;
   
   return (
     <SidebarProvider>
@@ -105,7 +114,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
               </div>
             </SidebarGroup>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {allNavItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
                   <Link href={item.href}>
                     <SidebarMenuButton
@@ -131,7 +140,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                             </Avatar>
                             <div className="grow overflow-hidden text-left">
                                 <p className="font-medium truncate text-sm">{user?.displayName ?? 'User'}</p>
-                                <p className="text-xs text-muted-foreground truncate">Free Plan</p>
+                                <p className="text-xs text-muted-foreground">Free Plan</p>
                             </div>
                         </SidebarMenuButton>
                     </div>
@@ -172,7 +181,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                           </SheetTitle>
                       </SheetHeader>
                       <nav className="grid gap-2 text-lg font-medium mt-4">
-                          {navItems.map(item => (
+                          {allNavItems.map(item => (
                               <SheetClose key={item.href} asChild>
                                   <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                                       <item.icon className="h-4 w-4" />
