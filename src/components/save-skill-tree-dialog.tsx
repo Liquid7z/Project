@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader, Plus, Save } from 'lucide-react';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, addDoc, updateDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -41,13 +41,13 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges 
   const { user, firestore, storage } = useFirebase();
   const { toast } = useToast();
 
-  const subjectsCollectionRef = useMemo(() => {
+  const subjectsCollectionRef = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, 'users', user.uid, 'subjects');
   }, [user, firestore]);
   const { data: subjects, isLoading: isLoadingSubjects } = useCollection(subjectsCollectionRef);
 
-  const notesCollectionRef = useMemo(() => {
+  const notesCollectionRef = useMemoFirebase(() => {
     if (!user || !selectedSubject) return null;
     return collection(firestore, 'users', user.uid, 'subjects', selectedSubject, 'notes');
   }, [user, selectedSubject, firestore]);
