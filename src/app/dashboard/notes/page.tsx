@@ -219,11 +219,17 @@ export default function NotesDashboardPage() {
                                             <CardDescription className="line-clamp-2 mt-1">{subject.description || 'No chapter name'}</CardDescription>
                                         </div>
                                     </CardHeader>
-                                    <CardFooter className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>{subject.noteCount || 0} items</span>
-                                        <span>{subject.lastUpdated ? `Updated ${formatDistanceToNow(subject.lastUpdated.toDate(), { addSuffix: true })}` : ''}</span>
-                                    </CardFooter>
+                                    <CardContent className="flex-grow" />
                                 </Link>
+                                <CardFooter className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <div className="flex-grow">
+                                        <span>{subject.noteCount || 0} items</span>
+                                        <span className="ml-4">{subject.lastUpdated ? `Updated ${formatDistanceToNow(subject.lastUpdated.toDate(), { addSuffix: true })}` : ''}</span>
+                                    </div>
+                                    <button onClick={(e) => toggleSubjectImportance(subject, e)} className="z-10 p-1 rounded-full text-muted-foreground hover:text-accent transition-colors">
+                                        <Sparkles className={cn("h-5 w-5", subject.isImportant && "text-accent fill-accent/50")} />
+                                    </button>
+                                </CardFooter>
                                 <div className="absolute top-2 right-2">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -253,9 +259,6 @@ export default function NotesDashboardPage() {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
-                                <button onClick={(e) => toggleSubjectImportance(subject, e)} className="absolute bottom-4 right-4 z-10 p-1 rounded-full text-muted-foreground hover:text-accent transition-colors">
-                                    <Sparkles className={cn("h-5 w-5", subject.isImportant && "text-accent fill-accent/50")} />
-                                </button>
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                                     <Folder className="w-16 h-16 text-muted-foreground/5 transition-all duration-300 group-hover:scale-110 group-hover:text-muted-foreground/10" />
                                 </div>
