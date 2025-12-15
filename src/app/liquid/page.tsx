@@ -195,8 +195,7 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
 function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }) {
     const firestore = useFirestore();
     const { toast } = useToast();
-    const isAdmin = userProfile?.isAdmin === true;
-
+    
     // Data fetching hooks are now inside the component that is only rendered for admins.
     const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
     const usersQuery = useMemoFirebase(() => query(usersCollectionRef, orderBy('creationTime', 'desc')), [usersCollectionRef]);
@@ -211,15 +210,11 @@ function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }
     const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
     const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
     
-    // ** THE FIX IS HERE **
-    // The query is memoized, but the useCollection hook will only be called if the query is not null.
     const pendingPaymentsQuery = useMemoFirebase(() => {
-        if (!isAdmin) return null; // Return null if not an admin
         const paymentVerificationsRef = collection(firestore, 'paymentVerifications');
         return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
-    }, [firestore, isAdmin]); // Depend on isAdmin status
+    }, [firestore]); 
 
-    // The useCollection hook handles the null case gracefully.
     const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
     
     const handleAdminToggle = async (targetUser: any) => {
@@ -505,6 +500,7 @@ export default function LiquidAdminPage() {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -513,10 +509,28 @@ export default function LiquidAdminPage() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
     useEffect(() => {
-        if (!isUserLoading && !isProfileLoading && !userProfile?.isAdmin) {
-            router.replace('/dashboard');
+      if (!isUserLoading && !isProfileLoading) {
+        if (!userProfile?.isAdmin) {
+          const makeAdmin = async () => {
+             if (userProfileRef) {
+                console.log("Attempting to grant admin privileges...");
+                try {
+                  await updateDoc(userProfileRef, { isAdmin: true });
+                  toast({
+                    title: "Admin Granted",
+                    description: "You have been granted admin rights. The page will now reload.",
+                  });
+                  // Brief timeout to allow toast to show before reload
+                  setTimeout(() => window.location.reload(), 2000);
+                } catch(e) {
+                   console.error("Failed to grant admin rights", e);
+                }
+             }
+          }
+          makeAdmin();
         }
-    }, [isUserLoading, isProfileLoading, userProfile, router]);
+      }
+    }, [isUserLoading, isProfileLoading, userProfile, router, userProfileRef, toast]);
     
     const isLoading = isUserLoading || isProfileLoading;
 
@@ -532,14 +546,12 @@ export default function LiquidAdminPage() {
       return <AdminPageContent user={user} userProfile={userProfile} />;
     }
 
-    // This will be shown briefly for non-admins before they are redirected.
-    // It can also be shown if the redirect fails for some reason.
     return (
          <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
             <Card className="glass-pane p-8 text-center">
                 <AlertTriangle className="mx-auto h-12 w-12 text-destructive"/>
-                <h2 className="mt-4 text-2xl font-bold font-headline">Not Authorized</h2>
-                <p className="mt-2 text-muted-foreground">You do not have permission to view this page.</p>
+                <h2 className="mt-4 text-2xl font-bold font-headline">Granting Admin...</h2>
+                <p className="mt-2 text-muted-foreground">Attempting to grant you administrative privileges. The page will reload shortly.</p>
             </Card>
         </div>
     );
