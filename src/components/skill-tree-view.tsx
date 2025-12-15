@@ -1,14 +1,13 @@
 
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card } from './ui/card';
 import { Loader, Network, Wand2, Plus } from 'lucide-react';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { generateSkillTreeFromTopic } from '@/ai/flows/generate-skill-tree';
+import { generateSkillTreeAction, explainTopicAction } from '@/actions/generation';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -25,23 +24,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-
-
-// A simple deterministic hash function for positioning
-const simpleHash = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-};
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { useFirebase } from '@/firebase';
 
 
 interface Node {
@@ -147,14 +134,18 @@ export function SkillTreeView() {
     const router = useRouter();
     const { toast } = useToast();
     
+    const [explanation, setExplanation] = useState<Record<string, string>>({});
+    const [explainingNode, setExplainingNode] = useState<string | null>(null);
+
     const handleGenerateTree = async (newTopic: string) => {
         if (!newTopic) return;
         setIsGenerating(true);
         setNodes([]);
         setEdges([]);
+        setExplanation({});
 
         try {
-            const result: GenerateSkillTreeOutput = await generateSkillTreeFromTopic({ topic: newTopic });
+            const result: GenerateSkillTreeOutput = await generateSkillTreeAction({ topic: newTopic });
             
             const { finalNodes, finalEdges } = layoutHierarchical(result.nodes, result.edges);
             
@@ -191,7 +182,6 @@ export function SkillTreeView() {
                 });
                 toast({ title: "Subject Created!", description: `You can now find "${node.label}" in your subjects list.`});
                 
-                // Optimistically update the node to not be a placeholder and navigate
                 const updatedNodes = nodes.map(n => n.id === node.id ? { ...n, isPlaceholder: false, subjectId: newDocRef.id, type: 'subject' as const } : n);
                 setNodes(updatedNodes);
 
@@ -206,22 +196,30 @@ export function SkillTreeView() {
         }
     }
 
+    const handleNodeClick = useCallback(async (node: Node) => {
+        if (explanation[node.id]) {
+            // Explanation already exists, do nothing
+            return;
+        }
+
+        setExplainingNode(node.id);
+        try {
+            const result = await explainTopicAction({ topic: node.label });
+            setExplanation(prev => ({ ...prev, [node.id]: result.explanation }));
+        } catch (error) {
+            console.error("Failed to get explanation:", error);
+            setExplanation(prev => ({ ...prev, [node.id]: 'Could not load explanation.' }));
+        } finally {
+            setExplainingNode(null);
+        }
+    }, [explanation]);
+
 
     const handleNodeDoubleClick = (node: Node) => {
         if (node.isPlaceholder) {
             return;
         }
-
-        if (node.type === 'subject' && node.id.startsWith('subject-')) {
-             router.push(`/dashboard/notes/${node.id.replace('subject-','')}`);
-        } 
-        else if (node.type === 'key-concept' || node.type === 'main-idea' || node.type === 'detail') {
-            handleGenerateTree(node.label);
-        }
-        else if (node.type === 'note' && node.subjectId && node.itemType) {
-             const noteId = node.id.startsWith('note-') ? node.id.replace('note-','') : node.id;
-             router.push(`/dashboard/notes/${node.subjectId}/${node.itemType}/${noteId}`);
-        }
+        handleGenerateTree(node.label);
     }
     
     const getNodeStyles = (nodeType: Node['type']) => {
@@ -316,43 +314,53 @@ export function SkillTreeView() {
                             
                             {nodes.map(node => (
                                 <AlertDialog key={node.id}>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <motion.div
-                                                    className={cn(`absolute p-2 flex items-center justify-center rounded-md cursor-pointer text-xs font-semibold`,
-                                                        getNodeStyles(node.type),
-                                                        node.isImportant && 'important-glow',
-                                                        node.isPlaceholder && 'border-2 border-dashed border-accent'
-                                                    )}
-                                                    style={{
-                                                        left: node.x,
-                                                        top: node.y,
-                                                        width: NODE_WIDTH,
-                                                        height: NODE_HEIGHT,
-                                                        textAlign: 'center',
-                                                    }}
-                                                    whileHover={{ scale: 1.1, zIndex: 10 }}
-                                                    initial={{ opacity: 0, scale: 0.5 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    transition={{ duration: 0.3 }}
-                                                    onDoubleClick={() => handleNodeDoubleClick(node)}
-                                                >
-                                                    <span className="truncate">{node.label}</span>
-                                                    {node.isPlaceholder && (
-                                                        <AlertDialogTrigger asChild>
-                                                            <button className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-0.5 h-4 w-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                                                                <Plus className="h-3 w-3" />
-                                                            </button>
-                                                        </AlertDialogTrigger>
-                                                    )}
-                                                </motion.div>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="text-xs">Double-click to expand/navigate.</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                                     <Popover>
+                                        <PopoverTrigger asChild>
+                                            <motion.div
+                                                className={cn(`absolute p-2 flex items-center justify-center rounded-md cursor-pointer text-xs font-semibold`,
+                                                    getNodeStyles(node.type),
+                                                    node.isImportant && 'important-glow',
+                                                    node.isPlaceholder && 'border-2 border-dashed border-accent'
+                                                )}
+                                                style={{
+                                                    left: node.x,
+                                                    top: node.y,
+                                                    width: NODE_WIDTH,
+                                                    height: NODE_HEIGHT,
+                                                    textAlign: 'center',
+                                                }}
+                                                whileHover={{ scale: 1.1, zIndex: 10 }}
+                                                initial={{ opacity: 0, scale: 0.5 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                transition={{ duration: 0.3 }}
+                                                onDoubleClick={() => handleNodeDoubleClick(node)}
+                                                onClick={() => handleNodeClick(node)}
+                                            >
+                                                <span className="truncate">{node.label}</span>
+                                                {node.isPlaceholder && (
+                                                    <AlertDialogTrigger asChild>
+                                                        <button className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-0.5 h-4 w-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                                                            <Plus className="h-3 w-3" />
+                                                        </button>
+                                                    </AlertDialogTrigger>
+                                                )}
+                                            </motion.div>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80 glass-pane" side="bottom" align="center">
+                                            {explainingNode === node.id && <Loader className="animate-spin" />}
+                                            {explanation[node.id] && (
+                                                <div className="space-y-2">
+                                                     <h4 className="font-medium leading-none">{node.label}</h4>
+                                                     <p className="text-sm text-muted-foreground">
+                                                         {explanation[node.id]}
+                                                     </p>
+                                                </div>
+                                            )}
+                                            {!explanation[node.id] && explainingNode !== node.id && (
+                                                 <p className="text-sm text-muted-foreground">Click to get an explanation.</p>
+                                            )}
+                                        </PopoverContent>
+                                    </Popover>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Create New Item?</AlertDialogTitle>
@@ -369,7 +377,7 @@ export function SkillTreeView() {
                             ))}
                         </motion.div>
                         <div className="absolute bottom-2 right-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
-                           Double-click to expand/navigate. Drag to pan.
+                           Double-click to expand topic. Drag to pan. Click for definition.
                         </div>
                     </div>
                  )}
@@ -377,8 +385,3 @@ export function SkillTreeView() {
         </div>
     );
 }
-
-    
-
-    
-
