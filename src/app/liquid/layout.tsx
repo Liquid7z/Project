@@ -25,8 +25,7 @@ import {
   Sun,
   LayoutDashboard,
   Bot,
-  Shield,
-  Droplets
+  Droplets,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -63,7 +62,7 @@ function GlowModeToggle({ id }: { id: string }) {
     )
 }
 
-function DashboardNav({ children }: { children: React.ReactNode }) {
+function LiquidLayoutNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
@@ -74,9 +73,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
-  const { data: userProfile } = useDoc(userProfileRef);
-  
-  const isAdmin = userProfile?.isAdmin === true;
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   useEffect(() => {
     if (!isUserLoading && (userError || !user)) {
@@ -84,7 +81,14 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     }
   }, [isUserLoading, user, userError, router]);
 
-  if (isUserLoading || !userProfile) {
+  useEffect(() => {
+    if (!isProfileLoading && userProfile && !userProfile.isAdmin) {
+        router.replace('/dashboard');
+    }
+  }, [isProfileLoading, userProfile, router]);
+
+
+  if (isUserLoading || isProfileLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
@@ -92,7 +96,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const currentNavItems = isAdmin ? [...navItems, ...adminNavItems] : navItems;
+  const currentNavItems = [...navItems, ...adminNavItems];
   
   return (
     <SidebarProvider>
@@ -123,7 +127,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                 <SidebarMenuItem key={item.label}>
                   <Link href={item.href}>
                     <SidebarMenuButton
-                      isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
+                      isActive={pathname.startsWith(item.href)}
                       tooltip={{ children: item.label }}
                     >
                         <item.icon />
@@ -145,7 +149,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                             </Avatar>
                             <div className="grow overflow-hidden text-left">
                                 <p className="font-medium truncate text-sm">{user?.displayName ?? 'User'}</p>
-                                <p className="text-xs text-muted-foreground">{userProfile.plan || 'Free'} Plan</p>
+                                <p className="text-xs text-muted-foreground">{userProfile?.plan || 'Free'} Plan</p>
                             </div>
                         </SidebarMenuButton>
                     </div>
@@ -245,12 +249,12 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function DashboardLayout({
+export default function LiquidLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <DashboardNav>{children}</DashboardNav>
+    <LiquidLayoutNav>{children}</LiquidLayoutNav>
   )
 }

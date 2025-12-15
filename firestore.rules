@@ -25,19 +25,31 @@ service cloud.firestore {
     function userProfileIdIsImmutable() {
       return request.resource.data.id == resource.data.id;
     }
+    
+    function isAdmin() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    function isAdminOrOwner(userId) {
+        return isOwner(userId) || isAdmin();
+    }
+    
+    function isUpdatingOwnAdminStatus(userId) {
+        return isOwner(userId) && 'isAdmin' in request.resource.data && request.resource.data.isAdmin != resource.data.isAdmin;
+    }
 
     // --- User Data Collections ---
 
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
-      allow update: if isExistingOwner(userId) && userProfileIdIsImmutable();
-      allow delete: if isExistingOwner(userId);
+      allow update: if (isOwner(userId) && userProfileIdIsImmutable() && !isUpdatingOwnAdminStatus(userId)) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
 
       match /subscriptions/{subscriptionId} {
-        allow create, update, delete: if isOwner(userId);
-        allow get, list: if isOwner(userId);
+        allow create, update, delete: if isAdminOrOwner(userId);
+        allow get, list: if isAdminOrOwner(userId);
       }
       
       match /subjects/{subjectId} {
