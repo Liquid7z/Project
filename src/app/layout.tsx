@@ -5,8 +5,9 @@ import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'LiqAI - Your Personal Handwriting Assistant',
+  title: 'LiqAI',
   description: 'Generate handwritten assignments with your own style, powered by AI.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
