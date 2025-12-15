@@ -25,6 +25,7 @@ import {
   Notebook,
   Sun,
   LayoutDashboard,
+  Shield,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -43,6 +44,7 @@ const navItems = [
   { href: '/dashboard/generate', icon: Bot, label: 'Generate' },
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
   { href: '/dashboard/account', icon: User, label: 'Account' },
+  { href: '/liquid', icon: Shield, label: 'Admin' },
 ];
 
 function GlowModeToggle({ id }: { id: string }) {
