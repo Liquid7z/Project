@@ -66,6 +66,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const { user, isUserLoading, userError } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   
   useEffect(() => {
     if (auth && !isUserLoading) {
@@ -75,12 +76,16 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
         user.getIdTokenResult().then(idTokenResult => {
             const isAdminClaim = idTokenResult.claims.isAdmin === true;
             setIsAdmin(isAdminClaim);
+            setIsCheckingAdmin(false);
         })
       }
+    } else if (!auth && !isUserLoading) {
+        // If auth is not ready, but user loading is done, it's likely a redirect case
+        router.replace('/login');
     }
   }, [isUserLoading, user, userError, auth, router]);
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || isCheckingAdmin) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
