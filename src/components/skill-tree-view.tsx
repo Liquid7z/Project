@@ -75,9 +75,9 @@ interface GenerateSkillTreeOutput {
 const VIEW_WIDTH = 1200;
 const VIEW_HEIGHT = 800;
 const NODE_WIDTH = 160;
-const NODE_HEIGHT = 50;
-const HORIZONTAL_SPACING = 40;
-const VERTICAL_SPACING = 80;
+const NODE_HEIGHT = 40;
+const HORIZONTAL_SPACING = 20;
+const VERTICAL_SPACING = 60;
 
 
 const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
@@ -98,14 +98,23 @@ const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
     const keyConcept = Object.values(nodesMap).find(n => n.type === 'key-concept');
     if (!keyConcept) return { finalNodes: [], finalEdges: aiEdges };
     
-    // Calculate widths recursively
+    // Position nodes recursively
+    const positionNodes = (node: Node, y: number) => {
+        node.y = y;
+        node.children?.forEach(child => {
+            positionNodes(child, y + NODE_HEIGHT + VERTICAL_SPACING);
+        });
+    };
+    positionNodes(keyConcept, 50);
+
+    // Calculate widths from bottom up
     const calculateWidths = (node: Node) => {
         if (!node.children || node.children.length === 0) {
             node.width = NODE_WIDTH;
             return;
         }
         let childrenWidth = 0;
-        node.children?.forEach(child => {
+        node.children.forEach(child => {
             calculateWidths(child);
             childrenWidth += child.width || 0;
         });
@@ -113,46 +122,19 @@ const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
     };
     calculateWidths(keyConcept);
 
-    // Position nodes recursively
-    const positionNodes = (node: Node, x: number, y: number) => {
+    // Position X from top down
+    const positionX = (node: Node, x: number) => {
         node.x = x + ((node.width || NODE_WIDTH) - NODE_WIDTH) / 2;
-        node.y = y;
         
-        if (!node.children || node.children.length === 0) return;
-        
-        let currentX = x;
-        node.children?.forEach(child => {
-            positionNodes(child, currentX, y + NODE_HEIGHT + VERTICAL_SPACING);
-            currentX += (child.width || 0) + HORIZONTAL_SPACING;
-        });
+        if (node.children && node.children.length > 0) {
+            let currentX = x;
+            node.children.forEach(child => {
+                positionX(child, currentX);
+                currentX += (child.width || 0) + HORIZONTAL_SPACING;
+            });
+        }
     };
-    
-    const totalWidth = keyConcept.width || NODE_WIDTH;
-    positionNodes(keyConcept, (VIEW_WIDTH - totalWidth) / 2, 50);
-    
-    // Center children under their parent
-    const centerChildren = (node: Node) => {
-        if (!node.children || node.children.length === 0) return;
-
-        const childrenTotalWidth = node.children.reduce((acc, child) => acc + (child.width || NODE_WIDTH), 0) + (node.children.length - 1) * HORIZONTAL_SPACING;
-        let startX = node.x + (NODE_WIDTH - childrenTotalWidth) / 2;
-        
-        node.children.forEach(child => {
-            const childXOffset = startX - child.x;
-            const moveSubtree = (subNode: Node, offset: number) => {
-                subNode.x += offset;
-                if(subNode.children) {
-                    subNode.children.forEach(c => moveSubtree(c, offset));
-                }
-            }
-            moveSubtree(child, childXOffset);
-            startX += (child.width || NODE_WIDTH) + HORIZONTAL_SPACING;
-        });
-        
-        node.children.forEach(centerChildren);
-    };
-    centerChildren(keyConcept);
-
+    positionX(keyConcept, (VIEW_WIDTH - (keyConcept.width || 0)) / 2);
 
     return { finalNodes: Object.values(nodesMap), finalEdges: aiEdges };
 };
@@ -171,14 +153,12 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const [isExplaining, setIsExplaining] = useState(false);
     const [explanation, setExplanation] = useState<{ title: string; content: string } | null>(null);
 
-    // Fetch existing notes to merge with AI generated ones
     const notesQuery = useMemoFirebase(() => {
         if (!user) return null;
         return query(collectionGroup(firestore, 'notes'));
     }, [user, firestore]);
     const { data: allNotes } = useCollection(notesQuery);
 
-     // Function to layout nodes
     const layoutNodes = (subjectsToLayout: any[], notesToLayout: any[]) => {
         const newNodes: Node[] = [];
         const newEdges: Edge[] = [];
@@ -202,7 +182,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
             });
 
              const relatedNotes = notesToLayout.filter((note) => {
-                // For Firestore collectionGroup queries, the path is available to extract parent IDs
                 if (note.ref?.parent.parent) {
                     return note.ref.parent.parent.id === subject.id;
                 }
@@ -233,7 +212,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         return { newNodes, newEdges };
     }
     
-    // Initial layout of existing subjects
     useEffect(() => {
         if (!subjects) return;
         const { newNodes, newEdges } = layoutNodes(subjects, allNotes || []);
@@ -265,7 +243,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                 description: "The AI could not generate a skill tree for this topic.",
                 variant: "destructive"
             });
-            // Restore original nodes on failure
             const { newNodes, newEdges } = layoutNodes(subjects, allNotes || []);
             setNodes(newNodes);
             setEdges(newEdges);
@@ -288,14 +265,11 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     lastUpdated: serverTimestamp(),
                 });
                 toast({ title: "Subject Created!", description: `You can now find "${node.label}" in your subjects list.`});
-                // Optimistically update UI - this would be more complex in a real app
                 setNodes(nodes.map(n => n.id === node.id ? { ...n, isPlaceholder: false } : n));
             } catch (error) {
                  toast({ title: "Error", description: "Could not create subject.", variant: "destructive"});
             }
         }
-        // Similar logic would be needed for notes, which is more complex as it needs a subject.
-        // For now, we only allow creating subjects.
         else if(node.type === 'note' || node.type === 'detail') {
              toast({ title: "Info", description: "Create the parent subject first before adding notes.", variant: 'default' });
         }
@@ -304,14 +278,11 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
 
     const handleNodeDoubleClick = (node: Node) => {
         if (node.isPlaceholder) {
-            // Placeholder creation is handled by the AlertDialog confirmation
             return;
         }
-        // Regenerate tree for any concept/subject node
         if (node.type === 'subject' || node.type === 'key-concept' || node.type === 'main-idea' || node.type === 'detail') {
             handleGenerateTree(node.label);
         } 
-        // Navigate for existing notes
         else if (node.type === 'note' && node.subjectId) {
              const noteId = node.id.startsWith('note-') ? node.id.replace('note-','') : node.id;
              router.push(`/dashboard/notes/${node.subjectId}/notes/${noteId}`);
@@ -321,7 +292,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const handleExplain = async (node: Node) => {
         if (!user) return;
         setIsExplaining(true);
-        setExplanation({ title: node.label, content: '' }); // Show dialog with title immediately
+        setExplanation({ title: node.label, content: '' });
         try {
             const result = await explainTopic({ userId: user.uid, topic: node.label });
             setExplanation({ title: node.label, content: result });
@@ -336,11 +307,11 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const getNodeStyles = (nodeType: Node['type']) => {
         switch (nodeType) {
             case 'key-concept':
-                return 'bg-primary text-primary-foreground border-2 border-primary-foreground/50';
+                return 'bg-primary text-primary-foreground border-primary-foreground/50';
             case 'main-idea':
-                return 'bg-accent text-accent-foreground border-2 border-accent-foreground/50';
+                return 'bg-accent text-accent-foreground border-accent-foreground/50';
             case 'detail':
-                return 'bg-secondary text-secondary-foreground border-2 border-border';
+                return 'bg-secondary text-secondary-foreground border-border';
             case 'subject':
                 return 'bg-primary text-primary-foreground';
             case 'note':
@@ -382,7 +353,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     </div>
                 )}
                  {!isGenerating && nodes.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center glass-pane border-dashed">
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4 glass-pane border-dashed">
                         <Network className="w-16 h-16 text-muted-foreground/50" />
                         <h3 className="mt-4 text-lg font-semibold">The canvas is ready</h3>
                         <p className="mt-1 text-sm text-muted-foreground">Generate a new skill tree or view your existing subjects.</p>
@@ -465,7 +436,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                             </motion.div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p className="text-xs">Click for AI explanation. Double-click to generate new tree.</p>
+                                            <p className="text-xs">Click for AI explanation. Double-click to expand/navigate.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
