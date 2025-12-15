@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -143,7 +144,7 @@ export default function UpgradePage() {
                         </CardHeader>
                         <CardContent>
                              <div className="mb-6">
-                                <p className="text-4xl font-bold font-headline">Rs 69<span className="text-lg font-normal text-muted-foreground">/month</span></p>
+                                <p className="text-4xl font-bold font-headline">Rs 9<span className="text-lg font-normal text-muted-foreground">/month</span></p>
                             </div>
                             <ul className="space-y-3 text-sm">
                                 {premiumPlanFeatures.map(feature => (

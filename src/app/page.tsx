@@ -42,7 +42,7 @@ const pricingTiers = [
     },
     {
         name: 'Premium',
-        price: 'Rs 69',
+        price: 'Rs 9',
         description: 'Unlock the full power of LiqAI.',
         features: [
             'Unlimited handwriting generations',

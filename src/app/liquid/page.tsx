@@ -210,7 +210,17 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
     const { data: freePlanConfig } = useDoc(freePlanConfigRef);
 
     const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
-    const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
+    const { data: premiumPlanConfigData } = useDoc(premiumPlanConfigRef);
+
+    const [premiumPlanConfig, setPremiumPlanConfig] = useState<PlanConfig | null>(null);
+
+    useEffect(() => {
+        if (premiumPlanConfigData) {
+            setPremiumPlanConfig(premiumPlanConfigData as PlanConfig);
+        } else {
+            setPremiumPlanConfig({ priceMonthly: 9, priceYearly: 99 });
+        }
+    }, [premiumPlanConfigData]);
 
     const [pendingPayments, setPendingPayments] = useState<any[] | null>(null);
     const [arePaymentsLoading, setArePaymentsLoading] = useState(true);
@@ -255,6 +265,9 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
     const handlePlanConfigSave = async (planId: string, data: PlanConfig) => {
         const planRef = doc(firestore, 'plan_configs', planId);
         await setDoc(planRef, data, { merge: true });
+        if (planId === 'premium') {
+            setPremiumPlanConfig(data);
+        }
     };
 
     const handleApprovePayment = async (verification: any) => {
@@ -475,7 +488,7 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
 
                 <TabsContent value="plans" className="mt-6 space-y-6">
                    <PlanConfigForm planId="free" planData={freePlanConfig as PlanConfig} onSave={handlePlanConfigSave} />
-                   <PlanConfigForm planId="premium" planData={premiumPlanConfig as PlanConfig} onSave={handlePlanConfigSave} />
+                   <PlanConfigForm planId="premium" planData={premiumPlanConfig} onSave={handlePlanConfigSave} />
                 </TabsContent>
 
                 <TabsContent value="users" className="mt-6">
@@ -683,4 +696,5 @@ export default function LiquidAdminPage() {
 }
 
     
+
 
