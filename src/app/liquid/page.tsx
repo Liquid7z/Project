@@ -100,26 +100,26 @@ const usageData = [
 export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = React.useState<any | null>(null);
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = React.useState(false);
-  const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+  const isAdmin = React.useMemo(() => userProfile?.isAdmin === true, [userProfile]);
+  const isCheckingAdmin = isUserLoading || isProfileLoading;
 
   React.useEffect(() => {
-    if (!isUserLoading && user) {
-      user.getIdTokenResult().then(idTokenResult => {
-        const isAdminClaim = idTokenResult.claims.isAdmin === true;
-        setIsAdmin(isAdminClaim);
-        setIsCheckingAdmin(false);
-        if (!isAdminClaim) {
-          router.replace('/dashboard');
-        }
-      });
-    } else if (!isUserLoading && !user) {
-        // Not logged in, redirect
+    if (!isCheckingAdmin && !isAdmin) {
+      router.replace('/dashboard');
+    }
+     if (!isUserLoading && !user) {
         router.replace('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, isCheckingAdmin, isAdmin, router]);
 
   const handleSelectUser = (user: any) => {
     setSelectedUser(user);
@@ -128,12 +128,17 @@ export default function AdminDashboard() {
     setSelectedUser(null);
   };
 
-  if (isCheckingAdmin || !isAdmin) {
+  if (isCheckingAdmin) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
+  }
+  
+  if (!isAdmin) {
+    // This is a fallback, the useEffect should have already redirected
+    return null;
   }
 
   if (selectedUser) {
@@ -645,3 +650,5 @@ const FeatureManagementPanel = () => {
         </Card>
     )
 }
+
+    

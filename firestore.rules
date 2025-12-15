@@ -11,7 +11,7 @@
  *
  * Key Security Decisions:
  * - Default Deny: All access is denied by default. Permissions are explicitly granted.
- * - Admin Role: A custom claim `isAdmin` is used to grant elevated privileges.
+ * - Admin Role: An `isAdmin` field on the UserProfile document grants elevated privileges.
  * - No Public User Listing: Non-admins cannot list all users in the database, protecting privacy.
  * - Strict Ownership for Users: All user-level read and write operations are gated by functions
  *   that verify the authenticated user's ID matches the ID in the document path.
@@ -33,7 +33,7 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isSignedIn() && request.auth.token.isAdmin == true;
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
     function isExistingOwner(userId) {
@@ -166,3 +166,5 @@ service firebase.storage {
     }
   }
 }
+
+    

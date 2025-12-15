@@ -14,7 +14,8 @@
         "lastSignInTime": { "type": "string", "description": "Timestamp indicating when the user last signed in.", "format": "date-time" },
         "subscriptionId": { "type": "string", "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)" },
         "plan": { "type": "string", "description": "User's subscription plan.", "enum": ["Free", "Premium"] },
-        "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." }
+        "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." },
+        "isAdmin": { "type": "boolean", "description": "Grants administrative privileges over the application." }
       },
       "required": ["id", "email"]
     },
@@ -188,3 +189,5 @@
     ]
   }
 }
+
+    

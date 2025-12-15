@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -32,11 +32,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
+import { doc } from 'firebase/firestore';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -64,28 +65,26 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading, userError } = useUser();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
-  
-  useEffect(() => {
-    if (auth && !isUserLoading) {
-      if (userError || !user) {
-        router.replace('/login');
-      } else {
-        user.getIdTokenResult().then(idTokenResult => {
-            const isAdminClaim = idTokenResult.claims.isAdmin === true;
-            setIsAdmin(isAdminClaim);
-            setIsCheckingAdmin(false);
-        })
-      }
-    } else if (!auth && !isUserLoading) {
-        // If auth is not ready, but user loading is done, it's likely a redirect case
-        router.replace('/login');
-    }
-  }, [isUserLoading, user, userError, auth, router]);
 
-  if (isUserLoading || isCheckingAdmin) {
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+  const isAdmin = useMemo(() => userProfile?.isAdmin === true, [userProfile]);
+
+  useEffect(() => {
+    if (!isUserLoading && (userError || !user)) {
+      router.replace('/login');
+    }
+  }, [isUserLoading, user, userError, router]);
+
+  const isLoading = isUserLoading || isProfileLoading;
+
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
@@ -255,3 +254,5 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
+
+    
