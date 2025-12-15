@@ -3,25 +3,25 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/header';
-import { CheckCircle, UploadCloud, Bot, FileText, Feather } from 'lucide-react';
+import { CheckCircle, FolderKanban, Bot, Network, Feather } from 'lucide-react';
 import {PlaceHolderImages} from '@/lib/placeholder-images'
 import { Logo } from '@/components/logo';
 
 const features = [
   {
-    icon: <UploadCloud className="w-10 h-10 text-accent" />,
-    title: 'Analyze Your Handwriting',
-    description: 'Upload a sample of your handwriting, and our AI will create a unique digital model of your style.',
-  },
-  {
-    icon: <FileText className="w-10 h-10 text-accent" />,
-    title: 'Input Any Content',
-    description: 'Type, paste, or upload documents. LiqAI extracts the text and prepares it for handwriting generation.',
+    icon: <FolderKanban className="w-10 h-10 text-accent" />,
+    title: 'Organize Everything',
+    description: 'Create subjects, and within them, add detailed notes, exam questions, syllabus items, and other resources.',
   },
   {
     icon: <Bot className="w-10 h-10 text-accent" />,
-    title: 'Generate Authentic Results',
-    description: "Our AI generates your assignment in your handwriting, complete with natural imperfections for a truly human touch.",
+    title: 'AI-Powered Study Coach',
+    description: 'Our AI assistant helps you find and summarize topics across all your notes, and can even explain concepts for you.',
+  },
+  {
+    icon: <Network className="w-10 h-10 text-accent" />,
+    title: 'Visualize Your Knowledge',
+    description: "See your subjects and notes laid out in an interactive 'Skill Tree' view to understand how your knowledge connects.",
   },
 ];
 
