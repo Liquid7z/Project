@@ -5,20 +5,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Pin, PinOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { StickyNote, StickyNoteData } from '@/components/sticky-note';
+import { StickyNote, StickyNoteData, StickyNoteColor } from '@/components/sticky-note';
 
 const initialNotes: StickyNoteData[] = [
-  { id: '1', content: 'Remember to check the new handwriting models in the Generate tab!', position: { x: 50, y: 50 }, size: { width: 200, height: 150 } },
-  { id: '2', content: 'Formula: E=mc^2', position: { x: 300, y: 100 }, size: { width: 200, height: 150 } },
+  { id: '1', content: 'Remember to check the new handwriting models in the Generate tab!', position: { x: 50, y: 50 }, size: { width: 200, height: 150 }, color: 'yellow' },
+  { id: '2', content: 'Formula: E=mc^2', position: { x: 300, y: 100 }, size: { width: 200, height: 150 }, color: 'pink' },
 ];
+
+const noteColors: StickyNoteColor[] = ['yellow', 'pink', 'blue', 'green'];
+function getNextColor(currentIndex: number): StickyNoteColor {
+    return noteColors[currentIndex % noteColors.length];
+}
 
 export default function DashboardPage() {
   const [notes, setNotes] = useState<StickyNoteData[]>([]);
   const [showNotes, setShowNotes] = useState(true);
 
   useEffect(() => {
-    // In a real app, you would fetch notes from Firestore here.
-    // For now, we load from localStorage or use initialNotes.
     const savedNotes = localStorage.getItem('sticky-notes');
     if (savedNotes) {
       setNotes(JSON.parse(savedNotes));
@@ -28,7 +31,6 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    // Save notes to localStorage whenever they change.
     localStorage.setItem('sticky-notes', JSON.stringify(notes));
   }, [notes]);
 
@@ -38,6 +40,7 @@ export default function DashboardPage() {
       content: 'New sticky note...',
       position: { x: Math.random() * 200, y: Math.random() * 200 },
       size: { width: 200, height: 150 },
+      color: getNextColor(notes.length),
     };
     setNotes(prevNotes => [...prevNotes, newNote]);
   };
