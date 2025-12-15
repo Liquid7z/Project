@@ -8,15 +8,15 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import { getFirestore, collectionGroup, query, where, getDocs, collection } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { z } from 'zod';
+import { getFirestore } from 'firebase-admin/firestore';
+import { initializeServerFirebase } from '@/firebase/server-init';
 
 // Helper to get Firestore instance
 // This function needs to be adapted for server-side execution
 function getDb() {
-  const { firestore } = initializeFirebase();
-  return firestore;
+  initializeServerFirebase();
+  return getFirestore();
 }
 
 // --- Summarize and Evaluate Topic Flow ---
@@ -63,22 +63,21 @@ const findNotesTool = ai.defineTool(
         // This implementation is a simplified stand-in.
         
         for (const contentType of contentTypes) {
-            const contentQuery = query(collectionGroup(db, contentType));
-            const querySnapshot = await getDocs(contentQuery);
+            const contentQuery = db.collectionGroup(contentType).where('__name__', '>=', `users/${userId}/`).where('__name__', '<', `users/${userId}/\uf8ff`);
+            const querySnapshot = await contentQuery.get();
+
             querySnapshot.forEach(doc => {
                 const data = doc.data();
-                 if (doc.ref.parent.parent?.parent.id === 'users' && doc.ref.parent.parent.id === userId) {
-                    const combinedText = `${data.title} ${data.blocks?.map((b: any) => b.content || '').join(' ')}`.toLowerCase();
-                    if (combinedText.includes(topic.toLowerCase())) {
-                        allContent.push({
-                            id: doc.id,
-                            title: data.title,
-                            subjectId: doc.ref.parent.parent?.id || '',
-                            contentType: contentType,
-                            content: data.blocks?.map((b: any) => b.content || '').join('\n\n') || '',
-                            userId: userId,
-                        });
-                    }
+                const combinedText = `${data.title} ${data.blocks?.map((b: any) => b.content || '').join(' ')}`.toLowerCase();
+                if (combinedText.includes(topic.toLowerCase())) {
+                    allContent.push({
+                        id: doc.id,
+                        title: data.title,
+                        subjectId: doc.ref.parent.parent?.id || '',
+                        contentType: contentType,
+                        content: data.blocks?.map((b: any) => b.content || '').join('\n\n') || '',
+                        userId: userId,
+                    });
                 }
             });
         }
