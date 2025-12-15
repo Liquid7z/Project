@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
-import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone, Save, Upload, Edit } from 'lucide-react';
+import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone, Save, Upload, Edit, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -18,6 +18,9 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 
 const freePlanFeatures = [
@@ -66,6 +69,8 @@ export default function AccountPage() {
             displayName: '',
         },
     });
+
+    const inbuiltAvatars = PlaceHolderImages.filter(p => p.id.startsWith('avatar-'));
     
     useEffect(() => {
         if (user) {
@@ -82,14 +87,19 @@ export default function AccountPage() {
         }
     };
     
+    const handleInbuiltAvatarSelect = (imageUrl: string) => {
+        setAvatarFile(null); // Clear any uploaded file
+        setAvatarPreview(imageUrl);
+    }
+    
      const handleProfileSave = async (values: z.infer<typeof profileFormSchema>) => {
         if (!user || !auth.currentUser) return;
         setIsSavingProfile(true);
 
         try {
-            let newPhotoURL = user.photoURL;
+            let newPhotoURL = avatarPreview || user.photoURL;
 
-            // Upload new avatar if one was selected
+            // Upload new avatar if a custom file was selected
             if (avatarFile) {
                 const storage = getStorage();
                 const avatarRef = ref(storage, `users/${user.uid}/avatar/${avatarFile.name}`);
@@ -124,6 +134,7 @@ export default function AccountPage() {
             });
         } finally {
             setIsSavingProfile(false);
+            setAvatarFile(null);
         }
     };
 
@@ -194,7 +205,7 @@ export default function AccountPage() {
                 <Form {...profileForm}>
                     <form onSubmit={profileForm.handleSubmit(handleProfileSave)}>
                         <CardContent className="space-y-6">
-                            <div className="flex items-center gap-6">
+                            <div className="flex flex-col sm:flex-row items-center gap-6">
                                 <div className="relative">
                                     <Avatar className="h-24 w-24 border-2 border-accent">
                                         <AvatarImage src={avatarPreview || `https://avatar.vercel.sh/${user?.email}.png`} alt={user.displayName || 'user'}/>
@@ -209,7 +220,7 @@ export default function AccountPage() {
                                     control={profileForm.control}
                                     name="displayName"
                                     render={({ field }) => (
-                                        <FormItem className="flex-grow">
+                                        <FormItem className="flex-grow w-full sm:w-auto">
                                             <FormLabel>Display Name</FormLabel>
                                             <FormControl>
                                                 <Input placeholder="Your Name" {...field} />
@@ -218,6 +229,21 @@ export default function AccountPage() {
                                         </FormItem>
                                     )}
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Or choose an avatar</Label>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                                    {inbuiltAvatars.map(avatar => (
+                                        <button key={avatar.id} type="button" onClick={() => handleInbuiltAvatarSelect(avatar.imageUrl)} className={cn("relative aspect-square rounded-full overflow-hidden border-2 transition-all", avatarPreview === avatar.imageUrl ? "border-accent" : "border-transparent hover:border-accent/50")}>
+                                            <Image src={avatar.imageUrl} alt={avatar.description} fill className="object-cover" data-ai-hint={avatar.imageHint} />
+                                            {avatarPreview === avatar.imageUrl && (
+                                                <div className="absolute inset-0 bg-accent/50 flex items-center justify-center">
+                                                    <CheckCircle className="w-6 h-6 text-accent-foreground" />
+                                                </div>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </CardContent>
                         <CardFooter>

@@ -17,6 +17,42 @@
       "description": "Sample of handwriting for analysis.",
       "imageUrl": "https://images.unsplash.com/photo-1520179432903-03d08e6ef07a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxoYW5kd3JpdGluZyUyMHNjcmlwdHxlbnwwfHx8fDE3NjU1ODQ2NzR8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "handwriting script"
+    },
+    {
+      "id": "avatar-1",
+      "description": "Abstract neon geometric avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1482053450283-3e0b78b09a70?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhYnN0cmFjdCUyMGdlb21ldHJpY3xlbnwwfHx8fDE3NjU3ODA1Nzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract geometric"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Abstract colorful splash avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1650469426485-7b129e80c976?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxhYnN0cmFjdCUyMGNvbG9yZnVsfGVufDB8fHx8MTc2NTgxNjk1MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract colorful"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Minimalist mountain line art avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1631546558035-ddad6a30eefa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtaW5pbWFsaXN0JTIwbW91bnRhaW58ZW58MHx8fHwxNzY1NzE4NjIzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "minimalist mountain"
+    },
+    {
+      "id": "avatar-4",
+      "description": "Cute robot illustration avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjdXRlJTIwcm9ib3R8ZW58MHx8fHwxNzY1ODIyNzQ3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cute robot"
+    },
+    {
+      "id": "avatar-5",
+      "description": "Vibrant watercolor galaxy avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1686001407324-6959a43b6e6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3YXRlcmNvbG9yJTIwZ2FsYXh5fGVufDB8fHx8MTc2NTgyMjc0N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "watercolor galaxy"
+    },
+    {
+      "id": "avatar-6",
+      "description": "Stylized fox logo avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1644125003580-ec6e1afbdd5f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzdHlsaXplZCUyMGZveHxlbnwwfHx8fDE3NjU4MjI3NDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "stylized fox"
     }
   ]
 }
