@@ -56,6 +56,7 @@ interface Node {
     children?: Node[];
     width?: number;
     parent?: Node;
+    itemType?: string;
 }
 
 interface Edge {
@@ -386,7 +387,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                     type="text"
-                    placeholder="Enter a topic to generate a new skill tree..."
+                    placeholder="Search a topic or ask a question..."
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleGenerateTree(topic)}
@@ -394,7 +395,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                 />
                 <Button onClick={() => handleGenerateTree(topic)} disabled={isGenerating || !topic} className="w-full sm:w-auto">
                     {isGenerating ? <Loader className="animate-spin mr-2" /> : <Wand2 className="mr-2" />}
-                    Generate with AI
+                    Generate
                 </Button>
             </div>
             <Card className="h-[800px] w-full glass-pane overflow-auto relative">
@@ -517,5 +518,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         </div>
     );
 }
+
+    
 
     
