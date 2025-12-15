@@ -11,6 +11,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, 
 import type { WithId } from '@/firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { WipPage } from '@/components/wip-page';
+import { useToast } from '@/hooks/use-toast';
 
 
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green';
@@ -34,6 +35,14 @@ function getNextColor(currentIndex: number): StickyNoteColor {
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  const { data: userProfile } = useDoc(userProfileRef);
+  const isAdmin = userProfile?.isAdmin === true;
 
   const notesCollectionRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -67,6 +76,14 @@ export default function DashboardPage() {
 
 
   const addNote = () => {
+    if (!isAdmin && siteConfig?.stickyNotesWip === false) {
+        toast({
+            title: "Feature Under Maintenance",
+            description: "Adding new sticky notes is temporarily disabled. Please check back later.",
+        });
+        return;
+    }
+      
     const tempId = uuidv4();
     const newNote: StickyNoteData = {
       id: tempId,
@@ -149,10 +166,6 @@ export default function DashboardPage() {
   
   const isLoading = isUserLoading || areNotesLoading || isConfigLoading;
 
-  if (siteConfig?.stickyNotesWip === false) {
-      return <WipPage />;
-  }
-
   if (isLoading && localNotes.length === 0) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -195,5 +208,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

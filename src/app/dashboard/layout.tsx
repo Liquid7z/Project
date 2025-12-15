@@ -105,19 +105,14 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     return <WipPage />;
   }
 
-  // Per-page maintenance check - if the flag is FALSE, it's in WIP
-  const currentNavItem = navItems.find(item => pathname.startsWith(item.href));
+  // Per-page maintenance check for non-dashboard pages
+  const currentNavItem = navItems.find(item => item.href !== '/dashboard' && pathname.startsWith(item.href));
   if (currentNavItem && siteConfig?.[currentNavItem.configFlag] === false && !isAdmin) {
-      // Special case for the root dashboard page
-      if (currentNavItem.href === '/dashboard' && pathname !== '/dashboard') {
-          // Don't show WIP if we are on a sub-page of dashboard, like /dashboard/notes
-      } else {
-         return (
-            <div className="flex h-screen w-full items-center justify-center p-4">
-                <WipPage />
-            </div>
-         )
-      }
+      return (
+          <div className="flex h-screen w-full items-center justify-center p-4">
+              <WipPage />
+          </div>
+      );
   }
   
   const currentNavItems = isAdmin ? [...navItems, ...adminNavItems] : navItems;
@@ -282,5 +277,3 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
-
-    
