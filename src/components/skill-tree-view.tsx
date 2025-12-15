@@ -7,7 +7,7 @@ import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { generateSkillTreeFromTopic } from '@/ai/flows/generate-skill-tree';
+import { generateSkillTreeFromTopic, type GenerateSkillTreeInput, type GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 
 // A simple deterministic hash function for positioning
