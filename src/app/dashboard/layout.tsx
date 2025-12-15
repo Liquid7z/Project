@@ -42,7 +42,7 @@ import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
-import { doc, collection, query, orderBy, limit, updateDoc } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit, updateDoc, writeBatch } from 'firebase/firestore';
 import { WipPage } from '@/components/wip-page';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -89,6 +89,26 @@ function NotificationsPanel() {
     
     const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
 
+    const handleOpenChange = (isOpen: boolean) => {
+        if (isOpen && unreadCount > 0 && notifications) {
+            markAllAsRead();
+        }
+    };
+
+    const markAllAsRead = async () => {
+        if (!user || !firestore || !notifications) return;
+        
+        const unreadNotifications = notifications.filter(n => !n.isRead);
+        if (unreadNotifications.length === 0) return;
+
+        const batch = writeBatch(firestore);
+        unreadNotifications.forEach(notification => {
+            const notifRef = doc(firestore, 'users', user.uid, 'notifications', notification.id);
+            batch.update(notifRef, { isRead: true });
+        });
+        await batch.commit();
+    };
+
     const markAsRead = async (notificationId: string) => {
         if (!user || !firestore) return;
         const notifRef = doc(firestore, 'users', user.uid, 'notifications', notificationId);
@@ -96,7 +116,7 @@ function NotificationsPanel() {
     };
 
     return (
-        <Popover>
+        <Popover onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                     <Bell />
@@ -293,7 +313,9 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                   </SheetContent>
               </Sheet>
               
-              <NotificationsPanel />
+               <div className="flex items-center gap-2">
+                    <NotificationsPanel />
+                </div>
               
               <div className="flex-1" />
 
