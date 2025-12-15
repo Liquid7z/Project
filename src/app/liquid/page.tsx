@@ -221,11 +221,11 @@ export default function LiquidAdminPage() {
     const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
 
     const pendingPaymentsQuery = useMemoFirebase(() => {
-        // Only fetch if the user is an admin
-        if (!userProfile?.isAdmin) return null;
+        // Wait for profile to load and check admin status before creating the query.
+        if (isProfileLoading || !userProfile?.isAdmin) return null;
         const paymentVerificationsRef = collection(firestore, 'paymentVerifications');
         return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
-    }, [firestore, userProfile?.isAdmin]);
+    }, [firestore, userProfile?.isAdmin, isProfileLoading]);
     
     const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
 
@@ -527,3 +527,6 @@ export default function LiquidAdminPage() {
 }
 
 
+
+
+    
