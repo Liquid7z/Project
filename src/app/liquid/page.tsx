@@ -209,11 +209,9 @@ function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }
 
     const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
     const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
-
-    const pendingPaymentsQuery = useMemoFirebase(() => {
-        const paymentVerificationsRef = collection(firestore, 'paymentVerifications');
-        return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
-    }, [firestore]);
+    
+    const paymentVerificationsRef = useMemoFirebase(() => collection(firestore, 'paymentVerifications'), [firestore]);
+    const pendingPaymentsQuery = useMemoFirebase(() => query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc')), [paymentVerificationsRef]);
     const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
     
     const handleAdminToggle = async (targetUser: any) => {
@@ -425,7 +423,7 @@ function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }
                                                 <TableCell className="text-center">
                                                      <Switch
                                                         checked={u.isSuspended}
-                                                        onCheckedChange={()={() => handleSuspendToggle(u)}
+                                                        onCheckedChange={() => handleSuspendToggle(u)}
                                                         disabled={u.id === user?.uid}
                                                         aria-label={`Toggle suspension for ${u.displayName}`}
                                                     />
@@ -536,5 +534,7 @@ export default function LiquidAdminPage() {
         </div>
     );
 }
+
+    
 
     
