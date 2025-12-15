@@ -1,9 +1,10 @@
 
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot, getDocs, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote } from 'lucide-react';
+import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote, SendHorizontal } from 'lucide-react';
 import { formatDistanceToNow, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -29,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 
 type PlanConfig = {
@@ -212,6 +214,10 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
 
     const [pendingPayments, setPendingPayments] = useState<any[] | null>(null);
     const [arePaymentsLoading, setArePaymentsLoading] = useState(true);
+    const [broadcastMessage, setBroadcastMessage] = useState('');
+    const [broadcastLink, setBroadcastLink] = useState('');
+    const [isBroadcasting, setIsBroadcasting] = useState(false);
+
 
     useEffect(() => {
         if (userProfile?.isAdmin) {
@@ -285,6 +291,47 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
         }
     };
 
+    const handleBroadcast = async () => {
+        if (!broadcastMessage.trim()) {
+            toast({ variant: 'destructive', title: 'Empty Message', description: 'Cannot send an empty broadcast.' });
+            return;
+        }
+
+        setIsBroadcasting(true);
+        try {
+            const usersSnapshot = await getDocs(collection(firestore, 'users'));
+            if (usersSnapshot.empty) {
+                toast({ title: 'No Users', description: 'There are no users to broadcast to.' });
+                return;
+            }
+
+            const batch = writeBatch(firestore);
+            usersSnapshot.forEach((userDoc) => {
+                const userId = userDoc.id;
+                const notificationRef = doc(collection(firestore, 'users', userId, 'notifications'));
+                batch.set(notificationRef, {
+                    message: broadcastMessage,
+                    type: 'admin-message',
+                    isRead: false,
+                    createdAt: serverTimestamp(),
+                    href: broadcastLink || '#',
+                });
+            });
+
+            await batch.commit();
+
+            toast({ title: 'Broadcast Sent!', description: `Message sent to ${usersSnapshot.size} users.` });
+            setBroadcastMessage('');
+            setBroadcastLink('');
+
+        } catch (error) {
+            console.error("Error sending broadcast:", error);
+            toast({ variant: 'destructive', title: 'Broadcast Failed', description: 'An error occurred while sending the message.' });
+        } finally {
+            setIsBroadcasting(false);
+        }
+    };
+
     const isLoading = areUsersLoading || isConfigLoading || arePaymentsLoading || isProfileLoading;
 
     if (isLoading) {
@@ -303,6 +350,7 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                 <ScrollArea className="w-full whitespace-nowrap">
                     <TabsList className="inline-flex w-auto">
                         <TabsTrigger value="payments"><Banknote className="w-4 h-4 mr-2"/> Payment Verification</TabsTrigger>
+                        <TabsTrigger value="broadcast"><SendHorizontal className="w-4 h-4 mr-2"/> Broadcast</TabsTrigger>
                         <TabsTrigger value="plans"><DollarSign className="w-4 h-4 mr-2"/> Plan Management</TabsTrigger>
                         <TabsTrigger value="users"><User className="w-4 h-4 mr-2"/> User Management</TabsTrigger>
                         <TabsTrigger value="site"><Wrench className="w-4 h-4 mr-2"/> Site Settings</TabsTrigger>
@@ -387,6 +435,43 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                         </CardContent>
                     </Card>
                 </TabsContent>
+                
+                 <TabsContent value="broadcast" className="mt-6">
+                     <Card className="glass-pane">
+                         <CardHeader>
+                             <CardTitle className="font-headline">Broadcast a Message</CardTitle>
+                             <CardDescription>Send a notification to all registered users.</CardDescription>
+                         </CardHeader>
+                         <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="broadcast-message">Message</Label>
+                                <Textarea 
+                                    id="broadcast-message"
+                                    placeholder="Your message to all users..."
+                                    value={broadcastMessage}
+                                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                                    rows={4}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="broadcast-link">Link (Optional)</Label>
+                                <Input 
+                                    id="broadcast-link"
+                                    placeholder="e.g., /dashboard/account"
+                                    value={broadcastLink}
+                                    onChange={(e) => setBroadcastLink(e.target.value)}
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">A relative path for users to click on.</p>
+                            </div>
+                            <div className="flex justify-end">
+                                <Button onClick={handleBroadcast} disabled={isBroadcasting || !broadcastMessage.trim()}>
+                                    {isBroadcasting ? <Loader className="animate-spin mr-2" /> : <SendHorizontal className="mr-2"/>}
+                                    Send to All Users
+                                </Button>
+                            </div>
+                         </CardContent>
+                     </Card>
+                 </TabsContent>
 
                 <TabsContent value="plans" className="mt-6 space-y-6">
                    <PlanConfigForm planId="free" planData={freePlanConfig as PlanConfig} onSave={handlePlanConfigSave} />
@@ -598,3 +683,4 @@ export default function LiquidAdminPage() {
 }
 
     
+
