@@ -12,7 +12,9 @@
         "photoURL": { "type": "string", "description": "URL of the user's profile photo.", "format": "uri" },
         "creationTime": { "type": "string", "description": "Timestamp indicating when the user profile was created.", "format": "date-time" },
         "lastSignInTime": { "type": "string", "description": "Timestamp indicating when the user last signed in.", "format": "date-time" },
-        "subscriptionId": { "type": "string", "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)" }
+        "subscriptionId": { "type": "string", "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)" },
+        "plan": { "type": "string", "description": "User's subscription plan.", "enum": ["Free", "Premium"] },
+        "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." }
       },
       "required": ["id", "email"]
     },
@@ -98,10 +100,48 @@
         "updatedAt": { "type": "string", "description": "Timestamp of last update.", "format": "date-time" }
       },
       "required": ["title", "content", "color"]
+    },
+    "AppConfig": {
+        "title": "AppConfig",
+        "type": "object",
+        "description": "Stores application-wide configuration, like feature flags.",
+        "properties": {
+            "features": {
+                "type": "object",
+                "description": "Contains toggles for various application features.",
+                "properties": {
+                    "ai-coach": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "ai-summaries": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "handwriting-generation": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "handwriting-analysis": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "ocr": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "version-history": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "skill-tree": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "advanced-exports": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "storage-limit": { "$ref": "#/backend/entities/FeatureToggle" }
+                }
+            }
+        }
+    },
+    "FeatureToggle": {
+        "title": "FeatureToggle",
+        "type": "object",
+        "description": "Represents the state of a feature.",
+        "properties": {
+            "enabled": { "type": "boolean", "description": "Whether the feature is available to premium users." },
+            "maintenance": { "type": "boolean", "description": "Whether the feature is currently in maintenance mode." }
+        },
+        "required": ["enabled", "maintenance"]
     }
   },
   "auth": {
-    "providers": ["password", "google.com"]
+    "providers": ["password", "google.com"],
+    "customClaims": {
+        "isAdmin": {
+            "type": "boolean",
+            "description": "Grants administrative privileges over the application."
+        }
+    }
   },
   "firestore": {
     "structure": [
@@ -136,6 +176,14 @@
       {
         "path": "/users/{userId}/stickyNotes/{noteId}",
         "definition": { "entityName": "StickyNote", "schema": { "$ref": "#/backend/entities/StickyNote" }, "description": "Stores dashboard sticky notes for each user." }
+      },
+      {
+        "path": "/appConfig/features",
+        "definition": {
+            "entityName": "AppConfig",
+            "schema": { "$ref": "#/backend/entities/AppConfig" },
+            "description": "Stores application-wide feature flag configuration."
+        }
       }
     ]
   }

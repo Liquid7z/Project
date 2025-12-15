@@ -22,6 +22,8 @@ import {
   ChevronsRight,
   Zap,
   Wrench,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import * as React from 'react';
 import {
@@ -77,76 +79,12 @@ import {
   Legend,
 } from 'recharts';
 import { Separator } from '@/components/ui/separator';
+import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc, updateDoc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
 
-const mockUsers = [
-  {
-    name: 'Liam Johnson',
-    email: 'liam@example.com',
-    plan: 'Premium',
-    lastLogin: '2 hours ago',
-    status: 'online',
-    subjects: 5,
-    notes: 32,
-    documents: 12,
-    storage: '1.2 GB',
-  },
-  {
-    name: 'Olivia Smith',
-    email: 'olivia@example.com',
-    plan: 'Free',
-    lastLogin: '1 day ago',
-    status: 'offline',
-    subjects: 2,
-    notes: 10,
-    documents: 3,
-    storage: '150 MB',
-  },
-  {
-    name: 'Noah Williams',
-    email: 'noah@example.com',
-    plan: 'Premium',
-    lastLogin: '5 minutes ago',
-    status: 'online',
-    subjects: 10,
-    notes: 150,
-    documents: 45,
-    storage: '4.8 GB',
-  },
-  {
-    name: 'Emma Brown',
-    email: 'emma@example.com',
-    plan: 'Free',
-    lastLogin: '3 days ago',
-    status: 'offline',
-    subjects: 1,
-    notes: 5,
-    documents: 1,
-    storage: '50 MB',
-  },
-  {
-    name: 'James Jones',
-    email: 'james@example.com',
-    plan: 'Premium',
-    lastLogin: '1 hour ago',
-    status: 'online',
-    subjects: 8,
-    notes: 78,
-    documents: 22,
-    storage: '2.5 GB',
-  },
-];
-
-const mockPremiumFeatures = [
-    { id: 'ai-coach', name: 'AI Study Coach', enabled: true, description: 'Personalized study suggestions and topic explanations.', maintenance: false },
-    { id: 'ai-summaries', name: 'AI Summaries', enabled: true, description: 'Automatic summarization of notes and documents.', maintenance: false },
-    { id: 'handwriting-generation', name: 'Handwriting Generation', enabled: true, description: 'Generate text in a handwritten style.', maintenance: true },
-    { id: 'handwriting-analysis', name: 'Handwriting Analysis', enabled: true, description: 'Analyze handwriting samples to create AI models.', maintenance: true },
-    { id: 'ocr', name: 'OCR & Text Extraction', enabled: false, description: 'Extract text from uploaded images and PDFs.', maintenance: false },
-    { id: 'version-history', name: 'Note Version History', enabled: true, description: 'Track changes and restore previous versions of notes.', maintenance: false },
-    { id: 'skill-tree', name: 'Skill-Tree Visualization', enabled: true, description: 'Interactive knowledge map of your subjects.', maintenance: false },
-    { id: 'advanced-exports', name: 'Advanced Exports (PDF, Markdown)', enabled: false, description: 'Export notes and subjects in various formats.', maintenance: false },
-    { id: 'storage-limit', name: 'Higher Storage Limit (10GB)', enabled: true, description: 'Increased storage for premium users.', maintenance: false },
-];
 
 const usageData = [
   { name: 'Jan', total: Math.floor(Math.random() * 200) + 100 },
@@ -319,41 +257,7 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
           <TabsContent value="features" className="space-y-4">
-             <Card>
-              <CardHeader>
-                <CardTitle>Feature Management</CardTitle>
-                <CardDescription>
-                  Control premium features and toggle maintenance mode.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {mockPremiumFeatures.map(feature => (
-                    <div key={feature.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4 gap-4">
-                        <div>
-                            <h3 className="font-medium">{feature.name}</h3>
-                            <p className="text-sm text-muted-foreground">{feature.description}</p>
-                        </div>
-                        <div className="flex items-center gap-4 shrink-0">
-                             <div className='flex items-center gap-2'>
-                                <Label htmlFor={`maintenance-${feature.id}`} className="text-sm flex items-center gap-1"><Wrench className="w-3 h-3" /> Maint.</Label>
-                                <Switch id={`maintenance-${feature.id}`} defaultChecked={feature.maintenance} />
-                             </div>
-                             <Separator orientation='vertical' className='h-6' />
-                             <div className='flex items-center gap-2'>
-                                <Label htmlFor={`premium-${feature.id}`} className="text-sm flex items-center gap-1"><Zap className="w-3 h-3" /> Premium</Label>
-                                <Switch id={`premium-${feature.id}`} defaultChecked={feature.enabled} />
-                             </div>
-                        </div>
-                    </div>
-                ))}
-                <Card className='mt-4 bg-secondary/30'>
-                    <CardContent className='p-4 text-center text-sm text-muted-foreground'>
-                        <p>Putting a feature in maintenance mode will show a friendly message to users.</p>
-                        <p>Like what we do? <a href="#" className='underline hover:text-accent'>Buy Liquid a coffee!</a></p>
-                    </CardContent>
-                </Card>
-              </CardContent>
-            </Card>
+             <FeatureManagementPanel />
           </TabsContent>
         </Tabs>
       </main>
@@ -362,6 +266,38 @@ export default function AdminDashboard() {
 }
 
 const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
+  const firestore = useFirestore();
+  const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: users, isLoading, error } = useCollection(usersRef);
+
+  if (isLoading) {
+    return (
+       <div className="space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-center gap-4 p-4 rounded-lg">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className='flex-1 space-y-2'>
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-3 w-1/2" />
+              </div>
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-8 w-8 rounded-md" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <AlertTriangle className="h-12 w-12 text-destructive" />
+        <p className="mt-4 font-semibold">Failed to load users</p>
+        <p className="text-sm text-muted-foreground">{error.message}</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex items-center justify-between gap-2 pb-4">
@@ -398,16 +334,16 @@ const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {mockUsers.map((user) => (
-            <TableRow key={user.email} className="cursor-pointer" onClick={() => onSelectUser(user)}>
+          {users && users.map((user) => (
+            <TableRow key={user.id} className="cursor-pointer" onClick={() => onSelectUser(user)}>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="relative">
                      <CircleUser className="h-8 w-8 text-muted-foreground" />
-                     {user.status === 'online' && <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-background"></span>}
+                     {/* {user.status === 'online' && <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-background"></span>} */}
                   </div>
                   <div>
-                    <div className="font-medium">{user.name}</div>
+                    <div className="font-medium">{user.displayName}</div>
                     <div className="text-sm text-muted-foreground">
                       {user.email}
                     </div>
@@ -416,11 +352,11 @@ const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
               </TableCell>
               <TableCell>
                 <Badge variant={user.plan === 'Premium' ? 'default' : 'secondary'}>
-                  {user.plan}
+                  {user.plan || 'Free'}
                 </Badge>
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                {user.lastLogin}
+                {user.lastSignInTime ? formatDistanceToNow(new Date(user.lastSignInTime), { addSuffix: true }) : 'Never'}
               </TableCell>
               <TableCell>
                 <DropdownMenu>
@@ -452,7 +388,7 @@ const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
       </Table>
        <div className="flex items-center justify-end space-x-2 py-4">
             <div className="flex-1 text-sm text-muted-foreground">
-                Showing <strong>1-5</strong> of <strong>{mockUsers.length}</strong> users
+                Showing <strong>1-{users?.length || 0}</strong> of <strong>{users?.length || 0}</strong> users
             </div>
             <div className="space-x-2">
                 <Button variant="outline" size="sm">Previous</Button>
@@ -464,6 +400,28 @@ const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
 };
 
 const UserProfileView = ({ user, onBack }: { user: any; onBack: () => void }) => {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    const handlePlanChange = async (newPlan: 'Free' | 'Premium') => {
+      const userRef = doc(firestore, 'users', user.id);
+      try {
+        await updateDoc(userRef, { plan: newPlan });
+        toast({
+          title: "Plan updated",
+          description: `${user.displayName}'s plan has been changed to ${newPlan}.`
+        });
+        // Note: The UI will update automatically due to the real-time listener on the user list.
+      } catch (error) {
+        console.error("Failed to update plan:", error);
+        toast({
+          variant: "destructive",
+          title: "Update failed",
+          description: "Could not update the user's plan."
+        });
+      }
+    };
+    
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center gap-4">
@@ -471,10 +429,10 @@ const UserProfileView = ({ user, onBack }: { user: any; onBack: () => void }) =>
                     <ChevronLeft className="h-4 w-4" />
                     <span className="sr-only">Back</span>
                 </Button>
-                <h1 className="font-semibold text-lg md:text-2xl">User Profile: {user.name}</h1>
+                <h1 className="font-semibold text-lg md:text-2xl">User Profile: {user.displayName}</h1>
                 <div className="ml-auto flex items-center gap-2">
                     <Button size="sm" variant="outline">Suspend</Button>
-                    <Select defaultValue={user.plan.toLowerCase()}>
+                    <Select defaultValue={user.plan?.toLowerCase() || 'free'} onValueChange={(value) => handlePlanChange(value === 'premium' ? 'Premium' : 'Free')}>
                         <SelectTrigger className="w-[150px]">
                             <SelectValue placeholder="Select plan" />
                         </SelectTrigger>
@@ -494,8 +452,7 @@ const UserProfileView = ({ user, onBack }: { user: any; onBack: () => void }) =>
                     <CardContent>
                         <div className="text-sm text-muted-foreground space-y-2">
                             <p><strong>Email:</strong> {user.email}</p>
-                            <p><strong>Last Login:</strong> {user.lastLogin}</p>
-                            <p><strong>Status:</strong> <Badge variant={user.status === 'online' ? 'default' : 'secondary'} className={user.status === 'online' ? 'bg-green-500/20 text-green-500 border-green-500/50' : ''}>{user.status}</Badge></p>
+                            <p><strong>Last Login:</strong> {user.lastSignInTime ? formatDistanceToNow(new Date(user.lastSignInTime), { addSuffix: true }) : 'Never'}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -506,9 +463,9 @@ const UserProfileView = ({ user, onBack }: { user: any; onBack: () => void }) =>
                     </CardHeader>
                      <CardContent>
                         <div className="text-sm text-muted-foreground space-y-2">
-                            <p><strong>Subjects:</strong> {user.subjects}</p>
-                            <p><strong>Notes:</strong> {user.notes}</p>
-                            <p><strong>Documents:</strong> {user.documents}</p>
+                            <p><strong>Subjects:</strong> {user.subjects || 0}</p>
+                            <p><strong>Notes:</strong> {user.notes || 0}</p>
+                            <p><strong>Documents:</strong> {user.documents || 0}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -518,7 +475,7 @@ const UserProfileView = ({ user, onBack }: { user: any; onBack: () => void }) =>
                         <File className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                         <div className="text-2xl font-bold">{user.storage}</div>
+                         <div className="text-2xl font-bold">{user.storage || '0 MB'}</div>
                          <p className="text-xs text-muted-foreground">
                             out of {user.plan === 'Premium' ? '10 GB' : '1 GB'}
                         </p>
@@ -542,4 +499,119 @@ const UserProfileView = ({ user, onBack }: { user: any; onBack: () => void }) =>
     );
 };
 
+const initialFeatures = [
+    { id: 'ai-coach', name: 'AI Study Coach', description: 'Personalized study suggestions and topic explanations.' },
+    { id: 'ai-summaries', name: 'AI Summaries', description: 'Automatic summarization of notes and documents.' },
+    { id: 'handwriting-generation', name: 'Handwriting Generation', description: 'Generate text in a handwritten style.' },
+    { id: 'handwriting-analysis', name: 'Handwriting Analysis', description: 'Analyze handwriting samples to create AI models.' },
+    { id: 'ocr', name: 'OCR & Text Extraction', description: 'Extract text from uploaded images and PDFs.' },
+    { id: 'version-history', name: 'Note Version History', description: 'Track changes and restore previous versions of notes.' },
+    { id: 'skill-tree', name: 'Skill-Tree Visualization', description: 'Interactive knowledge map of your subjects.' },
+    { id: 'advanced-exports', name: 'Advanced Exports (PDF, Markdown)', description: 'Export notes and subjects in various formats.' },
+    { id: 'storage-limit', name: 'Higher Storage Limit (10GB)', description: 'Increased storage for premium users.' },
+];
+
+const FeatureManagementPanel = () => {
+    const firestore = useFirestore();
+    const { toast } = useToast();
     
+    const featuresConfigRef = useMemoFirebase(() => doc(firestore, 'appConfig', 'features'), [firestore]);
+    const { data: featuresConfig, isLoading, error } = useDoc(featuresConfigRef);
+
+    const handleToggle = async (featureId: string, type: 'enabled' | 'maintenance', value: boolean) => {
+        if (!featuresConfigRef) return;
+        try {
+            await updateDoc(featuresConfigRef, {
+                [`${featureId}.${type}`]: value
+            });
+            toast({
+                title: 'Feature Updated',
+                description: `Successfully updated ${featureId}.`
+            })
+        } catch (e) {
+            console.error('Failed to update feature toggle', e);
+            toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: `Could not update ${featureId}.`
+            })
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-4 w-3/4" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-2">
+                                <Skeleton className="h-5 w-32" />
+                                <Skeleton className="h-3 w-64" />
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <Skeleton className="h-6 w-20" />
+                                <Skeleton className="h-6 w-20" />
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+            <CardTitle>Feature Management</CardTitle>
+            <CardDescription>
+                Control premium features and toggle maintenance mode.
+            </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+            {initialFeatures.map(feature => {
+                const config = featuresConfig ? (featuresConfig[feature.id] || {}) : {};
+                const isEnabled = config.enabled ?? false;
+                const isMaintenance = config.maintenance ?? false;
+
+                return (
+                    <div key={feature.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4 gap-4">
+                        <div>
+                            <h3 className="font-medium">{feature.name}</h3>
+                            <p className="text-sm text-muted-foreground">{feature.description}</p>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0">
+                                <div className='flex items-center gap-2'>
+                                <Label htmlFor={`maintenance-${feature.id}`} className="text-sm flex items-center gap-1"><Wrench className="w-3 h-3" /> Maint.</Label>
+                                <Switch 
+                                    id={`maintenance-${feature.id}`} 
+                                    checked={isMaintenance}
+                                    onCheckedChange={(checked) => handleToggle(feature.id, 'maintenance', checked)}
+                                />
+                                </div>
+                                <Separator orientation='vertical' className='h-6' />
+                                <div className='flex items-center gap-2'>
+                                <Label htmlFor={`premium-${feature.id}`} className="text-sm flex items-center gap-1"><Zap className="w-3 h-3" /> Premium</Label>
+                                <Switch 
+                                    id={`premium-${feature.id}`} 
+                                    checked={isEnabled} 
+                                    onCheckedChange={(checked) => handleToggle(feature.id, 'enabled', checked)}
+                                    />
+                                </div>
+                        </div>
+                    </div>
+                )
+            })}
+            <Card className='mt-4 bg-secondary/30'>
+                <CardContent className='p-4 text-center text-sm text-muted-foreground'>
+                    <p>Putting a feature in maintenance mode will show a friendly message to users.</p>
+                    <p>Like what we do? <a href="#" className='underline hover:text-accent'>Buy Liquid a coffee!</a></p>
+                </CardContent>
+            </Card>
+            </CardContent>
+        </Card>
+    )
+}
