@@ -83,6 +83,14 @@ export default function AccountPage() {
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            if (file.size > 200 * 1024) { // 200KB
+                toast({
+                    variant: "destructive",
+                    title: "Image too large",
+                    description: "Please upload an image smaller than 200KB.",
+                });
+                return;
+            }
             setAvatarFile(file);
             setAvatarPreview(URL.createObjectURL(file));
         }
@@ -358,9 +366,5 @@ export default function AccountPage() {
              </Card>
         </div>
     );
-}
-
-
-    
 
     
