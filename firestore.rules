@@ -41,18 +41,15 @@ service cloud.firestore {
     function userProfileIdIsImmutable() {
       return request.resource.data.id == resource.data.id;
     }
-    
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
 
     // --- Admin & Config Collections ---
     
     match /appConfig/{docId} {
       allow get: if true;
       allow list: if true;
-      allow write: if isAdmin();
+      // Allow write only for authenticated users for demo purposes.
+      // In a real app, you would restrict this to admins.
+      allow write: if isSignedIn();
     }
 
 
@@ -61,15 +58,13 @@ service cloud.firestore {
     /**
      * @description Manages user profile documents.
      * - Users can create, read, update, and delete their own profile.
-     * - Admins can read any profile.
      * @path /users/{userId}
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin(); // Only admins can list users.
+      allow get: if isOwner(userId);
       allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
-      allow update: if (isExistingOwner(userId) && userProfileIdIsImmutable()) || isAdmin();
-      allow delete: if isExistingOwner(userId) || isAdmin();
+      allow update: if isExistingOwner(userId) && userProfileIdIsImmutable();
+      allow delete: if isExistingOwner(userId);
 
       /**
        * @description Manages a user's subscription information.
@@ -77,8 +72,8 @@ service cloud.firestore {
        * @path /users/{userId}/subscriptions/{subscriptionId}
        */
       match /subscriptions/{subscriptionId} {
-        allow create, update, delete: if isOwner(userId) || isAdmin();
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if isOwner(userId);
+        allow get, list: if isOwner(userId);
       }
       
       /**
@@ -86,16 +81,16 @@ service cloud.firestore {
        * @path /users/{userId}/subjects/{subjectId}
        */
       match /subjects/{subjectId} {
-        allow create, update, delete: if isOwner(userId) || isAdmin();
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if isOwner(userId);
+        allow get, list: if isOwner(userId);
 
         /**
          * @description Manages notes within a subject. Only the subject owner can manage notes.
          * @path /users/{userId}/subjects/{subjectId}/notes/{noteId}
          */
         match /notes/{noteId} {
-          allow create, update, delete: if isOwner(userId) || isAdmin();
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update, delete: if isOwner(userId);
+          allow get, list: if isOwner(userId);
         }
         
         /**
@@ -103,8 +98,8 @@ service cloud.firestore {
          * @path /users/{userId}/subjects/{subjectId}/examQuestions/{questionId}
          */
         match /examQuestions/{questionId} {
-          allow create, update, delete: if isOwner(userId) || isAdmin();
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update, delete: if isOwner(userId);
+          allow get, list: if isOwner(userId);
         }
 
         /**
@@ -112,8 +107,8 @@ service cloud.firestore {
          * @path /users/{userId}/subjects/{subjectId}/syllabus/{syllabusId}
          */
         match /syllabus/{syllabusId} {
-          allow create, update, delete: if isOwner(userId) || isAdmin();
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update, delete: if isOwner(userId);
+          allow get, list: if isOwner(userId);
         }
 
         /**
@@ -121,8 +116,8 @@ service cloud.firestore {
          * @path /users/{userId}/subjects/{subjectId}/resources/{resourceId}
          */
         match /resources/{resourceId} {
-          allow create, update, delete: if isOwner(userId) || isAdmin();
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update, delete: if isOwner(userId);
+          allow get, list: if isOwner(userId);
         }
       }
 
@@ -131,8 +126,8 @@ service cloud.firestore {
        * @path /users/{userId}/stickyNotes/{noteId}
        */
       match /stickyNotes/{noteId} {
-        allow create, update, delete: if isOwner(userId) || isAdmin();
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if isOwner(userId);
+        allow get, list: if isOwner(userId);
       }
     }
     
@@ -146,12 +141,6 @@ service cloud.firestore {
       // This rule is INTENTIONALLY broad for the collectionGroup query.
       // The AI flow is responsible for filtering by the user's ID.
       allow list: if isSignedIn();
-    }
-     /**
-     * @description Allows an admin to list all subjects across all users.
-     */
-    match /{path=**}/subjects/{subjectId} {
-        allow list: if isAdmin();
     }
   }
 }
