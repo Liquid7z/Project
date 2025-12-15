@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Plus, Loader } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { StickyNote } from '@/components/sticky-note';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, setDoc } from 'firebase/firestore';
 import type { WithId } from '@/firebase';
 import { v4 as uuidv4 } from 'uuid';
+import { WipPage } from '@/components/wip-page';
 
 
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green';
@@ -47,6 +48,9 @@ export default function DashboardPage() {
   const { data: serverNotes, isLoading: areNotesLoading, error } = useCollection<Omit<StickyNoteData, 'id'>>(notesQuery);
 
   const [localNotes, setLocalNotes] = useState<StickyNoteData[]>([]);
+
+  const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+  const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
 
   React.useEffect(() => {
     if (serverNotes) {
@@ -143,7 +147,11 @@ export default function DashboardPage() {
     }
   };
   
-  const isLoading = isUserLoading || areNotesLoading;
+  const isLoading = isUserLoading || areNotesLoading || isConfigLoading;
+
+  if (siteConfig?.stickyNotesWip) {
+      return <WipPage />;
+  }
 
   if (isLoading && localNotes.length === 0) {
     return (
@@ -187,3 +195,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

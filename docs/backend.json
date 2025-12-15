@@ -111,11 +111,12 @@
       "description": "Stores site-wide configuration and feature flags.",
       "properties": {
         "siteWideMaintenance": { "type": "boolean", "description": "Puts the entire site into maintenance mode." },
-        "activityWip": { "type": "boolean", "description": "Puts the Activity page into maintenance." },
+        "stickyNotesWip": { "type": "boolean", "description": "Puts the Sticky Notes page into maintenance." },
         "generateWip": { "type": "boolean", "description": "Puts the Generate page into maintenance." },
         "notesWip": { "type": "boolean", "description": "Puts the Notes page into maintenance." },
         "analyzeWip": { "type": "boolean", "description": "Puts the Analyze page into maintenance." },
         "accountWip": { "type": "boolean", "description": "Puts the Account page into maintenance." },
+        "skillTreeWip": { "type": "boolean", "description": "Puts the Skill Tree feature into maintenance." },
         "premiumStyleAnalysis": { "type": "boolean", "description": "Feature flag for premium style analysis." }
       }
     }
@@ -164,3 +165,5 @@
     ]
   }
 }
+
+    

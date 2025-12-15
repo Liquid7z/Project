@@ -27,7 +27,8 @@ import {
   LayoutDashboard,
   Bot,
   Shield,
-  Droplets
+  Droplets,
+  StickyNote
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -43,7 +44,7 @@ import { doc } from 'firebase/firestore';
 import { WipPage } from '@/components/wip-page';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Activity', configFlag: 'activityWip' },
+  { href: '/dashboard', icon: StickyNote, label: 'Sticky Notes', configFlag: 'stickyNotesWip' },
   { href: '/dashboard/generate', icon: Bot, label: 'Generate', configFlag: 'generateWip' },
   { href: '/dashboard/notes', icon: Notebook, label: 'Notes', configFlag: 'notesWip' },
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style', configFlag: 'analyzeWip' },
@@ -107,11 +108,16 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   // Per-page maintenance check
   const currentNavItem = navItems.find(item => pathname.startsWith(item.href));
   if (currentNavItem && siteConfig?.[currentNavItem.configFlag] && !isAdmin) {
-      return (
-        <div className="flex h-screen w-full items-center justify-center p-4">
-            <WipPage />
-        </div>
-      )
+      // Special case for the root dashboard page
+      if (currentNavItem.href === '/dashboard' && pathname !== '/dashboard') {
+          // Don't show WIP if we are on a sub-page of dashboard, like /dashboard/notes
+      } else {
+         return (
+            <div className="flex h-screen w-full items-center justify-center p-4">
+                <WipPage />
+            </div>
+         )
+      }
   }
   
   const currentNavItems = isAdmin ? [...navItems, ...adminNavItems] : navItems;
@@ -276,3 +282,5 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
+
+    

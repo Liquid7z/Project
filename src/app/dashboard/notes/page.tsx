@@ -15,7 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -32,7 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SkillTreeView } from '@/components/skill-tree-view';
-
+import { WipPage } from '@/components/wip-page';
 
 const subjectFormSchema = z.object({
     name: z.string().min(1, 'Subject name is required.'),
@@ -52,6 +52,9 @@ export default function NotesDashboardPage() {
     }, [user, firestore]);
 
     const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
+
+    const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+    const { data: siteConfig } = useDoc(siteConfigRef);
 
     const form = useForm<z.infer<typeof subjectFormSchema>>({
         resolver: zodResolver(subjectFormSchema),
@@ -245,7 +248,8 @@ export default function NotesDashboardPage() {
                     </div>
                 </TabsContent>
                  <TabsContent value="skill-tree" className="mt-6">
-                    <SkillTreeView />
+                    {siteConfig?.skillTreeWip && <WipPage />}
+                    {!siteConfig?.skillTreeWip && <SkillTreeView />}
                  </TabsContent>
             </Tabs>
             
@@ -302,3 +306,5 @@ export default function NotesDashboardPage() {
         </div>
     );
 }
+
+    
