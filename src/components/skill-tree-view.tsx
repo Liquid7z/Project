@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card } from './ui/card';
 import { Loader, Network, Wand2, Plus, Save } from 'lucide-react';
-import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { generateSkillTreeAction, explainTopicAction } from '@/actions/generation';
@@ -28,8 +28,9 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { SaveSkillTreeDialog } from './save-skill-tree-dialog';
+import { isToday } from 'date-fns';
 
 
 interface Node {
@@ -139,8 +140,33 @@ export function SkillTreeView() {
     const [explainingNode, setExplainingNode] = useState<string | null>(null);
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
+    const userProfileRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+    const { data: userProfile } = useDoc(userProfileRef);
+
+    const freePlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'free'), [firestore]);
+    const { data: freePlanConfig } = useDoc(freePlanConfigRef);
+
+    const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
+    const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
+
     const handleGenerateTree = async (newTopic: string) => {
-        if (!newTopic) return;
+        if (!newTopic || !user) return;
+
+        const planConfig = userProfile?.plan === 'Premium' ? premiumPlanConfig : freePlanConfig;
+        const limit = planConfig?.dailySkillTreeLimit ?? 0;
+        
+        const lastGenDate = userProfile?.lastGenerationDate ? new Date(userProfile.lastGenerationDate) : null;
+        const generationsToday = lastGenDate && isToday(lastGenDate) ? userProfile?.skillTreeGenerations || 0 : 0;
+        
+        if (limit !== -1 && generationsToday >= limit) {
+             toast({
+                variant: "destructive",
+                title: "Daily Limit Reached",
+                description: `You have reached your daily limit of ${limit} skill tree generations. Upgrade to premium for unlimited access.`,
+            });
+            return;
+        }
+
         setIsGenerating(true);
         setNodes([]);
         setEdges([]);
@@ -154,6 +180,20 @@ export function SkillTreeView() {
             setNodes(finalNodes);
             setEdges(finalEdges);
             setTopic(newTopic);
+
+            // Update user's generation count
+             if (userProfileRef) {
+                const updates: any = {
+                    lastGenerationDate: new Date().toISOString(),
+                };
+                if (lastGenDate && isToday(lastGenDate)) {
+                    updates.skillTreeGenerations = increment(1);
+                } else {
+                    updates.skillTreeGenerations = 1;
+                }
+                await updateDoc(userProfileRef, updates);
+            }
+
 
         } catch (error) {
             console.error("Failed to generate skill tree:", error);
@@ -239,18 +279,40 @@ export function SkillTreeView() {
                 return 'bg-secondary text-secondary-foreground';
         }
     };
+    
+    const renderGenerationCredits = () => {
+        if (!userProfile) return null;
+
+        const planConfig = userProfile.plan === 'Premium' ? premiumPlanConfig : freePlanConfig;
+        const limit = planConfig?.dailySkillTreeLimit;
+
+        if (limit === undefined) return null;
+        if (limit === -1) return <div className="text-xs text-muted-foreground">Unlimited Generations</div>;
+
+        const lastGenDate = userProfile.lastGenerationDate ? new Date(userProfile.lastGenerationDate) : null;
+        const generationsToday = lastGenDate && isToday(lastGenDate) ? userProfile.skillTreeGenerations || 0 : 0;
+        const remaining = Math.max(0, limit - generationsToday);
+
+        return (
+            <div className="text-xs text-muted-foreground">
+                Daily Credits: {remaining} / {limit}
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-4">
              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                    type="text"
-                    placeholder="Search a topic or ask a question..."
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleGenerateTree(topic)}
-                    className="flex-grow"
-                />
+                <div className="flex-grow">
+                    <Input
+                        type="text"
+                        placeholder="Search a topic or ask a question..."
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleGenerateTree(topic)}
+                    />
+                     {renderGenerationCredits()}
+                </div>
                 <Button onClick={() => handleGenerateTree(topic)} disabled={isGenerating || !topic} className="w-full sm:w-auto">
                     {isGenerating ? <Loader className="animate-spin mr-2" /> : <Wand2 className="mr-2" />}
                     Generate
@@ -403,3 +465,5 @@ export function SkillTreeView() {
         </div>
     );
 }
+
+    

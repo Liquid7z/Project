@@ -29,6 +29,7 @@ type PlanConfig = {
     docUploadLimit?: number;
     storageLimitMb?: number;
     dailyAiUsageLimit?: number;
+    dailySkillTreeLimit?: number;
     featureAdvancedSkillTree?: boolean;
     featureWhiteboardNotes?: boolean;
     featurePdfPagePreview?: boolean;
@@ -57,6 +58,7 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
                 docUploadLimit: 0,
                 storageLimitMb: 0,
                 dailyAiUsageLimit: 0,
+                dailySkillTreeLimit: 0,
                 featureAdvancedSkillTree: false,
                 featureWhiteboardNotes: false,
                 featurePdfPagePreview: false,
@@ -128,6 +130,10 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
                      <div className="space-y-2">
                          <Label htmlFor={`${planId}-ai-limit`}>Daily AI Usage</Label>
                          <Input id={`${planId}-ai-limit`} type="number" value={config.dailyAiUsageLimit ?? ''} onChange={(e) => handleNumericChange('dailyAiUsageLimit', e.target.value)} />
+                     </div>
+                      <div className="space-y-2">
+                         <Label htmlFor={`${planId}-skill-tree-limit`}>Skill Tree Credits (per day)</Label>
+                         <Input id={`${planId}-skill-tree-limit`} type="number" placeholder="-1 for unlimited" value={config.dailySkillTreeLimit ?? ''} onChange={(e) => handleNumericChange('dailySkillTreeLimit', e.target.value)} />
                      </div>
                  </div>
 
@@ -227,7 +233,7 @@ export default function LiquidAdminPage() {
 
     const handleConfigToggle = async (key: string, value: boolean) => {
         if (!siteConfigRef) return;
-        await setDoc(siteConfigRef, { [key]: value }, { merge: true });
+        await updateDoc(siteConfigRef, { [key]: value });
     };
 
     const handlePlanConfigSave = async (planId: string, data: PlanConfig) => {
@@ -344,27 +350,27 @@ export default function LiquidAdminPage() {
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="stickyNotesWip" className="flex items-center gap-2"><StickyNote className="w-4 h-4" />Sticky Notes Active</Label>
-                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip ?? true} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c)} />
+                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c ? null : false)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="generateWip" className="flex items-center gap-2"><Bot className="w-4 h-4" />Generate Page Active</Label>
-                                   <Switch id="generateWip" checked={siteConfig?.generateWip ?? true} onCheckedChange={(c) => handleConfigToggle('generateWip', c)} />
+                                   <Switch id="generateWip" checked={siteConfig?.generateWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('generateWip', c ? null : false)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="notesWip" className="flex items-center gap-2"><Notebook className="w-4 h-4" />Notes Page Active</Label>
-                                   <Switch id="notesWip" checked={siteConfig?.notesWip ?? true} onCheckedChange={(c) => handleConfigToggle('notesWip', c)} />
+                                   <Switch id="notesWip" checked={siteConfig?.notesWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('notesWip', c ? null : false)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="analyzeWip" className="flex items-center gap-2"><ScanLine className="w-4 h-4" />Analyze Page Active</Label>
-                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip ?? true} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c)} />
+                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c ? null : false)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="accountWip" className="flex items-center gap-2"><User className="w-4 h-4" />Account Page Active</Label>
-                                   <Switch id="accountWip" checked={siteConfig?.accountWip ?? true} onCheckedChange={(c) => handleConfigToggle('accountWip', c)} />
+                                   <Switch id="accountWip" checked={siteConfig?.accountWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('accountWip', c ? null : false)} />
                                </div>
                                <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="skillTreeWip" className="flex items-center gap-2"><Network className="w-4 h-4" />Skill Tree Active</Label>
-                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip ?? true} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', c)} />
+                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', c ? null : false)} />
                                </div>
                            </CardContent>
                        </Card>
@@ -385,3 +391,5 @@ export default function LiquidAdminPage() {
         </div>
     );
 }
+
+    

@@ -18,7 +18,9 @@
         "subscriptionId": { "type": "string", "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)" },
         "plan": { "type": "string", "description": "User's subscription plan.", "enum": ["Free", "Premium"] },
         "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." },
-        "isAdmin": { "type": "boolean", "description": "Indicates if the user has administrative privileges." }
+        "isAdmin": { "type": "boolean", "description": "Indicates if the user has administrative privileges." },
+        "skillTreeGenerations": { "type": "number", "description": "Count of skill tree generations for the current day." },
+        "lastGenerationDate": { "type": "string", "description": "The date of the last skill tree generation, in ISO 8601 format." }
       },
       "required": ["id", "email"]
     },
@@ -132,6 +134,7 @@
         "docUploadLimit": { "type": "number", "description": "Total document upload limit." },
         "storageLimitMb": { "type": "number", "description": "Cloud storage limit in MB." },
         "dailyAiUsageLimit": { "type": "number", "description": "Daily AI generation/analysis limit." },
+        "dailySkillTreeLimit": { "type": "number", "description": "Daily skill tree generation limit. -1 for unlimited." },
         "featureAdvancedSkillTree": { "type": "boolean" },
         "featureWhiteboardNotes": { "type": "boolean" },
         "featurePdfPagePreview": { "type": "boolean" },
@@ -191,3 +194,5 @@
     ]
   }
 }
+
+    
