@@ -14,8 +14,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const logoSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 16.5l-3.5-3.5' /><path d='M17.5 6.5L14 10' /><path d='M14.5 13.5L18 10' /><path d='M12 22a10 10 0 00-9.9-9.5' /><path d='M2.5 12.5a10 10 0 0119.5-2' /></svg>`;
-  const favicon = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236F00FF'></rect>${encodeURIComponent(logoSvg.replace(/stroke='white'/g, "stroke='white' transform='scale(3) translate(3, 3)'"))}</svg>`;
+  const logoSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z'/><line x1='16' y1='8' x2='2' y2='22'/><line x1='17.5' y1='15' x2='9' y2='15'/></svg>`;
+  const favicon = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236F00FF'></rect>${encodeURIComponent(logoSvg.replace(/stroke='white'/g, "stroke='white' transform='scale(3) translate(4, 4)'"))}</svg>`;
 
   return (
     <html lang="en" className="dark">
