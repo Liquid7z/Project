@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Loader, Network, Wand2, Plus } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, collectionGroup, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { generateSkillTreeFromTopic, type GenerateSkillTreeInput, type GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
@@ -74,11 +74,11 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const { toast } = useToast();
 
     // Fetch existing notes to merge with AI generated ones
-    const notesCollectionRef = useMemoFirebase(() => {
+    const notesQuery = useMemoFirebase(() => {
         if (!user) return null;
-        return collection(firestore, `users/${user.uid}/notes`);
+        return query(collectionGroup(firestore, 'notes'), where('__name__', '>', `users/${user.uid}/`));
     }, [user, firestore]);
-    const { data: allNotes } = useCollection(notesCollectionRef);
+    const { data: allNotes } = useCollection(notesQuery);
 
      // Function to layout nodes
     const layoutNodes = (subjectsToLayout: any[], notesToLayout: any[]) => {
@@ -103,17 +103,24 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                 isPlaceholder: subject.isPlaceholder,
             });
 
-             const relatedNotes = notesToLayout.filter((note) => note.subjectId === subject.id);
+             const relatedNotes = notesToLayout.filter((note) => {
+                // For Firestore collectionGroup queries, the path is available to extract parent IDs
+                if (note.ref?.parent.parent) {
+                    return note.ref.parent.parent.id === subject.id;
+                }
+                return note.subjectId === subject.id;
+             });
 
             relatedNotes.forEach((note, noteIndex) => {
                 const noteId = `note-${note.id}`;
+                const subjectIdForNote = note.ref?.parent.parent.id || note.subjectId;
                 newNodes.push({
                     id: noteId,
                     label: note.title,
                     type: 'note',
                     x: x + 100 + (noteIndex % 3) * 30,
                     y: y - 30 + (noteIndex * 25),
-                    subjectId: subject.id,
+                    subjectId: subjectIdForNote,
                     isImportant: note.isImportant || false,
                     isPlaceholder: note.isPlaceholder,
                 });
@@ -131,8 +138,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     // Initial layout of existing subjects
     useEffect(() => {
         if (!subjects) return;
-        const notesForSubjects = (allNotes || []).filter(note => subjects.some(s => s.id === note.subjectId));
-        const { newNodes, newEdges } = layoutNodes(subjects, notesForSubjects);
+        const { newNodes, newEdges } = layoutNodes(subjects, allNotes || []);
         setNodes(newNodes);
         setEdges(newEdges);
         setIsInitialLoading(false);
