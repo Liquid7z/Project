@@ -100,7 +100,7 @@ const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
     
     // Calculate widths recursively
     const calculateWidths = (node: Node) => {
-        if (node.children?.length === 0) {
+        if (!node.children || node.children.length === 0) {
             node.width = NODE_WIDTH;
             return;
         }
@@ -109,14 +109,16 @@ const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
             calculateWidths(child);
             childrenWidth += child.width || 0;
         });
-        node.width = Math.max(NODE_WIDTH, childrenWidth + (node.children!.length - 1) * HORIZONTAL_SPACING);
+        node.width = Math.max(NODE_WIDTH, childrenWidth + (node.children.length - 1) * HORIZONTAL_SPACING);
     };
     calculateWidths(keyConcept);
 
     // Position nodes recursively
     const positionNodes = (node: Node, x: number, y: number) => {
-        node.x = x + (node.width || NODE_WIDTH) / 2;
-        node.y = y + NODE_HEIGHT / 2;
+        node.x = x + ((node.width || NODE_WIDTH) - NODE_WIDTH) / 2;
+        node.y = y;
+        
+        if (!node.children || node.children.length === 0) return;
         
         let currentX = x;
         node.children?.forEach(child => {
@@ -127,6 +129,30 @@ const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
     
     const totalWidth = keyConcept.width || NODE_WIDTH;
     positionNodes(keyConcept, (VIEW_WIDTH - totalWidth) / 2, 50);
+    
+    // Center children under their parent
+    const centerChildren = (node: Node) => {
+        if (!node.children || node.children.length === 0) return;
+
+        const childrenTotalWidth = node.children.reduce((acc, child) => acc + (child.width || NODE_WIDTH), 0) + (node.children.length - 1) * HORIZONTAL_SPACING;
+        let startX = node.x + (NODE_WIDTH - childrenTotalWidth) / 2;
+        
+        node.children.forEach(child => {
+            const childXOffset = startX - child.x;
+            const moveSubtree = (subNode: Node, offset: number) => {
+                subNode.x += offset;
+                if(subNode.children) {
+                    subNode.children.forEach(c => moveSubtree(c, offset));
+                }
+            }
+            moveSubtree(child, childXOffset);
+            startX += (child.width || NODE_WIDTH) + HORIZONTAL_SPACING;
+        });
+        
+        node.children.forEach(centerChildren);
+    };
+    centerChildren(keyConcept);
+
 
     return { finalNodes: Object.values(nodesMap), finalEdges: aiEdges };
 };
@@ -169,8 +195,8 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                 id: subjectId,
                 label: subject.name,
                 type: 'subject',
-                x,
-                y,
+                x: x,
+                y: y,
                 isImportant: subject.isImportant,
                 isPlaceholder: subject.isPlaceholder,
             });
@@ -217,19 +243,20 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     }, [subjects, allNotes]);
 
 
-    const handleGenerateTree = async () => {
-        if (!topic) return;
+    const handleGenerateTree = async (newTopic: string) => {
+        if (!newTopic) return;
         setIsGenerating(true);
         setNodes([]);
         setEdges([]);
 
         try {
-            const result: GenerateSkillTreeOutput = await generateSkillTreeFromTopic({ topic });
+            const result: GenerateSkillTreeOutput = await generateSkillTreeFromTopic({ topic: newTopic });
             
             const { finalNodes, finalEdges } = layoutHierarchical(result.nodes, result.edges);
             
             setNodes(finalNodes);
             setEdges(finalEdges);
+            setTopic(newTopic);
 
         } catch (error) {
             console.error("Failed to generate skill tree:", error);
@@ -275,19 +302,17 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     }
 
 
-    const handleNodeClick = (node: Node) => {
+    const handleNodeDoubleClick = (node: Node) => {
         if (node.isPlaceholder) {
-            // This is handled by the AlertDialog now
-        } else if (node.type === 'subject' || node.type === 'key-concept' || node.type === 'main-idea') {
-            const subjectId = node.id.startsWith('subject-') ? node.id.replace('subject-','') : node.id;
-            // Check if the subject exists before navigating
-            const subjectExists = subjects.some(s => s.id === subjectId);
-            if (subjectExists) {
-                 router.push(`/dashboard/notes/${subjectId}`);
-            } else {
-                 toast({ title: "Subject not yet created", description: "Please create the subject from the skill tree first.", variant: "default" });
-            }
-        } else if (node.type === 'note' && node.subjectId) {
+            // Placeholder creation is handled by the AlertDialog confirmation
+            return;
+        }
+        // Regenerate tree for any concept/subject node
+        if (node.type === 'subject' || node.type === 'key-concept' || node.type === 'main-idea' || node.type === 'detail') {
+            handleGenerateTree(node.label);
+        } 
+        // Navigate for existing notes
+        else if (node.type === 'note' && node.subjectId) {
              const noteId = node.id.startsWith('note-') ? node.id.replace('note-','') : node.id;
              router.push(`/dashboard/notes/${node.subjectId}/notes/${noteId}`);
         }
@@ -341,9 +366,10 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     placeholder="Enter a topic to generate a new skill tree..."
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleGenerateTree(topic)}
                     className="flex-grow"
                 />
-                <Button onClick={handleGenerateTree} disabled={isGenerating || !topic} className="w-full sm:w-auto">
+                <Button onClick={() => handleGenerateTree(topic)} disabled={isGenerating || !topic} className="w-full sm:w-auto">
                     {isGenerating ? <Loader className="animate-spin mr-2" /> : <Wand2 className="mr-2" />}
                     Generate with AI
                 </Button>
@@ -386,9 +412,9 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                 return (
                                     <motion.line
                                         key={edge.id}
-                                        x1={sourceNode.x}
-                                        y1={sourceNode.y}
-                                        x2={targetNode.x}
+                                        x1={sourceNode.x + NODE_WIDTH / 2}
+                                        y1={sourceNode.y + NODE_HEIGHT}
+                                        x2={targetNode.x + NODE_WIDTH / 2}
                                         y2={targetNode.y}
                                         stroke="hsl(var(--border))"
                                         strokeWidth="1"
@@ -415,8 +441,8 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                                     node.isPlaceholder && 'border-2 border-dashed border-accent'
                                                 )}
                                                 style={{
-                                                    left: node.x - NODE_WIDTH / 2,
-                                                    top: node.y - NODE_HEIGHT / 2,
+                                                    left: node.x,
+                                                    top: node.y,
                                                     width: NODE_WIDTH,
                                                     height: NODE_HEIGHT,
                                                     textAlign: 'center',
@@ -426,7 +452,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ duration: 0.3 }}
                                                 onClick={() => handleExplain(node)}
-                                                onDoubleClick={() => handleNodeClick(node)}
+                                                onDoubleClick={() => handleNodeDoubleClick(node)}
                                             >
                                                 <span className="truncate">{node.label}</span>
                                                 {node.isPlaceholder && (
@@ -439,7 +465,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                             </motion.div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p className="text-xs">Click to explain, double-click to open.</p>
+                                            <p className="text-xs">Click for AI explanation. Double-click to generate new tree.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -458,7 +484,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                             </AlertDialog>
                         ))}
                         <div className="absolute bottom-2 right-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
-                            Click to explain, double-click to open.
+                            Click for AI explanation. Double-click to expand.
                         </div>
                     </div>
                  )}
@@ -472,7 +498,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                            AI-generated explanation
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-foreground max-h-[60vh] overflow-y-auto">
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-foreground max-h-[60vh] overflow-y-auto p-1">
                         {isExplaining && !explanation?.content ? (
                             <div className="flex items-center justify-center p-8">
                                 <Loader className="animate-spin mr-2" /> Generating explanation...
@@ -486,5 +512,3 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         </div>
     );
 }
-
-    
