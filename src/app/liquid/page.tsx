@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Activity,
@@ -102,8 +103,9 @@ export default function AdminDashboard() {
 
   // This effect handles redirection once all loading is complete.
   React.useEffect(() => {
+    const isLoading = isUserLoading || isProfileLoading;
     // Wait until both user auth and profile loading are finished.
-    if (isUserLoading || isProfileLoading) {
+    if (isLoading) {
       return; // Still loading, do nothing yet.
     }
     
@@ -124,7 +126,7 @@ export default function AdminDashboard() {
 
   // If loading is finished and the user is an admin, render the dashboard.
   // The redirection logic above will handle non-admin cases.
-  if (isAdmin) {
+  if (user && isAdmin) {
     return (
       <div className="flex min-h-screen w-full flex-col">
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
