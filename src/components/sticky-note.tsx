@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, 'react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 import { Card } from './ui/card';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
+import { useDebounce } from 'use-debounce';
 
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green';
 
@@ -16,27 +17,41 @@ export interface StickyNoteData {
   id: string;
   title: string;
   content: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
   color: StickyNoteColor;
 }
 
 interface StickyNoteProps {
   note: StickyNoteData;
-  onUpdate: (id: string, newTitle: string, newContent: string) => void;
+  onUpdate: (id: string, newTitle: string, newContent:string) => void;
   onDelete: (id: string) => void;
 }
 
 export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
-  const [title, setTitle] = useState(note.title);
-  const [content, setContent] = useState(note.content);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [title, setTitle] = React.useState(note.title);
+  const [content, setContent] = React.useState(note.content);
+  const cardRef = React.useRef<HTMLDivElement>(null);
   
-  const handleBlur = () => {
-    if (note.title !== title || note.content !== content) {
-        onUpdate(note.id, title, content);
+  const [debouncedTitle] = useDebounce(title, 500);
+  const [debouncedContent] = useDebounce(content, 500);
+
+  React.useEffect(() => {
+    // Check if the debounced value is different from the original note prop before updating.
+    // This prevents firing an update on initial render.
+    if (debouncedTitle !== note.title || debouncedContent !== note.content) {
+        onUpdate(note.id, debouncedTitle, debouncedContent);
     }
-  };
+  }, [debouncedTitle, debouncedContent, note.id, note.title, note.content, onUpdate]);
+
+  // When the note prop changes from upstream (e.g., initial load from DB),
+  // update the local state, but only if it's not currently being edited.
+  // This avoids overwriting user input.
+  React.useEffect(() => {
+      if (document.activeElement !== cardRef.current?.querySelector('input') && document.activeElement !== cardRef.current?.querySelector('textarea')) {
+          if(note.title !== title) setTitle(note.title);
+          if(note.content !== content) setContent(note.content);
+      }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note.title, note.content]);
   
   const noteColorClasses = {
       yellow: 'bg-yellow-200/80 border-yellow-300/80 text-yellow-900',
@@ -46,7 +61,7 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
   }
 
   // Adjust textarea height
-  useEffect(() => {
+  React.useEffect(() => {
     const textarea = cardRef.current?.querySelector('textarea');
     if (textarea) {
       textarea.style.height = 'auto';
@@ -78,7 +93,6 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
          <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onBlur={handleBlur}
             className="font-bold text-lg border-none bg-transparent focus-visible:ring-0 p-0 h-auto placeholder:text-inherit/70 mb-2"
             placeholder="Title"
         />
@@ -86,7 +100,6 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          onBlur={handleBlur}
           className="w-full h-auto flex-grow resize-none border-none focus-visible:ring-0 bg-transparent text-sm placeholder:text-inherit/70 p-0 leading-relaxed"
           placeholder="Take a note..."
         />

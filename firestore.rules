@@ -146,6 +146,14 @@ service cloud.firestore {
           allow list, get, create, update, delete: if isOwner(userId);
         }
       }
+
+      /**
+       * @description Manages dashboard sticky notes. Only the user can manage their own sticky notes.
+       * @path /users/{userId}/stickyNotes/{noteId}
+       */
+      match /stickyNotes/{noteId} {
+        allow list, get, create, update, delete: if isOwner(userId);
+      }
     }
   }
 }

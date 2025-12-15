@@ -85,6 +85,19 @@
         "tags": { "type": "array", "description": "A list of tags for the resource.", "items": { "type": "string" } }
       },
       "required": ["title", "blocks"]
+    },
+    "StickyNote": {
+      "title": "StickyNote",
+      "type": "object",
+      "description": "Represents a short, sticky note on the dashboard.",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the sticky note." },
+        "content": { "type": "string", "description": "The content of the sticky note." },
+        "color": { "type": "string", "description": "The background color of the note.", "enum": ["yellow", "pink", "blue", "green"] },
+        "createdAt": { "type": "string", "description": "Timestamp of creation.", "format": "date-time" },
+        "updatedAt": { "type": "string", "description": "Timestamp of last update.", "format": "date-time" }
+      },
+      "required": ["title", "content", "color"]
     }
   },
   "auth": {
@@ -119,6 +132,10 @@
       {
         "path": "/users/{userId}/subjects/{subjectId}/resources/{resourceId}",
         "definition": { "entityName": "Resource", "schema": { "$ref": "#/backend/entities/Resource" }, "description": "Stores resources for a subject." }
+      },
+      {
+        "path": "/users/{userId}/stickyNotes/{noteId}",
+        "definition": { "entityName": "StickyNote", "schema": { "$ref": "#/backend/entities/StickyNote" }, "description": "Stores dashboard sticky notes for each user." }
       }
     ]
   }
