@@ -149,7 +149,7 @@ export default function DashboardPage() {
   
   const isLoading = isUserLoading || areNotesLoading || isConfigLoading;
 
-  if (siteConfig?.stickyNotesWip) {
+  if (siteConfig?.stickyNotesWip === false) {
       return <WipPage />;
   }
 

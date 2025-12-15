@@ -54,7 +54,7 @@ export default function NotesDashboardPage() {
     const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
 
     const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
-    const { data: siteConfig } = useDoc(siteConfigRef);
+    const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
 
     const form = useForm<z.infer<typeof subjectFormSchema>>({
         resolver: zodResolver(subjectFormSchema),
@@ -137,7 +137,8 @@ export default function NotesDashboardPage() {
       }
     };
     
-    const isLoading = isUserLoading || areSubjectsLoading;
+    const isLoading = isUserLoading || areSubjectsLoading || isConfigLoading;
+    const isSkillTreeWip = siteConfig?.skillTreeWip === false;
 
     return (
         <div className="space-y-6">
@@ -248,8 +249,8 @@ export default function NotesDashboardPage() {
                     </div>
                 </TabsContent>
                  <TabsContent value="skill-tree" className="mt-6">
-                    {siteConfig?.skillTreeWip && <WipPage />}
-                    {!siteConfig?.skillTreeWip && <SkillTreeView />}
+                    {isSkillTreeWip && <WipPage />}
+                    {!isSkillTreeWip && <SkillTreeView />}
                  </TabsContent>
             </Tabs>
             

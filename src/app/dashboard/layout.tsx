@@ -105,9 +105,9 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     return <WipPage />;
   }
 
-  // Per-page maintenance check
+  // Per-page maintenance check - if the flag is FALSE, it's in WIP
   const currentNavItem = navItems.find(item => pathname.startsWith(item.href));
-  if (currentNavItem && siteConfig?.[currentNavItem.configFlag] && !isAdmin) {
+  if (currentNavItem && siteConfig?.[currentNavItem.configFlag] === false && !isAdmin) {
       // Special case for the root dashboard page
       if (currentNavItem.href === '/dashboard' && pathname !== '/dashboard') {
           // Don't show WIP if we are on a sub-page of dashboard, like /dashboard/notes
