@@ -87,18 +87,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
 
-const usageData = [
-  { name: 'Jan', total: Math.floor(Math.random() * 200) + 100 },
-  { name: 'Feb', total: Math.floor(Math.random() * 200) + 150 },
-  { name: 'Mar', total: Math.floor(Math.random() * 200) + 200 },
-  { name: 'Apr', total: Math.floor(Math.random() * 200) + 250 },
-  { name: 'May', total: Math.floor(Math.random() * 200) + 300 },
-  { name: 'Jun', total: Math.floor(Math.random() * 200) + 350 },
-];
-
-
 export default function AdminDashboard() {
-  const [selectedUser, setSelectedUser] = React.useState<any | null>(null);
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -107,204 +96,81 @@ export default function AdminDashboard() {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
+
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+  const isAdmin = userProfile?.isAdmin;
 
-  const isAdmin = React.useMemo(() => userProfile?.isAdmin === true, [userProfile]);
-  const isCheckingAdmin = isUserLoading || isProfileLoading;
-
+  // This effect handles redirection once all loading is complete.
   React.useEffect(() => {
-    if (!isUserLoading && !user) {
-        router.replace('/login');
+    // Wait until both user auth and profile loading are finished.
+    if (isUserLoading || isProfileLoading) {
+      return; // Still loading, do nothing yet.
     }
-  }, [user, isUserLoading, router]);
-
-  React.useEffect(() => {
-    if (!isCheckingAdmin && !isAdmin) {
+    
+    // If loading is done and there's no user, or the user is not an admin, redirect.
+    if (!user || !isAdmin) {
       router.replace('/dashboard');
     }
-  }, [isCheckingAdmin, isAdmin, router]);
+  }, [user, isAdmin, isUserLoading, isProfileLoading, router]);
 
-  const handleSelectUser = (user: any) => {
-    setSelectedUser(user);
-  };
-  const handleDeselectUser = () => {
-    setSelectedUser(null);
-  };
-
-  if (isCheckingAdmin) {
+  // While loading, show a full-screen loader to prevent showing content prematurely.
+  if (isUserLoading || isProfileLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
-  
-  if (!isAdmin) {
-    // This is a fallback, the useEffect should have already redirected.
-    // It also prevents rendering the admin dashboard for non-admins.
-    return null;
-  }
 
-  if (selectedUser) {
+  // If loading is finished and the user is an admin, render the dashboard.
+  // The redirection logic above will handle non-admin cases.
+  if (isAdmin) {
     return (
-      <UserProfileView user={selectedUser} onBack={handleDeselectUser} />
+      <div className="flex min-h-screen w-full flex-col">
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <div className="flex items-center">
+              <h1 className="text-3xl font-bold font-headline">Liquid Admin</h1>
+          </div>
+          <Tabs defaultValue="users">
+            <div className="flex items-center">
+              <TabsList>
+                <TabsTrigger value="users">
+                  <Users className="mr-2" />
+                  Users
+                </TabsTrigger>
+                <TabsTrigger value="features">
+                  <Zap className="mr-2" />
+                  Premium Features
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent value="users" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Users</CardTitle>
+                  <CardDescription>
+                    Manage your users and view their details.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <UserTable />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="features" className="space-y-4">
+              <FeatureManagementPanel />
+            </TabsContent>
+          </Tabs>
+        </main>
+      </div>
     );
   }
 
-  return (
-    <div className="flex min-h-screen w-full flex-col">
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="flex items-center">
-            <h1 className="text-3xl font-bold font-headline">Liquid Admin</h1>
-        </div>
-        <Tabs defaultValue="overview">
-          <div className="flex items-center">
-            <TabsList>
-              <TabsTrigger value="overview">
-                <BarChart3 className="mr-2" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="users">
-                <Users className="mr-2" />
-                Users
-              </TabsTrigger>
-              <TabsTrigger value="features">
-                <Zap className="mr-2" />
-                Premium Features
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          <TabsContent value="overview" className="space-y-4">
-             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Users
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">1,254</div>
-                  <p className="text-xs text-muted-foreground">
-                    +20.1% from last month
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Premium Subscribers
-                  </CardTitle>
-                  <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">+235</div>
-                   <p className="text-xs text-muted-foreground">
-                    +180.1% from last month
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Notes Created</CardTitle>
-                  <File className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">+12,234</div>
-                  <p className="text-xs text-muted-foreground">
-                    +19% from last month
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Now</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">+573</div>
-                  <p className="text-xs text-muted-foreground">
-                    +201 since last hour
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>New Users</CardTitle>
-                    <CardDescription>New user registrations over the last 6 months.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={350}>
-                        <BarChart data={usageData}>
-                        <XAxis
-                            dataKey="name"
-                            stroke="#888888"
-                            fontSize={12}
-                            tickLine={false}
-                            axisLine={false}
-                        />
-                        <YAxis
-                            stroke="#888888"
-                            fontSize={12}
-                            tickLine={false}
-                            axisLine={false}
-                            tickFormatter={(value) => `${value}`}
-                        />
-                        <Tooltip
-                            cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
-                            content={({ active, payload }) => {
-                                if (active && payload && payload.length) {
-                                return (
-                                    <div className="rounded-lg border bg-background p-2 shadow-sm">
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="flex flex-col">
-                                        <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                            New Users
-                                        </span>
-                                        <span className="font-bold text-foreground">
-                                            {payload[0].value}
-                                        </span>
-                                        </div>
-                                    </div>
-                                    </div>
-                                )
-                                }
-
-                                return null
-                            }}
-                        />
-                        <Legend />
-                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-
-          </TabsContent>
-          <TabsContent value="users" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Users</CardTitle>
-                <CardDescription>
-                  Manage your users and view their details.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <UserTable onSelectUser={handleSelectUser} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="features" className="space-y-4">
-             <FeatureManagementPanel />
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
-  );
+  // Fallback, typically won't be seen due to the loader and redirects.
+  return null;
 }
 
-const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
+const UserTable = () => {
   const firestore = useFirestore();
   const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: users, isLoading, error } = useCollection(usersRef);
@@ -374,12 +240,11 @@ const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
         </TableHeader>
         <TableBody>
           {users && users.map((user) => (
-            <TableRow key={user.id} className="cursor-pointer" onClick={() => onSelectUser(user)}>
+            <TableRow key={user.id}>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="relative">
                      <CircleUser className="h-8 w-8 text-muted-foreground" />
-                     {/* {user.status === 'online' && <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-background"></span>} */}
                   </div>
                   <div>
                     <div className="font-medium">{user.displayName}</div>
@@ -412,7 +277,6 @@ const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem>View Profile</DropdownMenuItem>
                     <DropdownMenuItem>Upgrade to Premium</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive">
@@ -436,106 +300,6 @@ const UserTable = ({ onSelectUser }: { onSelectUser: (user: any) => void }) => {
         </div>
     </>
   );
-};
-
-const UserProfileView = ({ user, onBack }: { user: any; onBack: () => void }) => {
-    const firestore = useFirestore();
-    const { toast } = useToast();
-
-    const handlePlanChange = async (newPlan: 'Free' | 'Premium') => {
-      const userRef = doc(firestore, 'users', user.id);
-      try {
-        await updateDoc(userRef, { plan: newPlan });
-        toast({
-          title: "Plan updated",
-          description: `${user.displayName}'s plan has been changed to ${newPlan}.`
-        });
-        // Note: The UI will update automatically due to the real-time listener on the user list.
-      } catch (error) {
-        console.error("Failed to update plan:", error);
-        toast({
-          variant: "destructive",
-          title: "Update failed",
-          description: "Could not update the user's plan."
-        });
-      }
-    };
-    
-    return (
-        <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-            <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" className="h-7 w-7" onClick={onBack}>
-                    <ChevronLeft className="h-4 w-4" />
-                    <span className="sr-only">Back</span>
-                </Button>
-                <h1 className="font-semibold text-lg md:text-2xl">User Profile: {user.displayName}</h1>
-                <div className="ml-auto flex items-center gap-2">
-                    <Button size="sm" variant="outline">Suspend</Button>
-                    <Select defaultValue={user.plan?.toLowerCase() || 'free'} onValueChange={(value) => handlePlanChange(value === 'premium' ? 'Premium' : 'Free')}>
-                        <SelectTrigger className="w-[150px]">
-                            <SelectValue placeholder="Select plan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="free">Free</SelectItem>
-                            <SelectItem value="premium">Premium</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">User Information</CardTitle>
-                        <CircleUser className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-sm text-muted-foreground space-y-2">
-                            <p><strong>Email:</strong> {user.email}</p>
-                            <p><strong>Last Login:</strong> {user.lastSignInTime ? formatDistanceToNow(new Date(user.lastSignInTime), { addSuffix: true }) : 'Never'}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Usage Statistics</CardTitle>
-                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                     <CardContent>
-                        <div className="text-sm text-muted-foreground space-y-2">
-                            <p><strong>Subjects:</strong> {user.subjects || 0}</p>
-                            <p><strong>Notes:</strong> {user.notes || 0}</p>
-                            <p><strong>Documents:</strong> {user.documents || 0}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Storage</CardTitle>
-                        <File className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                         <div className="text-2xl font-bold">{user.storage || '0 MB'}</div>
-                         <p className="text-xs text-muted-foreground">
-                            out of {user.plan === 'Premium' ? '10 GB' : '1 GB'}
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-             <Card>
-                <CardHeader>
-                    <CardTitle>User Content</CardTitle>
-                    <CardDescription>Read-only overview of user's content.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <p className="text-sm text-muted-foreground">Content inspection is read-only to respect user privacy. No content can be edited or deleted from this view.</p>
-                     <div className="mt-4 rounded-md border p-4 text-center">
-                        <p className="font-semibold">Content Overview Coming Soon</p>
-                        <p className="text-sm text-muted-foreground">A high-level view of this user's notes and documents will be available here.</p>
-                     </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
 };
 
 const initialFeatures = [
@@ -644,12 +408,6 @@ const FeatureManagementPanel = () => {
                     </div>
                 )
             })}
-            <Card className='mt-4 bg-secondary/30'>
-                <CardContent className='p-4 text-center text-sm text-muted-foreground'>
-                    <p>Putting a feature in maintenance mode will show a friendly message to users.</p>
-                    <p>Like what we do? <a href="#" className='underline hover:text-accent'>Buy Liquid a coffee!</a></p>
-                </CardContent>
-            </Card>
             </CardContent>
         </Card>
     )
