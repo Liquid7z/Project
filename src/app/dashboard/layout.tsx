@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -39,13 +40,14 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
 import { doc } from 'firebase/firestore';
+import { WipPage } from '@/components/wip-page';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Activity' },
-  { href: '/dashboard/generate', icon: Bot, label: 'Generate' },
-  { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
-  { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
-  { href: '/dashboard/account', icon: User, label: 'Account' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Activity', configFlag: 'activityWip' },
+  { href: '/dashboard/generate', icon: Bot, label: 'Generate', configFlag: 'generateWip' },
+  { href: '/dashboard/notes', icon: Notebook, label: 'Notes', configFlag: 'notesWip' },
+  { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style', configFlag: 'analyzeWip' },
+  { href: '/dashboard/account', icon: User, label: 'Account', configFlag: 'accountWip' },
 ];
 
 const adminNavItems = [
@@ -74,7 +76,10 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
-  const { data: userProfile } = useDoc(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+  const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+  const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
   
   const isAdmin = userProfile?.isAdmin === true;
 
@@ -84,12 +89,29 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     }
   }, [isUserLoading, user, userError, router]);
 
-  if (isUserLoading || !userProfile) {
+  const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
+
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
+  }
+  
+  // Site-wide maintenance check
+  if (siteConfig?.siteWideMaintenance && !isAdmin) {
+    return <WipPage />;
+  }
+
+  // Per-page maintenance check
+  const currentNavItem = navItems.find(item => pathname.startsWith(item.href));
+  if (currentNavItem && siteConfig?.[currentNavItem.configFlag] && !isAdmin) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center p-4">
+            <WipPage />
+        </div>
+      )
   }
   
   const currentNavItems = isAdmin ? [...navItems, ...adminNavItems] : navItems;
@@ -145,7 +167,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                             </Avatar>
                             <div className="grow overflow-hidden text-left">
                                 <p className="font-medium truncate text-sm">{user?.displayName ?? 'User'}</p>
-                                <p className="text-xs text-muted-foreground">{userProfile.plan || 'Free'} Plan</p>
+                                <p className="text-xs text-muted-foreground">{userProfile?.plan || 'Free'} Plan</p>
                             </div>
                         </SidebarMenuButton>
                     </div>
@@ -248,7 +270,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <DashboardNav>{children}</DashboardNav>

@@ -1,8 +1,9 @@
+
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, doc, updateDoc, writeBatch, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,13 +21,6 @@ export default function LiquidAdminPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
-    
-    // Mock state for new controls
-    const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
-    const [isGenerateWip, setIsGenerateWip] = useState(false);
-    const [isAnalyzeWip, setIsAnalyzeWip] = useState(true);
-    const [isAdvancedStyleFeature, setIsAdvancedStyleFeature] = useState(false);
-
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -43,17 +37,18 @@ export default function LiquidAdminPage() {
         if (!usersCollectionRef) return null;
         return query(usersCollectionRef, orderBy('creationTime', 'desc'));
     }, [usersCollectionRef]);
+    
+    const { data: users, isLoading: areUsersLoading, error: usersError } = useCollection(usersQuery);
 
-    const { data: users, isLoading: areUsersLoading, error } = useCollection(usersQuery);
+    const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+    const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
 
     useEffect(() => {
-        // Redirect if user is not loading, has a profile, but is not an admin
         if (!isProfileLoading && userProfile && !userProfile.isAdmin) {
             router.replace('/dashboard');
         }
     }, [isProfileLoading, userProfile, router]);
-
-
+    
     const handleAdminToggle = async (targetUser: any) => {
         if (!firestore) return;
         const userRef = doc(firestore, "users", targetUser.id);
@@ -94,8 +89,21 @@ export default function LiquidAdminPage() {
         }
     };
 
+    const handleConfigToggle = async (key: string, value: boolean) => {
+        if (!siteConfigRef) return;
+        try {
+            await setDoc(siteConfigRef, { [key]: value }, { merge: true });
+        } catch (error) {
+            console.error("Failed to update site config:", error);
+            toast({
+                variant: "destructive",
+                title: "Update Failed",
+                description: "Could not update site configuration."
+            })
+        }
+    }
 
-    const isLoading = isUserLoading || isProfileLoading || areUsersLoading;
+    const isLoading = isUserLoading || isProfileLoading || areUsersLoading || isConfigLoading;
 
     if (isLoading) {
         return (
@@ -105,12 +113,12 @@ export default function LiquidAdminPage() {
         );
     }
     
-    if (error) {
+    if (usersError) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center">
                 <AlertTriangle className="h-12 w-12 text-destructive" />
                 <p className="mt-4 font-semibold">Failed to load users</p>
-                <p className="text-sm text-muted-foreground">{error.message}</p>
+                <p className="text-sm text-muted-foreground">{usersError.message}</p>
             </div>
         )
     }
@@ -187,16 +195,28 @@ export default function LiquidAdminPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                            <Label htmlFor="maintenance-mode" className="font-semibold">Site-wide Maintenance</Label>
-                            <Switch id="maintenance-mode" checked={isMaintenanceMode} onCheckedChange={setIsMaintenanceMode} />
+                            <Label htmlFor="siteWideMaintenance" className="font-semibold">Site-wide Maintenance</Label>
+                            <Switch id="siteWideMaintenance" checked={siteConfig?.siteWideMaintenance} onCheckedChange={(c) => handleConfigToggle('siteWideMaintenance', c)} />
+                        </div>
+                        <div className="flex items-center justify-between p-3">
+                            <Label htmlFor="activityWip">Activity Page (WIP)</Label>
+                            <Switch id="activityWip" checked={siteConfig?.activityWip} onCheckedChange={(c) => handleConfigToggle('activityWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
-                            <Label htmlFor="generate-wip">Generate Page (WIP)</Label>
-                            <Switch id="generate-wip" checked={isGenerateWip} onCheckedChange={setIsGenerateWip} />
+                            <Label htmlFor="generateWip">Generate Page (WIP)</Label>
+                            <Switch id="generateWip" checked={siteConfig?.generateWip} onCheckedChange={(c) => handleConfigToggle('generateWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
-                            <Label htmlFor="analyze-wip">Analyze Page (WIP)</Label>
-                            <Switch id="analyze-wip" checked={isAnalyzeWip} onCheckedChange={setIsAnalyzeWip} />
+                            <Label htmlFor="notesWip">Notes Page (WIP)</Label>
+                            <Switch id="notesWip" checked={siteConfig?.notesWip} onCheckedChange={(c) => handleConfigToggle('notesWip', c)} />
+                        </div>
+                         <div className="flex items-center justify-between p-3">
+                            <Label htmlFor="analyzeWip">Analyze Page (WIP)</Label>
+                            <Switch id="analyzeWip" checked={siteConfig?.analyzeWip} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c)} />
+                        </div>
+                         <div className="flex items-center justify-between p-3">
+                            <Label htmlFor="accountWip">Account Page (WIP)</Label>
+                            <Switch id="accountWip" checked={siteConfig?.accountWip} onCheckedChange={(c) => handleConfigToggle('accountWip', c)} />
                         </div>
                     </CardContent>
                 </Card>
@@ -207,8 +227,8 @@ export default function LiquidAdminPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                          <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                            <Label htmlFor="advanced-style" className="font-semibold">Premium Style Analysis</Label>
-                            <Switch id="advanced-style" checked={isAdvancedStyleFeature} onCheckedChange={setIsAdvancedStyleFeature} />
+                            <Label htmlFor="premiumStyleAnalysis" className="font-semibold">Premium Style Analysis</Label>
+                            <Switch id="premiumStyleAnalysis" checked={siteConfig?.premiumStyleAnalysis} onCheckedChange={(c) => handleConfigToggle('premiumStyleAnalysis', c)} />
                         </div>
                     </CardContent>
                 </Card>
@@ -218,8 +238,8 @@ export default function LiquidAdminPage() {
                         <CardDescription>Manage support links and other resources.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                       <Button variant="glow" className="w-full">
-                           Buy Liquid a Coffee!
+                       <Button variant="glow" className="w-full" asChild>
+                           <a href="https://buymeacoffee.com/yourusername" target="_blank" rel="noopener noreferrer">Buy Liquid a Coffee!</a>
                        </Button>
                     </CardContent>
                 </Card>

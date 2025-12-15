@@ -104,6 +104,20 @@
         "updatedAt": { "type": "string", "description": "Timestamp of last update.", "format": "date-time" }
       },
       "required": ["title", "content", "color"]
+    },
+     "SiteConfig": {
+      "title": "SiteConfig",
+      "type": "object",
+      "description": "Stores site-wide configuration and feature flags.",
+      "properties": {
+        "siteWideMaintenance": { "type": "boolean", "description": "Puts the entire site into maintenance mode." },
+        "activityWip": { "type": "boolean", "description": "Puts the Activity page into maintenance." },
+        "generateWip": { "type": "boolean", "description": "Puts the Generate page into maintenance." },
+        "notesWip": { "type": "boolean", "description": "Puts the Notes page into maintenance." },
+        "analyzeWip": { "type": "boolean", "description": "Puts the Analyze page into maintenance." },
+        "accountWip": { "type": "boolean", "description": "Puts the Account page into maintenance." },
+        "premiumStyleAnalysis": { "type": "boolean", "description": "Feature flag for premium style analysis." }
+      }
     }
   },
   "auth": {
@@ -142,6 +156,10 @@
       {
         "path": "/users/{userId}/stickyNotes/{noteId}",
         "definition": { "entityName": "StickyNote", "schema": { "$ref": "#/backend/entities/StickyNote" }, "description": "Stores dashboard sticky notes for each user." }
+      },
+      {
+        "path": "/site_config/maintenance",
+        "definition": { "entityName": "SiteConfig", "schema": { "$ref": "#/backend/entities/SiteConfig"}, "description": "Stores site-wide maintenance and feature flag settings." }
       }
     ]
   }
