@@ -26,52 +26,48 @@ service cloud.firestore {
       return request.resource.data.id == resource.data.id;
     }
 
-    function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
-    }
-
     // --- User Data Collections ---
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow get: if isOwner(userId);
+      allow list: if false;
       allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
-      allow update: if (isExistingOwner(userId) && userProfileIdIsImmutable()) || isAdmin();
-      allow delete: if isExistingOwner(userId) || isAdmin();
+      allow update: if isExistingOwner(userId) && userProfileIdIsImmutable();
+      allow delete: if isExistingOwner(userId);
 
       match /subscriptions/{subscriptionId} {
-        allow create, update, delete: if isOwner(userId) || isAdmin();
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if isOwner(userId);
+        allow get, list: if isOwner(userId);
       }
       
       match /subjects/{subjectId} {
-        allow create, update, delete: if isOwner(userId) || isAdmin();
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if isOwner(userId);
+        allow get, list: if isOwner(userId);
 
         match /notes/{noteId} {
-          allow create, update, delete: if isOwner(userId) || isAdmin();
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update, delete: if isOwner(userId);
+          allow get, list: if isOwner(userId);
         }
         
         match /examQuestions/{questionId} {
-          allow create, update, delete: if isOwner(userId) || isAdmin();
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update, delete: if isOwner(userId);
+          allow get, list: if isOwner(userId);
         }
 
         match /syllabus/{syllabusId} {
-          allow create, update, delete: if isOwner(userId) || isAdmin();
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update, delete: if isOwner(userId);
+          allow get, list: if isOwner(userId);
         }
 
         match /resources/{resourceId} {
-          allow create, update, delete: if isOwner(userId) || isAdmin();
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update, delete: if isOwner(userId);
+          allow get, list: if isOwner(userId);
         }
       }
 
       match /stickyNotes/{noteId} {
-        allow create, update, delete: if isOwner(userId) || isAdmin();
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if isOwner(userId);
+        allow get, list: if isOwner(userId);
       }
     }
   }

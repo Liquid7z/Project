@@ -47,11 +47,6 @@ const navItems = [
   { href: '/dashboard/account', icon: User, label: 'Account' },
 ];
 
-const adminNavItems = [
-    { href: '/dashboard/admin', icon: Shield, label: 'Admin' }
-]
-
-
 function GlowModeToggle({ id }: { id: string }) {
     const { isGlowMode, setIsGlowMode } = useTheme();
     return (
@@ -67,14 +62,8 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const { user, isUserLoading, userError } = useUser();
+  const { user, isUserLoading, userError, decodedClaims } = useUser();
   const firestore = useFirestore();
-
-  // --- Temporary Admin Override ---
-  // In a real app, `decodedClaims.admin` would come from the Firebase token.
-  // For development, we'll simulate it here.
-  const decodedClaims = { admin: true }; 
-  // --- End Temporary Override ---
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -96,7 +85,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const currentNavItems = decodedClaims?.admin ? [...navItems, ...adminNavItems] : navItems;
+  const currentNavItems = navItems;
   
   return (
     <SidebarProvider>
