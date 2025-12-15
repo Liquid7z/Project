@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -77,12 +78,12 @@ export default function Home() {
             <div className="container px-4 md:px-6 z-10">
                 <div className="flex flex-col items-center space-y-6">
                     <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter font-headline animate-neon-glow">
-                        Your Handwriting,
-                        <br />
-                        Digitally Perfected.
+                       From Scattered Notes
+                       <br />
+                       to Structured Knowledge.
                     </h1>
                     <p className="max-w-[700px] text-muted-foreground md:text-xl">
-                        LiqAI transforms your typed text into authentic handwritten documents using a personalized AI model of your own handwriting.
+                        LiqAI is your intelligent study partner. Organize notes, get AI-powered insights, and visualize your learning journey like never before.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
                         <Button size="lg" asChild variant="glow">
@@ -93,29 +94,52 @@ export default function Home() {
             </div>
         </section>
         
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                <div className="space-y-2">
-                    <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium">Key Features</div>
-                    <h2 className="text-3xl font-bold font-headline tracking-tighter sm:text-5xl">How It Works</h2>
-                    <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                        A seamless three-step process to bring your digital text to life with a personal, handwritten touch.
-                    </p>
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32 space-y-24">
+            {/* Feature 1 */}
+            <div className="container px-4 md:px-6">
+                <div className="mx-auto grid max-w-5xl items-center gap-8 lg:grid-cols-2 lg:gap-12">
+                     <div className="flex flex-col justify-center space-y-4">
+                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium">Intelligence</div>
+                        <h3 className="text-3xl font-bold font-headline tracking-tighter sm:text-4xl">Meet Your AI Study Coach</h3>
+                        <p className=" text-muted-foreground md:text-lg">
+                            Stuck on a concept? Need a quick summary? Our AI assistant is here to help. Search across all your notes, ask for detailed explanations, and get suggestions on what to revise next.
+                        </p>
+                     </div>
+                     <div className="w-full aspect-video rounded-xl overflow-hidden glass-pane">
+                        <Image src="https://picsum.photos/seed/coach/1280/720" alt="AI Coach" width={1280} height={720} className="object-cover" data-ai-hint="futuristic dashboard" />
+                     </div>
                 </div>
             </div>
-            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 mt-12">
-                {features.map((feature, index) => (
-                    <div key={index} className="grid gap-4 p-6 rounded-lg transition-all hover:scale-105 hover:border-accent border">
-                        <div className="flex items-center gap-4">
-                            {feature.icon}
-                            <h3 className="text-lg font-bold font-headline">{feature.title}</h3>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{feature.description}</p>
-                    </div>
-                ))}
+            {/* Feature 2 */}
+            <div className="container px-4 md:px-6">
+                <div className="mx-auto grid max-w-5xl items-center gap-8 lg:grid-cols-2 lg:gap-12">
+                     <div className="w-full aspect-video rounded-xl overflow-hidden glass-pane lg:order-last">
+                        <Image src="https://picsum.photos/seed/skilltree/1280/720" alt="Skill Tree" width={1280} height={720} className="object-cover" data-ai-hint="knowledge graph" />
+                     </div>
+                     <div className="flex flex-col justify-center space-y-4">
+                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium">Visualization</div>
+                        <h3 className="text-3xl font-bold font-headline tracking-tighter sm:text-4xl">Visualize Your Knowledge</h3>
+                        <p className=" text-muted-foreground md:text-lg">
+                            Our unique 'Skill Tree' view transforms your subjects and notes into an interactive knowledge map. See how concepts connect and identify areas you need to focus on, all in a beautiful, intuitive interface.
+                        </p>
+                     </div>
+                </div>
             </div>
-          </div>
+            {/* Feature 3 */}
+            <div className="container px-4 md:px-6">
+                <div className="mx-auto grid max-w-5xl items-center gap-8 lg:grid-cols-2 lg:gap-12">
+                     <div className="flex flex-col justify-center space-y-4">
+                        <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-accent font-medium">Organization</div>
+                        <h3 className="text-3xl font-bold font-headline tracking-tighter sm:text-4xl">One Place for Everything</h3>
+                        <p className=" text-muted-foreground md:text-lg">
+                           Keep all your study materials in one place. Create subjects, and within them, organize detailed notes, exam questions, syllabus items, and any other resources you need to succeed.
+                        </p>
+                     </div>
+                     <div className="w-full aspect-video rounded-xl overflow-hidden glass-pane">
+                        <Image src="https://picsum.photos/seed/organize/1280/720" alt="Organization" width={1280} height={720} className="object-cover" data-ai-hint="digital notebook" />
+                     </div>
+                </div>
+            </div>
         </section>
 
         <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/10">
@@ -166,4 +190,3 @@ export default function Home() {
       </footer>
     </div>
   );
-}
