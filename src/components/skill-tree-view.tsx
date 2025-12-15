@@ -9,7 +9,6 @@ import { collection, addDoc, serverTimestamp, doc, collectionGroup, query } from
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { generateSkillTreeFromTopic } from '@/ai/flows/generate-skill-tree';
-import type { GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +22,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
     Tooltip,
@@ -64,10 +64,16 @@ interface Edge {
     target: string;
 }
 
+interface GenerateSkillTreeOutput {
+  nodes: Omit<Node, 'x' | 'y' | 'children' | 'width' | 'parent'>[];
+  edges: Edge[];
+}
+
+
 const VIEW_WIDTH = 1200;
 const VIEW_HEIGHT = 800;
-const NODE_WIDTH = 140;
-const NODE_HEIGHT = 40;
+const NODE_WIDTH = 160;
+const NODE_HEIGHT = 50;
 const HORIZONTAL_SPACING = 40;
 const VERTICAL_SPACING = 80;
 
@@ -279,11 +285,11 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const getNodeStyles = (nodeType: Node['type']) => {
         switch (nodeType) {
             case 'key-concept':
-                return 'bg-destructive text-destructive-foreground border-2 border-destructive-foreground/50';
+                return 'bg-primary text-primary-foreground border-2 border-primary-foreground/50';
             case 'main-idea':
-                return 'bg-yellow-400 text-yellow-900 border-2 border-yellow-600';
+                return 'bg-accent text-accent-foreground border-2 border-accent-foreground/50';
             case 'detail':
-                return 'bg-muted text-muted-foreground border border-border';
+                return 'bg-secondary text-secondary-foreground border-2 border-border';
             case 'subject':
                 return 'bg-primary text-primary-foreground';
             case 'note':
@@ -377,7 +383,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                              <motion.div
                                                 drag
                                                 dragMomentum={false}
-                                                className={cn(`absolute p-2 flex items-center justify-center rounded-none cursor-pointer text-xs font-semibold`,
+                                                className={cn(`absolute p-2 flex items-center justify-center rounded-md cursor-pointer text-xs font-semibold`,
                                                     getNodeStyles(node.type),
                                                     node.isImportant && 'important-glow',
                                                     node.isPlaceholder && 'border-2 border-dashed border-accent'
