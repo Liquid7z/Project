@@ -155,7 +155,7 @@ export default function DashboardPage() {
 
   return (
     <div className="relative w-full min-h-full">
-      <div className="p-4 md:p-6">
+      <div className="p-0 md:p-0">
         <div 
           className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4"
         >

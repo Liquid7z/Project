@@ -40,6 +40,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
 import { doc } from 'firebase/firestore';
+import { AIStudyCoach } from '@/components/ai-study-coach';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -267,6 +268,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
             )}
             {children}
           </main>
+          <AIStudyCoach />
         </div>
       </div>
     </SidebarProvider>
