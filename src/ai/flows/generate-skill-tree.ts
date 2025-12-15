@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI flow for generating a skill tree from a topic.
@@ -26,12 +27,12 @@ const SkillTreeEdgeSchema = z.object({
 });
 
 // Define Zod schemas for the flow's input and output
-export const GenerateSkillTreeInputSchema = z.object({
+const GenerateSkillTreeInputSchema = z.object({
   topic: z.string().describe('The central topic for which to generate a skill tree.'),
 });
 export type GenerateSkillTreeInput = z.infer<typeof GenerateSkillTreeInputSchema>;
 
-export const GenerateSkillTreeOutputSchema = z.object({
+const GenerateSkillTreeOutputSchema = z.object({
   nodes: z.array(SkillTreeNodeSchema).describe('A list of all the subjects and sub-topics (notes) in the skill tree.'),
   edges: z.array(SkillTreeEdgeSchema).describe('A list of all the connections between the nodes.'),
 });
