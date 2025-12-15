@@ -143,6 +143,8 @@ service cloud.firestore {
      * This is required for features like the AI Study Coach.
      */
     match /{path=**}/notes/{noteId} {
+      // This rule is INTENTIONALLY broad for the collectionGroup query.
+      // The AI flow is responsible for filtering by the user's ID.
       allow list: if isSignedIn();
     }
   }
