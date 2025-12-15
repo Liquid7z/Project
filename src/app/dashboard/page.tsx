@@ -7,7 +7,7 @@ import { Plus, Loader } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { StickyNote } from '@/components/sticky-note';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, setDoc } from 'firebase/firestore';
 import type { WithId } from '@/firebase';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -99,7 +99,7 @@ export default function DashboardPage() {
       try {
         // Use the client-generated ID to create the document
         const noteRef = doc(firestore, 'users', user.uid, 'stickyNotes', id);
-        await addDoc(notesCollectionRef, finalNote);
+        await setDoc(noteRef, finalNote);
       } catch (error) {
          console.error("Error adding note:", error);
       }
