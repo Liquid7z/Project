@@ -195,6 +195,7 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
 function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }) {
     const firestore = useFirestore();
     const { toast } = useToast();
+    const isAdmin = userProfile?.isAdmin === true;
 
     // Data fetching hooks are now inside the component that is only rendered for admins.
     const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
@@ -210,8 +211,15 @@ function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }
     const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
     const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
     
-    const paymentVerificationsRef = useMemoFirebase(() => collection(firestore, 'paymentVerifications'), [firestore]);
-    const pendingPaymentsQuery = useMemoFirebase(() => query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc')), [paymentVerificationsRef]);
+    // ** THE FIX IS HERE **
+    // The query is memoized, but the useCollection hook will only be called if the query is not null.
+    const pendingPaymentsQuery = useMemoFirebase(() => {
+        if (!isAdmin) return null; // Return null if not an admin
+        const paymentVerificationsRef = collection(firestore, 'paymentVerifications');
+        return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
+    }, [firestore, isAdmin]); // Depend on isAdmin status
+
+    // The useCollection hook handles the null case gracefully.
     const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
     
     const handleAdminToggle = async (targetUser: any) => {
@@ -505,10 +513,10 @@ export default function LiquidAdminPage() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
     useEffect(() => {
-        if (!isProfileLoading && !userProfile?.isAdmin) {
+        if (!isUserLoading && !isProfileLoading && !userProfile?.isAdmin) {
             router.replace('/dashboard');
         }
-    }, [isProfileLoading, userProfile, router]);
+    }, [isUserLoading, isProfileLoading, userProfile, router]);
     
     const isLoading = isUserLoading || isProfileLoading;
 
@@ -524,6 +532,8 @@ export default function LiquidAdminPage() {
       return <AdminPageContent user={user} userProfile={userProfile} />;
     }
 
+    // This will be shown briefly for non-admins before they are redirected.
+    // It can also be shown if the redirect fails for some reason.
     return (
          <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
             <Card className="glass-pane p-8 text-center">
@@ -534,7 +544,3 @@ export default function LiquidAdminPage() {
         </div>
     );
 }
-
-    
-
-    
