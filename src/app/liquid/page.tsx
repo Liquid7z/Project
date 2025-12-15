@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -111,11 +110,11 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
                 {isPremium && (
                      <div className="grid md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                           <Label htmlFor={`${planId}-price-monthly`}>Monthly Price ($)</Label>
+                           <Label htmlFor={`${planId}-price-monthly`}>Monthly Price (Rs)</Label>
                            <Input id={`${planId}-price-monthly`} type="number" value={config.priceMonthly || ''} onChange={(e) => handleNumericChange('priceMonthly', e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor={`${planId}-price-yearly`}>Yearly Price ($)</Label>
+                            <Label htmlFor={`${planId}-price-yearly`}>Yearly Price (Rs)</Label>
                             <Input id={`${planId}-price-yearly`} type="number" value={config.priceYearly || ''} onChange={(e) => handleNumericChange('priceYearly', e.target.value)} />
                         </div>
                      </div>
@@ -193,7 +192,7 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
     )
 }
 
-function AdminPageContent({ user }: { user: any }) {
+function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }) {
     const firestore = useFirestore();
     const { toast } = useToast();
 
@@ -216,7 +215,7 @@ function AdminPageContent({ user }: { user: any }) {
         return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
     }, [firestore]);
     const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
-
+    
     const handleAdminToggle = async (targetUser: any) => {
         const userRef = doc(firestore, "users", targetUser.id);
         await updateDoc(userRef, { isAdmin: !targetUser.isAdmin });
@@ -426,7 +425,7 @@ function AdminPageContent({ user }: { user: any }) {
                                                 <TableCell className="text-center">
                                                      <Switch
                                                         checked={u.isSuspended}
-                                                        onCheckedChange={() => handleSuspendToggle(u)}
+                                                        onCheckedChange={()={() => handleSuspendToggle(u)}
                                                         disabled={u.id === user?.uid}
                                                         aria-label={`Toggle suspension for ${u.displayName}`}
                                                     />
@@ -454,27 +453,27 @@ function AdminPageContent({ user }: { user: any }) {
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="stickyNotesWip" className="flex items-center gap-2"><StickyNote className="w-4 h-4" />Sticky Notes Active</Label>
-                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip !== false} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c)} />
+                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip !== false} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', !c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="generateWip" className="flex items-center gap-2"><Bot className="w-4 h-4" />Generate Page Active</Label>
-                                   <Switch id="generateWip" checked={siteConfig?.generateWip !== false} onCheckedChange={(c) => handleConfigToggle('generateWip', c)} />
+                                   <Switch id="generateWip" checked={siteConfig?.generateWip !== false} onCheckedChange={(c) => handleConfigToggle('generateWip', !c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="notesWip" className="flex items-center gap-2"><Notebook className="w-4 h-4" />Notes Page Active</Label>
-                                   <Switch id="notesWip" checked={siteConfig?.notesWip !== false} onCheckedChange={(c) => handleConfigToggle('notesWip', c)} />
+                                   <Switch id="notesWip" checked={siteConfig?.notesWip !== false} onCheckedChange={(c) => handleConfigToggle('notesWip', !c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="analyzeWip" className="flex items-center gap-2"><ScanLine className="w-4 h-4" />Analyze Page Active</Label>
-                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip !== false} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c)} />
+                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip !== false} onCheckedChange={(c) => handleConfigToggle('analyzeWip', !c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="accountWip" className="flex items-center gap-2"><User className="w-4 h-4" />Account Page Active</Label>
-                                   <Switch id="accountWip" checked={siteConfig?.accountWip !== false} onCheckedChange={(c) => handleConfigToggle('accountWip', c)} />
+                                   <Switch id="accountWip" checked={siteConfig?.accountWip !== false} onCheckedChange={(c) => handleConfigToggle('accountWip', !c)} />
                                </div>
                                <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="skillTreeWip" className="flex items-center gap-2"><Network className="w-4 h-4" />Skill Tree Active</Label>
-                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip !== false} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', c)} />
+                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip !== false} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', !c)} />
                                </div>
                            </CardContent>
                        </Card>
@@ -508,8 +507,7 @@ export default function LiquidAdminPage() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
     useEffect(() => {
-        // Redirect non-admins or if profile fails to load
-        if (!isProfileLoading && (!userProfile || !userProfile.isAdmin)) {
+        if (!isProfileLoading && !userProfile?.isAdmin) {
             router.replace('/dashboard');
         }
     }, [isProfileLoading, userProfile, router]);
@@ -524,20 +522,19 @@ export default function LiquidAdminPage() {
         );
     }
     
-    // Once loading is complete, we check for admin status.
-    // If not an admin, show a "Not Authorized" message.
-    if (!userProfile?.isAdmin) {
-         return (
-             <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
-                <Card className="glass-pane p-8 text-center">
-                    <AlertTriangle className="mx-auto h-12 w-12 text-destructive"/>
-                    <h2 className="mt-4 text-2xl font-bold font-headline">Not Authorized</h2>
-                    <p className="mt-2 text-muted-foreground">You do not have permission to view this page.</p>
-                </Card>
-            </div>
-        );
+    if (userProfile?.isAdmin) {
+      return <AdminPageContent user={user} userProfile={userProfile} />;
     }
 
-    // Only render the admin content if the user is confirmed to be an admin.
-    return <AdminPageContent user={user} />;
+    return (
+         <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
+            <Card className="glass-pane p-8 text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-destructive"/>
+                <h2 className="mt-4 text-2xl font-bold font-headline">Not Authorized</h2>
+                <p className="mt-2 text-muted-foreground">You do not have permission to view this page.</p>
+            </Card>
+        </div>
+    );
 }
+
+    
