@@ -57,8 +57,8 @@
     {
       "id": "qr-code",
       "description": "Placeholder QR code for payments.",
-      "imageUrl": "https://images.unsplash.com/photo-1652345408103-7fbe3dd59324?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxxciUyMGNvZGV8ZW58MHx8fHwxNzY1NzQwMjYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "qr code"
+      "imageUrl": "https://storage.googleapis.com/stabl-media/qr-gpay.png",
+      "imageHint": "gpay qr"
     }
   ]
 }
