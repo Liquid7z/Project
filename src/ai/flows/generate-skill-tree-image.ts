@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -16,14 +17,14 @@ const SkillTreeEdgeSchema = z.object({
   target: z.string(),
 });
 
-export const GenerateSkillTreeImageInputSchema = z.object({
+const GenerateSkillTreeImageInputSchema = z.object({
     topic: z.string().describe("The central topic of the skill tree."),
     nodes: z.array(SkillTreeNodeSchema).describe("A list of all the topics and sub-topics in the skill tree."),
     edges: z.array(SkillTreeEdgeSchema).describe("A list of all the connections between the nodes."),
 });
 export type GenerateSkillTreeImageInput = z.infer<typeof GenerateSkillTreeImageInputSchema>;
 
-export const GenerateSkillTreeImageOutputSchema = z.object({
+const GenerateSkillTreeImageOutputSchema = z.object({
     imageDataUri: z.string().describe("The generated skill tree image as a data URI."),
 });
 export type GenerateSkillTreeImageOutput = z.infer<typeof GenerateSkillTreeImageOutputSchema>;
