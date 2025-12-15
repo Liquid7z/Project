@@ -3,7 +3,7 @@
 import { initializeApp, getApps, App } from 'firebase-admin/app';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeServerFirebase(): App {
+export async function initializeServerFirebase(): Promise<App> {
   if (getApps().length > 0) {
     return getApps()[0];
   }

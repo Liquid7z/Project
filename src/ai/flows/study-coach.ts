@@ -14,8 +14,8 @@ import { initializeServerFirebase } from '@/firebase/server-init';
 
 // Helper to get Firestore instance
 // This function needs to be adapted for server-side execution
-function getDb() {
-  initializeServerFirebase();
+async function getDb() {
+  await initializeServerFirebase();
   return getFirestore();
 }
 
@@ -54,7 +54,7 @@ const findNotesTool = ai.defineTool(
         })),
     },
     async ({ userId, topic }) => {
-        const db = getDb();
+        const db = await getDb();
         const contentTypes = ['notes', 'examQuestions', 'syllabus', 'resources'];
         const allContent: any[] = [];
 
