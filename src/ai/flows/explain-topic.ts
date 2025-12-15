@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI flow for explaining a topic.
@@ -10,12 +11,12 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-export const ExplainTopicInputSchema = z.object({
+const ExplainTopicInputSchema = z.object({
   topic: z.string().describe('The topic to be explained.'),
 });
 export type ExplainTopicInput = z.infer<typeof ExplainTopicInputSchema>;
 
-export const ExplainTopicOutputSchema = z.object({
+const ExplainTopicOutputSchema = z.object({
   explanation: z.string().describe('A concise explanation of the topic, in 1-2 sentences.'),
 });
 export type ExplainTopicOutput = z.infer<typeof ExplainTopicOutputSchema>;
