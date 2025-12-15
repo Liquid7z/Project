@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -28,7 +29,8 @@ import {
   Bot,
   Shield,
   Droplets,
-  StickyNote
+  StickyNote,
+  Bell
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,8 +42,14 @@ import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
-import { doc } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit, updateDoc } from 'firebase/firestore';
 import { WipPage } from '@/components/wip-page';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 
 const navItems = [
   { href: '/dashboard', icon: StickyNote, label: 'Sticky Notes', configFlag: 'stickyNotesWip' },
@@ -64,6 +72,68 @@ function GlowModeToggle({ id }: { id: string }) {
             onCheckedChange={setIsGlowMode}
         />
     )
+}
+
+function NotificationsPanel() {
+    const { user, firestore } = useUser();
+    const notificationsRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return collection(firestore, 'users', user.uid, 'notifications');
+    }, [user, firestore]);
+    const notificationsQuery = useMemoFirebase(() => {
+        if (!notificationsRef) return null;
+        return query(notificationsRef, orderBy('createdAt', 'desc'), limit(20));
+    }, [notificationsRef]);
+    
+    const { data: notifications, isLoading } = useCollection(notificationsQuery);
+    
+    const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
+
+    const markAsRead = async (notificationId: string) => {
+        if (!user) return;
+        const notifRef = doc(firestore, 'users', user.uid, 'notifications', notificationId);
+        await updateDoc(notifRef, { isRead: true });
+    };
+
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                    <Bell />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
+                            {unreadCount}
+                        </span>
+                    )}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 glass-pane p-0">
+                 <div className="p-4">
+                    <h4 className="font-medium leading-none">Notifications</h4>
+                    <p className="text-sm text-muted-foreground">Your recent updates.</p>
+                </div>
+                <ScrollArea className="h-[300px]">
+                    {isLoading && <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>}
+                    {!isLoading && notifications?.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No notifications yet.</div>}
+                    <div className="flex flex-col">
+                        {notifications?.map(notif => (
+                            <Link key={notif.id} href={notif.href || '#'} passHref>
+                                <div 
+                                    className={cn("p-4 border-b border-border/50 hover:bg-accent/10 cursor-pointer", !notif.isRead && "bg-primary/10")}
+                                    onClick={() => markAsRead(notif.id)}
+                                >
+                                    <p className="text-sm font-medium">{notif.message}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true })}
+                                    </p>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </PopoverContent>
+        </Popover>
+    );
 }
 
 function DashboardNav({ children }: { children: React.ReactNode }) {
@@ -222,7 +292,8 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                       </div>
                   </SheetContent>
               </Sheet>
-              <div className="flex flex-1 items-center justify-end gap-2">
+              <div className="flex-1">
+                 <NotificationsPanel />
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -249,6 +320,10 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
               </DropdownMenu>
           </header>
           
+           <div className="hidden md:flex justify-end p-2 absolute top-0 right-0 z-10">
+              <NotificationsPanel />
+           </div>
+
           <main className="flex-1 p-4 md:p-6 relative">
             {children}
           </main>

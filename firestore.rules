@@ -99,6 +99,11 @@ service cloud.firestore {
         allow create, update, delete: if isOwner(userId);
         allow get, list: if isOwner(userId);
       }
+
+      match /notifications/{notificationId} {
+        allow get, list, update: if isOwner(userId);
+        allow create: if isOwner(userId) || isAdmin(); // Admins can create notifications for users
+      }
     }
   }
 }
