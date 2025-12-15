@@ -28,7 +28,7 @@ async function getDb(): Promise<Firestore> {
       // The calling functions will gracefully handle empty results.
       return {
           collectionGroup: () => ({
-              get: async () => ({
+              get: () => Promise.resolve({
                   docs: [],
                   forEach: (callback: (doc: any) => void) => {},
               }),
@@ -173,6 +173,7 @@ const explainTopicFlow = ai.defineFlow(
         name: 'explainTopicFlow',
         inputSchema: ExplainInputSchema,
         outputSchema: ExplainOutputSchema,
+        model: 'googleai/gemini-pro',
     },
     async ({ userId, topic }) => {
          const relevantNotes = await findNotesTool({ userId, topic });
