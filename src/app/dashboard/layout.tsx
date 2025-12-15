@@ -25,17 +25,19 @@ import {
   Notebook,
   Sun,
   LayoutDashboard,
+  Shield,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
+import { doc } from 'firebase/firestore';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -62,6 +64,15 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading, userError } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  const { data: userProfile } = useDoc(userProfileRef);
+
+  const isAdmin = userProfile?.isAdmin;
 
   useEffect(() => {
     if (!isUserLoading && (userError || !user)) {
@@ -140,6 +151,17 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                         <Link href="/dashboard/account">Profile</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Billing</DropdownMenuItem>
+                    {isAdmin && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href="/liquid">
+                                    <Shield className="mr-2 h-4 w-4" />
+                                    Admin
+                                </Link>
+                            </DropdownMenuItem>
+                        </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/') }}>
                         <LogOut className="mr-2 h-4 w-4" />
@@ -177,6 +199,14 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                                   </Link>
                               </SheetClose>
                           ))}
+                          {isAdmin && (
+                            <SheetClose asChild>
+                                <Link href="/liquid" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground">
+                                    <Shield className="h-4 w-4" />
+                                    Admin
+                                </Link>
+                            </SheetClose>
+                          )}
                       </nav>
                        <div className="mt-auto">
                           <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
@@ -210,6 +240,17 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                     <Link href="/dashboard/account">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>Billing</DropdownMenuItem>
+                   {isAdmin && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href="/liquid">
+                                    <Shield className="mr-2 h-4 w-4" />
+                                    Admin
+                                </Link>
+                            </DropdownMenuItem>
+                        </>
+                    )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/')}}>
                     <LogOut className="mr-2 h-4 w-4" />
