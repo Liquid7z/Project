@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card } from './ui/card';
-import { Loader, Network, Wand2, Plus } from 'lucide-react';
+import { Loader, Network, Wand2, Plus, Save } from 'lucide-react';
 import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -29,6 +29,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { useFirebase } from '@/firebase';
+import { SaveSkillTreeDialog } from './save-skill-tree-dialog';
 
 
 interface Node {
@@ -136,6 +137,7 @@ export function SkillTreeView() {
     
     const [explanation, setExplanation] = useState<Record<string, string>>({});
     const [explainingNode, setExplainingNode] = useState<string | null>(null);
+    const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
     const handleGenerateTree = async (newTopic: string) => {
         if (!newTopic) return;
@@ -253,6 +255,12 @@ export function SkillTreeView() {
                     {isGenerating ? <Loader className="animate-spin mr-2" /> : <Wand2 className="mr-2" />}
                     Generate
                 </Button>
+                {nodes.length > 0 && (
+                    <Button variant="outline" onClick={() => setIsSaveDialogOpen(true)}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save to Note
+                    </Button>
+                )}
             </div>
             <Card className="h-[800px] w-full glass-pane overflow-auto relative">
                  {isGenerating && (
@@ -382,6 +390,15 @@ export function SkillTreeView() {
                     </div>
                  )}
             </Card>
+            {nodes.length > 0 && (
+                <SaveSkillTreeDialog 
+                    isOpen={isSaveDialogOpen}
+                    onOpenChange={setIsSaveDialogOpen}
+                    topic={topic}
+                    nodes={nodes}
+                    edges={edges}
+                />
+            )}
         </div>
     );
 }

@@ -5,8 +5,8 @@ import { extractTextFromDocument, ExtractTextFromDocumentInput, ExtractTextFromD
 import { generateAssignment, GenerateAssignmentInput, GenerateAssignmentOutput } from '@/ai/flows/generate-assignment';
 import { generateSkillTreeFromTopic, GenerateSkillTreeInput, GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
 import { explainTopic, ExplainTopicInput, ExplainTopicOutput } from '@/ai/flows/explain-topic';
+import { generateSkillTreeImage, GenerateSkillTreeImageInput, GenerateSkillTreeImageOutput } from '@/ai/flows/generate-skill-tree-image';
 
-import { z } from 'zod';
 
 export async function analyzeStyleAction(input: AnalyzeHandwritingStyleInput): Promise<{ styleModelId: string }> {
   // In a real app, you might want to add more robust error handling and validation.
@@ -30,4 +30,8 @@ export async function generateSkillTreeAction(input: GenerateSkillTreeInput): Pr
 
 export async function explainTopicAction(input: ExplainTopicInput): Promise<ExplainTopicOutput> {
     return explainTopic(input);
+}
+
+export async function generateSkillTreeImageAction(input: GenerateSkillTreeImageInput): Promise<GenerateSkillTreeImageOutput> {
+    return await generateSkillTreeImage(input);
 }
