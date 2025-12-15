@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { Label } from '@/components/ui/label';
 
 
 const freePlanFeatures = [
@@ -359,5 +360,7 @@ export default function AccountPage() {
     );
 }
 
+
+    
 
     
