@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, updateDoc, writeBatch, setDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, updateDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,13 +11,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save } from 'lucide-react';
+import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 
 type PlanConfig = {
@@ -208,6 +219,10 @@ export default function LiquidAdminPage() {
     const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
     const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
 
+    const paymentVerificationsRef = useMemoFirebase(() => collection(firestore, 'paymentVerifications'), [firestore]);
+    const pendingPaymentsQuery = useMemoFirebase(() => query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc')), [paymentVerificationsRef]);
+    const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
+
 
     // --- Effects and Handlers ---
 
@@ -233,8 +248,11 @@ export default function LiquidAdminPage() {
 
     const handleConfigToggle = async (key: string, value: boolean) => {
         if (!siteConfigRef) return;
+        // The new logic is that the flag being true means it's active.
+        // So we want to set it to true if checked, and false if not.
         await updateDoc(siteConfigRef, { [key]: value });
     };
+
 
     const handlePlanConfigSave = async (planId: string, data: PlanConfig) => {
         if (!firestore) return;
@@ -242,7 +260,38 @@ export default function LiquidAdminPage() {
         await setDoc(planRef, data, { merge: true });
     };
 
-    const isLoading = isUserLoading || isProfileLoading || areUsersLoading || isConfigLoading;
+    const handleApprovePayment = async (verification: any) => {
+        if (!firestore) return;
+        const userRef = doc(firestore, 'users', verification.userId);
+        const verificationRef = doc(firestore, 'paymentVerifications', verification.id);
+
+        try {
+            await writeBatch(firestore)
+                .update(userRef, { plan: 'Premium', paymentStatus: 'none' })
+                .delete(verificationRef)
+                .commit();
+            
+            toast({ title: "Payment Approved", description: `${verification.userName}'s plan has been upgraded to Premium.` });
+        } catch (error) {
+            console.error("Error approving payment:", error);
+            toast({ variant: 'destructive', title: "Approval Failed", description: "Could not update user's plan." });
+        }
+    };
+    
+    const handleRejectPayment = async (verificationId: string) => {
+        if (!firestore) return;
+        const verificationRef = doc(firestore, 'paymentVerifications', verificationId);
+         try {
+            await deleteDoc(verificationRef);
+            // Optionally, update user's paymentStatus back to 'none' if needed
+            toast({ title: "Payment Rejected", description: "The verification request has been deleted." });
+        } catch (error) {
+            console.error("Error rejecting payment:", error);
+            toast({ variant: 'destructive', title: "Rejection Failed", description: "Could not delete the request." });
+        }
+    };
+
+    const isLoading = isUserLoading || isProfileLoading || areUsersLoading || isConfigLoading || arePaymentsLoading;
 
     if (isLoading) {
         return (
@@ -256,9 +305,10 @@ export default function LiquidAdminPage() {
         <div className="space-y-6">
             <h1 className="text-4xl font-bold font-headline text-glow">Liquid Cooled | Admin</h1>
             
-             <Tabs defaultValue="plans" className="w-full">
+             <Tabs defaultValue="payments" className="w-full">
                 <ScrollArea className="w-full whitespace-nowrap">
                     <TabsList className="inline-flex w-auto">
+                        <TabsTrigger value="payments"><Banknote className="w-4 h-4 mr-2"/> Payment Verification</TabsTrigger>
                         <TabsTrigger value="plans"><DollarSign className="w-4 h-4 mr-2"/> Plan Management</TabsTrigger>
                         <TabsTrigger value="users"><User className="w-4 h-4 mr-2"/> User Management</TabsTrigger>
                         <TabsTrigger value="site"><Wrench className="w-4 h-4 mr-2"/> Site Settings</TabsTrigger>
@@ -266,21 +316,99 @@ export default function LiquidAdminPage() {
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
                 
-                <TabsContent value="plans" className="mt-6 space-y-6">
-                   <PlanConfigForm planId="free" planData={freePlanConfig as PlanConfig} onSave={handlePlanConfigSave} />
-                   <PlanConfigForm planId="premium" planData={premiumPlanConfig as PlanConfig} onSave={handlePlanConfigSave} />
-                </TabsContent>
-
-                <TabsContent value="users" className="mt-6">
+                 <TabsContent value="payments" className="mt-6">
                     <Card className="glass-pane border-accent/50 shadow-[0_0_15px_hsl(var(--accent)/0.5)]">
                         <CardHeader>
-                            <CardTitle className="font-headline text-accent">User Management</CardTitle>
+                            <CardTitle className="font-headline text-accent">Payment Verification</CardTitle>
+                             <CardDescription>Review and approve or reject manual payment submissions.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <div className="w-full overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="border-accent/20 hover:bg-accent/10">
+                                            <TableHead>User</TableHead>
+                                            <TableHead>UTR / Transaction ID</TableHead>
+                                            <TableHead>Submitted</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {pendingPayments && pendingPayments.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center">No pending payments.</TableCell>
+                                            </TableRow>
+                                        )}
+                                        {pendingPayments?.map(p => (
+                                            <TableRow key={p.id} className="border-accent/20 hover:bg-accent/10">
+                                                <TableCell>
+                                                    <div className="font-medium">{p.userName}</div>
+                                                    <div className="text-sm text-muted-foreground">{p.userEmail}</div>
+                                                </TableCell>
+                                                <TableCell className="font-mono">{p.utr}</TableCell>
+                                                <TableCell className="text-muted-foreground text-xs">
+                                                    {p.submittedAt ? formatDistanceToNow(p.submittedAt.toDate(), { addSuffix: true }) : 'N/A'}
+                                                </TableCell>
+                                                <TableCell className="text-right space-x-2">
+                                                     <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><XCircle/></Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Reject Payment?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This will delete the verification request for {p.userName}. The user will need to resubmit. This action cannot be undone.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleRejectPayment(p.id)} className="bg-destructive hover:bg-destructive/90">Reject</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="text-green-400 hover:text-green-400"><CheckCircle /></Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Approve Payment?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This will upgrade {p.userName} to the Premium plan and delete this verification request.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleApprovePayment(p)}>Approve</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="plans" className="mt-6 space-y-6">
+                   <PlanConfigForm planId="free" planData={freePlanConfig as PlanConfig} onSave={handlePlanConfigSave} />
+                   <PlanConfigForm planId="premium" planData={premiumPlanConfig as PlanConfig} onSave={handlePlanConfigSave} />
+                </TabsContent>
+
+                <TabsContent value="users" className="mt-6">
+                    <Card className="glass-pane">
+                        <CardHeader>
+                            <CardTitle className="font-headline">User Management</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="w-full overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-border/20 hover:bg-muted/50">
                                             <TableHead><User className="inline-block" /> User</TableHead>
                                             <TableHead>Subscription</TableHead>
                                             <TableHead>Joined</TableHead>
@@ -290,7 +418,7 @@ export default function LiquidAdminPage() {
                                     </TableHeader>
                                     <TableBody>
                                         {users?.map(u => (
-                                            <TableRow key={u.id} className="border-accent/20 hover:bg-accent/10">
+                                            <TableRow key={u.id} className="border-border/20 hover:bg-muted/50">
                                                 <TableCell>
                                                     <div className="flex items-center gap-3">
                                                         <Avatar>
@@ -338,7 +466,7 @@ export default function LiquidAdminPage() {
                 
                 <TabsContent value="site" className="mt-6">
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                       <Card className="glass-pane border-accent/50 md:col-span-3 lg:col-span-2">
+                       <Card className="glass-pane md:col-span-3 lg:col-span-2">
                            <CardHeader>
                                <CardTitle className="font-headline text-accent flex items-center gap-2"><Wrench/>Site Status</CardTitle>
                                <CardDescription>Toggle features on or off. 'Off' puts the feature into maintenance mode for non-admins.</CardDescription>
@@ -350,31 +478,31 @@ export default function LiquidAdminPage() {
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="stickyNotesWip" className="flex items-center gap-2"><StickyNote className="w-4 h-4" />Sticky Notes Active</Label>
-                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c ? null : false)} />
+                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip !== false} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="generateWip" className="flex items-center gap-2"><Bot className="w-4 h-4" />Generate Page Active</Label>
-                                   <Switch id="generateWip" checked={siteConfig?.generateWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('generateWip', c ? null : false)} />
+                                   <Switch id="generateWip" checked={siteConfig?.generateWip !== false} onCheckedChange={(c) => handleConfigToggle('generateWip', c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="notesWip" className="flex items-center gap-2"><Notebook className="w-4 h-4" />Notes Page Active</Label>
-                                   <Switch id="notesWip" checked={siteConfig?.notesWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('notesWip', c ? null : false)} />
+                                   <Switch id="notesWip" checked={siteConfig?.notesWip !== false} onCheckedChange={(c) => handleConfigToggle('notesWip', c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="analyzeWip" className="flex items-center gap-2"><ScanLine className="w-4 h-4" />Analyze Page Active</Label>
-                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c ? null : false)} />
+                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip !== false} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="accountWip" className="flex items-center gap-2"><User className="w-4 h-4" />Account Page Active</Label>
-                                   <Switch id="accountWip" checked={siteConfig?.accountWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('accountWip', c ? null : false)} />
+                                   <Switch id="accountWip" checked={siteConfig?.accountWip !== false} onCheckedChange={(c) => handleConfigToggle('accountWip', c)} />
                                </div>
                                <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="skillTreeWip" className="flex items-center gap-2"><Network className="w-4 h-4" />Skill Tree Active</Label>
-                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip === false ? false : true} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', c ? null : false)} />
+                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip !== false} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', c)} />
                                </div>
                            </CardContent>
                        </Card>
-                        <Card className="glass-pane border-accent/50 md:col-span-3 lg:col-span-1">
+                        <Card className="glass-pane md:col-span-3 lg:col-span-1">
                             <CardHeader>
                                <CardTitle className="font-headline text-accent flex items-center gap-2"><Coffee/>Support</CardTitle>
                                <CardDescription>Manage support links and other resources.</CardDescription>
@@ -391,5 +519,3 @@ export default function LiquidAdminPage() {
         </div>
     );
 }
-
-    

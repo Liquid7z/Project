@@ -20,7 +20,8 @@
         "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." },
         "isAdmin": { "type": "boolean", "description": "Indicates if the user has administrative privileges." },
         "skillTreeGenerations": { "type": "number", "description": "Count of skill tree generations for the current day." },
-        "lastGenerationDate": { "type": "string", "description": "The date of the last skill tree generation, in ISO 8601 format." }
+        "lastGenerationDate": { "type": "string", "description": "The date of the last skill tree generation, in ISO 8601 format." },
+        "paymentStatus": { "type": "string", "description": "The user's current payment verification status.", "enum": ["none", "pending"] }
       },
       "required": ["id", "email"]
     },
@@ -144,6 +145,22 @@
         "featureExport": { "type": "boolean" },
         "featureGamingThemes": { "type": "boolean" }
       }
+    },
+    "PaymentVerification": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "PaymentVerification",
+        "type": "object",
+        "description": "Represents a user's payment that requires manual verification.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the verification request." },
+            "userId": { "type": "string", "description": "The ID of the user who made the payment." },
+            "userName": { "type": "string", "description": "The name submitted by the user for payment." },
+            "userEmail": { "type": "string", "description": "The email of the user for easy reference." },
+            "utr": { "type": "string", "description": "The UTR/Transaction ID submitted by the user." },
+            "status": { "type": "string", "description": "The status of the verification.", "enum": ["pending", "approved", "rejected"] },
+            "submittedAt": { "type": "string", "description": "Timestamp when the request was submitted.", "format": "date-time" }
+        },
+        "required": ["id", "userId", "userName", "utr", "status", "submittedAt"]
     }
   },
   "auth": {
@@ -190,9 +207,11 @@
       {
         "path": "/plan_configs/{planId}",
         "definition": { "entityName": "PlanConfig", "schema": { "$ref": "#/backend/entities/PlanConfig"}, "description": "Stores configuration for subscription plans (e.g., 'free', 'premium')." }
+      },
+      {
+        "path": "/paymentVerifications/{verificationId}",
+        "definition": { "entityName": "PaymentVerification", "schema": { "$ref": "#/backend/entities/PaymentVerification" }, "description": "Stores manual payment verification requests from users." }
       }
     ]
   }
 }
-
-    

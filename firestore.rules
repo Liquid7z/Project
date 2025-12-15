@@ -50,6 +50,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- Payment Verifications ---
+    match /paymentVerifications/{verificationId} {
+        allow list, get: if isAdmin();
+        allow delete: if isAdmin();
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
     // --- User Data Collections ---
 
     match /users/{userId} {

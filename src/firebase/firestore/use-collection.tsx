@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,6 +9,7 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
+  where, // Import where
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -36,6 +38,9 @@ export interface InternalQuery extends Query<DocumentData> {
       canonicalString(): string;
       toString(): string;
     }
+    filters: {
+        toJSON(): any
+    }[]
   }
 }
 

@@ -7,14 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, CreditCard, Calendar, Lock, Check } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, Lock, Check, Loader, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { Separator } from '@/components/ui/separator';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 const premiumPlanFeatures = [
     'Unlimited handwriting generations',
@@ -34,13 +35,22 @@ const GPayButton = () => (
 export default function UpgradePage() {
     const { toast } = useToast();
     const router = useRouter();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
     const [showQr, setShowQr] = useState(false);
     const [qrTime, setQrTime] = useState(300); // 5 minutes in seconds
+    const [name, setName] = useState('');
+    const [utr, setUtr] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const qrImage = PlaceHolderImages.find(p => p.id === 'qr-code');
+
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -57,48 +67,62 @@ export default function UpgradePage() {
         return () => clearTimeout(timer);
     }, [showQr, qrTime, toast]);
 
-    const userProfileRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
+    const handleSubmitPaymentDetails = async () => {
+        if (!user || !name || !utr) {
+            toast({ variant: 'destructive', title: 'Missing Information', description: 'Please fill in both Name and UTR/Transaction ID.' });
+            return;
+        }
+        if (userProfile?.paymentStatus === 'pending') {
+            toast({ variant: 'destructive', title: 'Request Already Pending', description: 'You already have a payment verification in progress.' });
+            return;
+        }
 
-    const handlePayment = async () => {
-        toast({
-            title: "Processing Payment...",
-            description: "Please wait while we process your transaction.",
-        });
+        setIsSubmitting(true);
+        try {
+            const verificationRef = doc(collection(firestore, 'paymentVerifications'));
+            await setDoc(verificationRef, {
+                id: verificationRef.id,
+                userId: user.uid,
+                userName: name,
+                userEmail: user.email,
+                utr,
+                status: 'pending',
+                submittedAt: serverTimestamp(),
+            });
 
-        setTimeout(async () => {
             if (userProfileRef) {
-                try {
-                    await updateDoc(userProfileRef, { plan: 'Premium' });
-                    toast({
-                        title: "Upgrade Successful!",
-                        description: "Welcome to Premium! You now have access to all features.",
-                    });
-                    router.push('/dashboard/account');
-                } catch (error: any) {
-                     toast({
-                        variant: "destructive",
-                        title: "Upgrade Failed",
-                        description: "There was an error updating your plan. Please try again.",
-                    });
-                }
-            } else {
-                 toast({
-                    variant: "destructive",
-                    title: "Upgrade Failed",
-                    description: "Could not find user profile to update.",
-                });
+                await setDoc(userProfileRef, { paymentStatus: 'pending' }, { merge: true });
             }
-        }, 2000);
+
+            toast({
+                title: (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                        ✨ Submission Received!
+                    </motion.div>
+                ),
+                description: "Your upgrade request is being verified. This can take up to 24 hours.",
+            });
+            router.push('/dashboard/account');
+        } catch (error: any) {
+            console.error('Payment submission error:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Submission Failed',
+                description: 'Could not submit your payment details. Please try again.',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
+
+    const isLoading = isUserLoading || isProfileLoading;
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -136,70 +160,43 @@ export default function UpgradePage() {
                     <Card className="glass-pane">
                         <CardHeader>
                             <CardTitle className="font-headline">Payment Information</CardTitle>
-                            <CardDescription>Choose your preferred payment method.</CardDescription>
+                            <CardDescription>Complete your payment and submit the details for verification.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                            <div>
                                 <h3 className="text-sm font-semibold text-accent mb-2">Recommended</h3>
-                                <div onClick={() => setShowQr(true)}>
+                                <button onClick={() => setShowQr(true)} className="w-full">
                                    <GPayButton />
-                                </div>
+                                </button>
                            </div>
 
-                            {showQr && qrImage && (
+                            {showQr && (
                                <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
-                                   <Image src={qrImage.imageUrl} alt={qrImage.description} width={150} height={150} data-ai-hint={qrImage.imageHint} className="rounded-md" />
-                                   <p className="text-sm text-muted-foreground">Scan this QR code with your Google Pay app.</p>
+                                   {qrImage && <Image src={qrImage.imageUrl} alt={qrImage.description} width={150} height={150} data-ai-hint={qrImage.imageHint} className="rounded-md" />}
+                                   <p className="text-sm text-muted-foreground">Scan this QR code with any UPI app.</p>
                                    <p className="font-mono text-lg font-bold text-accent">{formatTime(qrTime)}</p>
-                                   <Button variant="ghost" size="sm" onClick={() => setShowQr(false)}>Cancel</Button>
+                                   <div className="w-full space-y-4 pt-4 border-t border-border">
+                                        <div className="space-y-2 text-left">
+                                            <Label htmlFor="name">Your Name</Label>
+                                            <Input id="name" placeholder="Enter the name used for payment" value={name} onChange={(e) => setName(e.target.value)} />
+                                        </div>
+                                         <div className="space-y-2 text-left">
+                                            <Label htmlFor="utr">UTR / Transaction ID</Label>
+                                            <Input id="utr" placeholder="Enter the 12-digit transaction ID" value={utr} onChange={(e) => setUtr(e.target.value)} />
+                                        </div>
+                                   </div>
                                </div>
                             )}
-
-                           <div className="flex items-center gap-4">
-                                <Separator className="flex-1"/>
-                                <span className="text-xs text-muted-foreground">OR</span>
-                                <Separator className="flex-1"/>
-                           </div>
-
-                           <div className="space-y-4">
-                                <h3 className="text-sm font-semibold text-accent">Cards</h3>
-                                <div className="space-y-2">
-                                    <Label htmlFor="card-number">Card Number</Label>
-                                    <div className="relative">
-                                        <Input id="card-number" placeholder="0000 0000 0000 0000" />
-                                        <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                </div>
-                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="expiry">Expiry Date</Label>
-                                         <div className="relative">
-                                            <Input id="expiry" placeholder="MM / YY" />
-                                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="cvc">CVC</Label>
-                                         <div className="relative">
-                                            <Input id="cvc" placeholder="123" />
-                                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        </div>
-                                    </div>
-                                </div>
-                                 <div className="space-y-2">
-                                    <Label htmlFor="card-name">Name on Card</Label>
-                                    <Input id="card-name" placeholder="Your Name" />
-                                </div>
-                           </div>
                         </CardContent>
                         <CardFooter>
-                            <Button variant="glow" className="w-full" onClick={handlePayment}>
-                                Pay Rs 69
+                            <Button variant="glow" className="w-full" onClick={handleSubmitPaymentDetails} disabled={isSubmitting || !showQr || !name || !utr || userProfile?.paymentStatus === 'pending'}>
+                                {isSubmitting ? <Loader className="animate-spin mr-2"/> : <Send className="mr-2"/>}
+                                {userProfile?.paymentStatus === 'pending' ? 'Verification Pending' : 'I have paid, Upgrade Now'}
                             </Button>
                         </CardFooter>
                     </Card>
                      <p className="text-xs text-muted-foreground mt-4 text-center">
-                        This is a mock payment form. No real transaction will be made.
+                        Your upgrade will be processed after payment verification (up to 24 hours).
                     </p>
                 </div>
             </div>
