@@ -1,18 +1,16 @@
 /**
  * Core Philosophy: This ruleset enforces a strict user-ownership security model. All
  * user-generated data is stored within a dedicated user-specific document tree, ensuring
- * that users can only access and modify their own information. Admins have special read/write
- * access to manage users and application configuration.
+ * that users can only access and modify their own information.
  *
  * Data Structure: The entire database is structured hierarchically under the top-level
  * '/users' collection. Each user's data, including their profile, subscriptions, subjects,
  * and notes, is nested under a document corresponding to their unique user ID
- * (e.g., /users/{userId}/...). App-wide configuration is stored in `/appConfig`.
+ * (e.g., /users/{userId}/...).
  *
  * Key Security Decisions:
  * - Default Deny: All access is denied by default. Permissions are explicitly granted.
- * - Admin Role: An `isAdmin` field on the UserProfile document grants elevated privileges.
- * - No Public User Listing: Non-admins cannot list all users in the database, protecting privacy.
+ * - No Public User Listing: Users cannot list all users in the database, protecting privacy.
  * - Strict Ownership for Users: All user-level read and write operations are gated by functions
  *   that verify the authenticated user's ID matches the ID in the document path.
  * - Path and Data Consistency: Rules enforce that `userId` or `id` fields within documents
@@ -32,10 +30,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
-    function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
@@ -48,106 +42,82 @@ service cloud.firestore {
       return request.resource.data.id == resource.data.id;
     }
 
-    function hasCorrectUserIdOnCreate(userId) {
-      return request.resource.data.userId == userId;
-    }
-    
-    function userIdIsImmutable() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    // --- Admin-Only Collections ---
-
-    /**
-     * @description Manages application-wide configuration, such as feature flags.
-     *              Only accessible by administrators.
-     * @path /appConfig/{configId}
-     */
-    match /appConfig/{configId} {
-      allow read, write: if isAdmin();
-    }
-
     // --- User Data Collections ---
 
     /**
      * @description Manages user profile documents.
      * - Users can create, read, update, and delete their own profile.
-     * - Admins can read and update any user's profile (for management purposes).
      * @path /users/{userId}
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin(); // Only admins can list users.
+      allow get: if isOwner(userId);
+      allow list: if false; // Users cannot list other users.
       allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
-      allow update: if (isExistingOwner(userId) && userProfileIdIsImmutable()) || isAdmin();
+      allow update: if isExistingOwner(userId) && userProfileIdIsImmutable();
       allow delete: if isExistingOwner(userId);
 
       /**
        * @description Manages a user's subscription information.
        * - Users can manage their own subscription.
-       * - Admins can read subscription data for management.
        * @path /users/{userId}/subscriptions/{subscriptionId}
        */
       match /subscriptions/{subscriptionId} {
         allow create, update, delete: if isOwner(userId);
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow get, list: if isOwner(userId);
       }
       
       /**
        * @description Manages a user's subjects. Only the user can manage their own subjects.
-       *              Admins can read for support purposes.
        * @path /users/{userId}/subjects/{subjectId}
        */
       match /subjects/{subjectId} {
         allow create, update, delete: if isOwner(userId);
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow get, list: if isOwner(userId);
 
         /**
          * @description Manages notes within a subject. Only the subject owner can manage notes.
-         *              Admins can read for support.
          * @path /users/{userId}/subjects/{subjectId}/notes/{noteId}
          */
         match /notes/{noteId} {
           allow create, update, delete: if isOwner(userId);
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow get, list: if isOwner(userId);
         }
         
         /**
-         * @description Manages exam questions within a subject. Admins can read.
+         * @description Manages exam questions within a subject.
          * @path /users/{userId}/subjects/{subjectId}/examQuestions/{questionId}
          */
         match /examQuestions/{questionId} {
           allow create, update, delete: if isOwner(userId);
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow get, list: if isOwner(userId);
         }
 
         /**
-         * @description Manages syllabus items within a subject. Admins can read.
+         * @description Manages syllabus items within a subject.
          * @path /users/{userId}/subjects/{subjectId}/syllabus/{syllabusId}
          */
         match /syllabus/{syllabusId} {
           allow create, update, delete: if isOwner(userId);
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow get, list: if isOwner(userId);
         }
 
         /**
-         * @description Manages resources within a subject. Admins can read.
+         * @description Manages resources within a subject.
          * @path /users/{userId}/subjects/{subjectId}/resources/{resourceId}
          */
         match /resources/{resourceId} {
           allow create, update, delete: if isOwner(userId);
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow get, list: if isOwner(userId);
         }
       }
 
       /**
        * @description Manages dashboard sticky notes. Only the user can manage their own.
-       *              Admins can read.
        * @path /users/{userId}/stickyNotes/{noteId}
        */
       match /stickyNotes/{noteId} {
         allow create, update, delete: if isOwner(userId);
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow get, list: if isOwner(userId);
       }
     }
   }
@@ -166,5 +136,3 @@ service firebase.storage {
     }
   }
 }
-
-    

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -25,19 +25,17 @@ import {
   Notebook,
   Sun,
   LayoutDashboard,
-  Shield,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
-import { doc } from 'firebase/firestore';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -46,8 +44,6 @@ const navItems = [
   { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
   { href: '/dashboard/account', icon: User, label: 'Account' },
 ];
-
-const adminNavItem = { href: '/liquid', icon: Shield, label: 'Admin' };
 
 
 function GlowModeToggle({ id }: { id: string }) {
@@ -65,16 +61,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading, userError } = useUser();
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-
-  const isAdmin = useMemo(() => userProfile?.isAdmin === true, [userProfile]);
 
   useEffect(() => {
     if (!isUserLoading && (userError || !user)) {
@@ -82,17 +69,13 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     }
   }, [isUserLoading, user, userError, router]);
 
-  const isLoading = isUserLoading || isProfileLoading;
-
-  if (isLoading) {
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
-
-  const allNavItems = isAdmin ? [...navItems, adminNavItem] : navItems;
   
   return (
     <SidebarProvider>
@@ -119,7 +102,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
               </div>
             </SidebarGroup>
             <SidebarMenu>
-              {allNavItems.map((item) => (
+              {navItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
                   <Link href={item.href}>
                     <SidebarMenuButton
@@ -186,7 +169,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                           </SheetTitle>
                       </SheetHeader>
                       <nav className="grid gap-2 text-lg font-medium mt-4">
-                          {allNavItems.map(item => (
+                          {navItems.map(item => (
                               <SheetClose key={item.href} asChild>
                                   <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                                       <item.icon className="h-4 w-4" />
@@ -254,5 +237,3 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
-
-    

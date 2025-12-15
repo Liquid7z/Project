@@ -14,8 +14,7 @@
         "lastSignInTime": { "type": "string", "description": "Timestamp indicating when the user last signed in.", "format": "date-time" },
         "subscriptionId": { "type": "string", "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)" },
         "plan": { "type": "string", "description": "User's subscription plan.", "enum": ["Free", "Premium"] },
-        "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." },
-        "isAdmin": { "type": "boolean", "description": "Grants administrative privileges over the application." }
+        "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." }
       },
       "required": ["id", "email"]
     },
@@ -136,13 +135,7 @@
     }
   },
   "auth": {
-    "providers": ["password", "google.com"],
-    "customClaims": {
-        "isAdmin": {
-            "type": "boolean",
-            "description": "Grants administrative privileges over the application."
-        }
-    }
+    "providers": ["password", "google.com"]
   },
   "firestore": {
     "structure": [
@@ -177,17 +170,7 @@
       {
         "path": "/users/{userId}/stickyNotes/{noteId}",
         "definition": { "entityName": "StickyNote", "schema": { "$ref": "#/backend/entities/StickyNote" }, "description": "Stores dashboard sticky notes for each user." }
-      },
-      {
-        "path": "/appConfig/features",
-        "definition": {
-            "entityName": "AppConfig",
-            "schema": { "$ref": "#/backend/entities/AppConfig" },
-            "description": "Stores application-wide feature flag configuration."
-        }
       }
     ]
   }
 }
-
-    
