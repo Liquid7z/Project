@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card } from './ui/card';
 import { Loader, Network } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -40,11 +40,11 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const { user, firestore } = useUser();
+    const { user, firestore } = useFirebase();
     const router = useRouter();
 
     const allNotesQuery = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/subjects`));
     }, [user, firestore]);
 
