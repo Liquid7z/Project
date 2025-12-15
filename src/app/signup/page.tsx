@@ -49,6 +49,7 @@ export default function SignupPage() {
             photoURL: user.photoURL,
             creationTime: new Date().toISOString(),
             lastSignInTime: new Date().toISOString(),
+            isAdmin: false, // Add isAdmin field, defaulting to false
         };
         setDocumentNonBlocking(userDocRef, userData, { merge: true });
     };
