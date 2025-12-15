@@ -3,12 +3,13 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card } from './ui/card';
-import { Loader, Network, Wand2, Plus } from 'lucide-react';
+import { Loader, Network, Wand2, Plus, GraduationCap } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc, collectionGroup, query } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { generateSkillTreeFromTopic } from '@/ai/flows/generate-skill-tree';
+import { explainTopic } from '@/ai/flows/study-coach';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +31,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 
 // A simple deterministic hash function for positioning
@@ -139,6 +141,9 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const { user, firestore } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
+
+    const [isExplaining, setIsExplaining] = useState(false);
+    const [explanation, setExplanation] = useState<{ title: string; content: string } | null>(null);
 
     // Fetch existing notes to merge with AI generated ones
     const notesQuery = useMemoFirebase(() => {
@@ -275,12 +280,33 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
             // This is handled by the AlertDialog now
         } else if (node.type === 'subject' || node.type === 'key-concept' || node.type === 'main-idea') {
             const subjectId = node.id.startsWith('subject-') ? node.id.replace('subject-','') : node.id;
-            router.push(`/dashboard/notes/${subjectId}`);
+            // Check if the subject exists before navigating
+            const subjectExists = subjects.some(s => s.id === subjectId);
+            if (subjectExists) {
+                 router.push(`/dashboard/notes/${subjectId}`);
+            } else {
+                 toast({ title: "Subject not yet created", description: "Please create the subject from the skill tree first.", variant: "default" });
+            }
         } else if (node.type === 'note' && node.subjectId) {
              const noteId = node.id.startsWith('note-') ? node.id.replace('note-','') : node.id;
              router.push(`/dashboard/notes/${node.subjectId}/notes/${noteId}`);
         }
     }
+    
+    const handleExplain = async (node: Node) => {
+        if (!user) return;
+        setIsExplaining(true);
+        setExplanation({ title: node.label, content: '' }); // Show dialog with title immediately
+        try {
+            const result = await explainTopic({ userId: user.uid, topic: node.label });
+            setExplanation({ title: node.label, content: result });
+        } catch (e) {
+            console.error("Explanation failed:", e);
+            setExplanation({ title: node.label, content: "<p>Sorry, I couldn't generate an explanation for that topic.</p>" });
+        } finally {
+            setIsExplaining(false);
+        }
+    };
     
     const getNodeStyles = (nodeType: Node['type']) => {
         switch (nodeType) {
@@ -412,13 +438,19 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                             </motion.div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>{node.isPlaceholder ? "Click the '+' to create this item" : "Double-click to open"}</p>
+                                            <div className="flex flex-col gap-2 p-1">
+                                                <p className="text-xs">{node.isPlaceholder ? "Click the '+' to create this item" : "Double-click to open"}</p>
+                                                <Button size="sm" variant="secondary" className="h-auto py-1" onClick={() => handleExplain(node)}>
+                                                    <GraduationCap className="w-3 h-3 mr-1.5"/>
+                                                    Explain
+                                                </Button>
+                                            </div>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Create New {node.type === 'subject' ? 'Subject' : 'Note'}?</AlertDialogTitle>
+                                        <AlertDialogTitle>Create New Item?</AlertDialogTitle>
                                         <AlertDialogDescription>
                                             This will add "{node.label}" to your collection. You can add content to it later.
                                         </AlertDialogDescription>
@@ -436,6 +468,28 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     </div>
                  )}
             </Card>
+
+            <Dialog open={!!explanation} onOpenChange={(isOpen) => !isOpen && setExplanation(null)}>
+                <DialogContent className="glass-pane max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="font-headline text-accent text-glow">{explanation?.title}</DialogTitle>
+                         <DialogDescription>
+                           AI-generated explanation
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-foreground max-h-[60vh] overflow-y-auto">
+                        {isExplaining && !explanation?.content ? (
+                            <div className="flex items-center justify-center p-8">
+                                <Loader className="animate-spin mr-2" /> Generating explanation...
+                            </div>
+                        ) : (
+                            <div dangerouslySetInnerHTML={{ __html: explanation?.content || ''}} />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
+    
