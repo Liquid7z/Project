@@ -221,7 +221,7 @@ export default function ItemEditPage() {
                 </div>
             )}
             
-            <div className="flex items-center justify-between -mt-24 relative z-10 px-8">
+            <div className="flex items-center justify-between -mt-24 relative z-10 px-4 sm:px-8">
                  <Link href={getBackLink()}>
                     <Button variant="outline" size="icon" type="button">
                         <ArrowLeft className="h-4 w-4" />
@@ -230,15 +230,15 @@ export default function ItemEditPage() {
             </div>
 
             <div className="space-y-6 px-4 md:px-8 relative">
-                <Card className={cn("glass-pane overflow-hidden p-6 transition-all", isImportant && "important-glow")}>
-                    <CardHeader className="!p-0 !pb-4 border-b flex-row justify-between items-center">
+                <Card className={cn("glass-pane overflow-hidden p-4 sm:p-6 transition-all", isImportant && "important-glow")}>
+                    <CardHeader className="!p-0 !pb-4 border-b flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <CardTitle className="font-headline text-lg">
                             From subject: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
                         </CardTitle>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 self-end sm:self-center">
                            <Label htmlFor="important-note" className="flex items-center gap-2 text-sm font-medium text-accent cursor-pointer">
                                <Sparkles className="h-4 w-4"/>
-                                Important Item
+                                <span className="hidden sm:inline">Important Item</span>
                            </Label>
                            <Switch id="important-note" checked={isImportant} onCheckedChange={setIsImportant} />
                         </div>
@@ -248,7 +248,7 @@ export default function ItemEditPage() {
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="Item Title"
-                            className="text-4xl font-bold font-headline h-auto p-2 border-none focus-visible:ring-0 bg-transparent -mx-2"
+                            className="text-2xl sm:text-4xl font-bold font-headline h-auto p-2 border-none focus-visible:ring-0 bg-transparent -mx-2"
                         />
                     </CardContent>
                 </Card>
@@ -273,7 +273,7 @@ export default function ItemEditPage() {
                 </Card>
             </div>
 
-             <div className="fixed right-8 top-1/2 -translate-y-1/2 z-20">
+             <div className="fixed right-2 sm:right-8 top-1/2 -translate-y-1/2 z-20">
                 <Card className="glass-pane p-2 flex flex-col gap-2">
                     <Button variant="glow" size="icon" onClick={handleSave} disabled={isSaving}>
                         {isSaving ? <Loader className="animate-spin" /> : <Save />}

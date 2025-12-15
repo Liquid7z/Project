@@ -187,7 +187,7 @@ export default function GeneratePage() {
     const renderOutputContent = () => {
         if (generatedPages.length > 0) {
             return (
-                <Carousel className="w-full max-w-xs">
+                <Carousel className="w-full max-w-xs sm:max-w-sm">
                     <CarouselContent>
                         {generatedPages.map((page, index) => (
                         <CarouselItem key={index}>
@@ -218,7 +218,7 @@ export default function GeneratePage() {
         }
         if (documentPreview) {
             return (
-                 <div className="w-full max-w-xs p-1">
+                 <div className="w-full max-w-xs sm:max-w-sm p-1">
                     <div className="w-full aspect-[3/4] relative">
                         <Image
                             src={documentPreview}
