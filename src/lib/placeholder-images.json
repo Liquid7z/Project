@@ -53,6 +53,12 @@
       "description": "Stylized fox logo avatar",
       "imageUrl": "https://images.unsplash.com/photo-1644125003580-ec6e1afbdd5f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzdHlsaXplZCUyMGZveHxlbnwwfHx8fDE3NjU4MjI3NDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "stylized fox"
+    },
+    {
+      "id": "qr-code",
+      "description": "Placeholder QR code for payments.",
+      "imageUrl": "https://images.unsplash.com/photo-1652345408103-7fbe3dd59324?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxxciUyMGNvZGV8ZW58MHx8fHwxNzY1NzQwMjYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "qr code"
     }
   ]
 }

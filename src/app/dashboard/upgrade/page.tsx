@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { Separator } from '@/components/ui/separator';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Image from 'next/image';
 
 const premiumPlanFeatures = [
     'Unlimited handwriting generations',
@@ -20,11 +24,38 @@ const premiumPlanFeatures = [
     'Priority support',
 ];
 
+const GPayButton = () => (
+    <button className="w-full bg-black text-white h-10 rounded-md flex items-center justify-center">
+        <span className="text-2xl font-bold">G</span>
+        <span className="ml-1">Pay</span>
+    </button>
+)
+
 export default function UpgradePage() {
     const { toast } = useToast();
     const router = useRouter();
     const { user } = useUser();
     const firestore = useFirestore();
+
+    const [showQr, setShowQr] = useState(false);
+    const [qrTime, setQrTime] = useState(300); // 5 minutes in seconds
+    
+    const qrImage = PlaceHolderImages.find(p => p.id === 'qr-code');
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (showQr && qrTime > 0) {
+            timer = setTimeout(() => setQrTime(t => t - 1), 1000);
+        } else if (showQr && qrTime === 0) {
+            setShowQr(false);
+            toast({
+                variant: "destructive",
+                title: "QR Code Expired",
+                description: "Please generate a new QR code to complete your payment.",
+            });
+        }
+        return () => clearTimeout(timer);
+    }, [showQr, qrTime, toast]);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -32,19 +63,15 @@ export default function UpgradePage() {
     }, [user, firestore]);
 
     const handlePayment = async () => {
-        // This is a mock payment process
         toast({
             title: "Processing Payment...",
             description: "Please wait while we process your transaction.",
         });
 
-        // Simulate a network delay
         setTimeout(async () => {
             if (userProfileRef) {
                 try {
-                    await updateDoc(userProfileRef, {
-                        plan: 'Premium'
-                    });
+                    await updateDoc(userProfileRef, { plan: 'Premium' });
                     toast({
                         title: "Upgrade Successful!",
                         description: "Welcome to Premium! You now have access to all features.",
@@ -65,6 +92,12 @@ export default function UpgradePage() {
                 });
             }
         }, 2000);
+    };
+
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
     return (
@@ -103,36 +136,61 @@ export default function UpgradePage() {
                     <Card className="glass-pane">
                         <CardHeader>
                             <CardTitle className="font-headline">Payment Information</CardTitle>
-                            <CardDescription>Enter your card details to complete the upgrade.</CardDescription>
+                            <CardDescription>Choose your preferred payment method.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="card-number">Card Number</Label>
-                                <div className="relative">
-                                    <Input id="card-number" placeholder="0000 0000 0000 0000" />
-                                    <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <CardContent className="space-y-6">
+                           <div>
+                                <h3 className="text-sm font-semibold text-accent mb-2">Recommended</h3>
+                                <div onClick={() => setShowQr(true)}>
+                                   <GPayButton />
                                 </div>
-                            </div>
-                             <div className="grid grid-cols-2 gap-4">
+                           </div>
+
+                            {showQr && qrImage && (
+                               <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
+                                   <Image src={qrImage.imageUrl} alt={qrImage.description} width={150} height={150} data-ai-hint={qrImage.imageHint} className="rounded-md" />
+                                   <p className="text-sm text-muted-foreground">Scan this QR code with your Google Pay app.</p>
+                                   <p className="font-mono text-lg font-bold text-accent">{formatTime(qrTime)}</p>
+                                   <Button variant="ghost" size="sm" onClick={() => setShowQr(false)}>Cancel</Button>
+                               </div>
+                            )}
+
+                           <div className="flex items-center gap-4">
+                                <Separator className="flex-1"/>
+                                <span className="text-xs text-muted-foreground">OR</span>
+                                <Separator className="flex-1"/>
+                           </div>
+
+                           <div className="space-y-4">
+                                <h3 className="text-sm font-semibold text-accent">Cards</h3>
                                 <div className="space-y-2">
-                                    <Label htmlFor="expiry">Expiry Date</Label>
-                                     <div className="relative">
-                                        <Input id="expiry" placeholder="MM / YY" />
-                                        <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Label htmlFor="card-number">Card Number</Label>
+                                    <div className="relative">
+                                        <Input id="card-number" placeholder="0000 0000 0000 0000" />
+                                        <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="cvc">CVC</Label>
-                                     <div className="relative">
-                                        <Input id="cvc" placeholder="123" />
-                                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                 <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="expiry">Expiry Date</Label>
+                                         <div className="relative">
+                                            <Input id="expiry" placeholder="MM / YY" />
+                                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="cvc">CVC</Label>
+                                         <div className="relative">
+                                            <Input id="cvc" placeholder="123" />
+                                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="card-name">Name on Card</Label>
-                                <Input id="card-name" placeholder="Your Name" />
-                            </div>
+                                 <div className="space-y-2">
+                                    <Label htmlFor="card-name">Name on Card</Label>
+                                    <Input id="card-name" placeholder="Your Name" />
+                                </div>
+                           </div>
                         </CardContent>
                         <CardFooter>
                             <Button variant="glow" className="w-full" onClick={handlePayment}>
