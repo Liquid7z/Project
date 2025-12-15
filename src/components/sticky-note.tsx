@@ -113,7 +113,7 @@ export function StickyNote({ note, onUpdate, onDelete, onBlurNew }: StickyNotePr
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="w-full h-auto flex-grow resize-none border-none focus-visible:ring-0 bg-transparent text-lg placeholder:text-inherit/70 p-0 leading-relaxed font-handwriting"
+          className="w-full h-auto flex-grow resize-none border-none focus-visible:ring-0 bg-transparent text-lg placeholder:text-inherit/70 p-0 leading-relaxed font-code"
           placeholder="Take a note..."
         />
       </Card>
