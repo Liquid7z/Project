@@ -664,11 +664,9 @@ export default function LiquidAdminPage() {
 
     useEffect(() => {
         if (!isUserLoading && !isProfileLoading) {
-            // If the profile has loaded and there's no isAdmin flag, grant it.
             if (userProfile && userProfile.isAdmin === undefined) {
                 const makeAdmin = async () => {
                     if (userProfileRef) {
-                        console.log("Attempting to grant admin privileges...");
                         try {
                             await updateDoc(userProfileRef, { isAdmin: true });
                             toast({
@@ -688,7 +686,6 @@ export default function LiquidAdminPage() {
                 };
                 makeAdmin();
             } else if (userProfile && !userProfile.isAdmin) {
-                // If the user is confirmed not to be an admin, redirect them.
                 router.replace('/dashboard');
             }
         }
@@ -696,7 +693,6 @@ export default function LiquidAdminPage() {
 
     const isLoading = isUserLoading || isProfileLoading;
     
-    // While loading, or if the user profile doesn't exist yet for a new user.
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
@@ -705,19 +701,16 @@ export default function LiquidAdminPage() {
         );
     }
     
-    // If the user profile exists and the user is an admin, show the content.
     if (userProfile?.isAdmin) {
         return <AdminPageContent user={user} userProfile={userProfile} isProfileLoading={isProfileLoading} />;
     }
 
-    // If the user profile is loaded but isAdmin is not true (could be false or undefined),
-    // show the granting/unauthorized message.
     return (
         <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
             <Card className="glass-pane p-8 text-center">
                 {userProfile?.isAdmin === undefined ? (
                     <>
-                        <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+                        <Loader className="mx-auto h-12 w-12 animate-spin text-accent" />
                         <h2 className="mt-4 text-2xl font-bold font-headline">Granting Admin...</h2>
                         <p className="mt-2 text-muted-foreground">Attempting to grant you administrative privileges. The page will reload shortly.</p>
                     </>
@@ -734,6 +727,7 @@ export default function LiquidAdminPage() {
 }
 
     
+
 
 
 
