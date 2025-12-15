@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { X, GripVertical } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Card } from './ui/card';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
@@ -33,7 +33,9 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   
   const handleBlur = () => {
-    onUpdate(note.id, title, content);
+    if (note.title !== title || note.content !== content) {
+        onUpdate(note.id, title, content);
+    }
   };
   
   const noteColorClasses = {
@@ -62,21 +64,24 @@ export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
       className="break-inside-avoid"
     >
       <Card ref={cardRef} className={cn(
-        "p-4 flex flex-col rounded-lg border shadow-md w-full",
+        "p-4 flex flex-col rounded-lg border shadow-md w-full relative group",
         noteColorClasses[note.color]
       )}>
-         <div className="flex items-start justify-between mb-2">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleBlur}
-              className="font-bold text-lg border-none bg-transparent focus-visible:ring-0 p-0 h-auto placeholder:text-inherit/70"
-              placeholder="Title"
-            />
-            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-black/50 hover:bg-black/10 hover:text-black/80" onClick={() => onDelete(note.id)}>
-              <X className="h-4 w-4" />
-            </Button>
-         </div>
+        <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6 shrink-0 text-black/30 hover:bg-black/10 hover:text-black/70 absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity" 
+            onClick={() => onDelete(note.id)}
+        >
+            <X className="h-4 w-4" />
+        </Button>
+         <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={handleBlur}
+            className="font-bold text-lg border-none bg-transparent focus-visible:ring-0 p-0 h-auto placeholder:text-inherit/70 mb-2"
+            placeholder="Title"
+        />
         
         <Textarea
           value={content}
