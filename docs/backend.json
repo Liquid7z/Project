@@ -119,6 +119,28 @@
         "skillTreeWip": { "type": "boolean", "description": "Puts the Skill Tree feature into maintenance." },
         "premiumStyleAnalysis": { "type": "boolean", "description": "Feature flag for premium style analysis." }
       }
+    },
+    "PlanConfig": {
+      "title": "PlanConfig",
+      "type": "object",
+      "description": "Stores configuration for subscription plans.",
+      "properties": {
+        "priceMonthly": { "type": "number", "description": "Monthly price in USD." },
+        "priceYearly": { "type": "number", "description": "Yearly price in USD." },
+        "subjectLimit": { "type": "number", "description": "Maximum number of subjects." },
+        "notesPerSubjectLimit": { "type": "number", "description": "Maximum notes per subject." },
+        "docUploadLimit": { "type": "number", "description": "Total document upload limit." },
+        "storageLimitMb": { "type": "number", "description": "Cloud storage limit in MB." },
+        "dailyAiUsageLimit": { "type": "number", "description": "Daily AI generation/analysis limit." },
+        "featureAdvancedSkillTree": { "type": "boolean" },
+        "featureWhiteboardNotes": { "type": "boolean" },
+        "featurePdfPagePreview": { "type": "boolean" },
+        "featureDocSearch": { "type": "boolean" },
+        "featureAiSummaries": { "type": "boolean" },
+        "featureOfflineAccess": { "type": "boolean" },
+        "featureExport": { "type": "boolean" },
+        "featureGamingThemes": { "type": "boolean" }
+      }
     }
   },
   "auth": {
@@ -161,9 +183,11 @@
       {
         "path": "/site_config/maintenance",
         "definition": { "entityName": "SiteConfig", "schema": { "$ref": "#/backend/entities/SiteConfig"}, "description": "Stores site-wide maintenance and feature flag settings." }
+      },
+      {
+        "path": "/plan_configs/{planId}",
+        "definition": { "entityName": "PlanConfig", "schema": { "$ref": "#/backend/entities/PlanConfig"}, "description": "Stores configuration for subscription plans (e.g., 'free', 'premium')." }
       }
     ]
   }
 }
-
-    

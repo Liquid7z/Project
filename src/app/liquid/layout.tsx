@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -26,6 +27,7 @@ import {
   LayoutDashboard,
   Bot,
   Droplets,
+  StickyNote
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,13 +40,14 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
 import { doc } from 'firebase/firestore';
+import { WipPage } from '@/components/wip-page';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Activity' },
-  { href: '/dashboard/generate', icon: Bot, label: 'Generate' },
-  { href: '/dashboard/notes', icon: Notebook, label: 'Notes' },
-  { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style' },
-  { href: '/dashboard/account', icon: User, label: 'Account' },
+  { href: '/dashboard', icon: StickyNote, label: 'Sticky Notes', configFlag: 'stickyNotesWip' },
+  { href: '/dashboard/generate', icon: Bot, label: 'Generate', configFlag: 'generateWip' },
+  { href: '/dashboard/notes', icon: Notebook, label: 'Notes', configFlag: 'notesWip' },
+  { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style', configFlag: 'analyzeWip' },
+  { href: '/dashboard/account', icon: User, label: 'Account', configFlag: 'accountWip' },
 ];
 
 const adminNavItems = [
@@ -74,6 +77,11 @@ function LiquidLayoutNav({ children }: { children: React.ReactNode }) {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+  
+  const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+  const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
+  
+  const isAdmin = userProfile?.isAdmin === true;
 
   useEffect(() => {
     if (!isUserLoading && (userError || !user)) {
@@ -82,13 +90,14 @@ function LiquidLayoutNav({ children }: { children: React.ReactNode }) {
   }, [isUserLoading, user, userError, router]);
 
   useEffect(() => {
-    if (!isProfileLoading && userProfile && !userProfile.isAdmin) {
+    if (!isProfileLoading && userProfile && !isAdmin) {
         router.replace('/dashboard');
     }
-  }, [isProfileLoading, userProfile, router]);
+  }, [isProfileLoading, userProfile, router, isAdmin]);
 
+  const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
 
-  if (isUserLoading || isProfileLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
@@ -96,7 +105,12 @@ function LiquidLayoutNav({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const currentNavItems = [...navItems, ...adminNavItems];
+  // Site-wide maintenance check
+  if (siteConfig?.siteWideMaintenance && !isAdmin) {
+    return <WipPage />;
+  }
+  
+  const currentNavItems = isAdmin ? [...navItems, ...adminNavItems] : navItems;
   
   return (
     <SidebarProvider>
@@ -127,7 +141,7 @@ function LiquidLayoutNav({ children }: { children: React.ReactNode }) {
                 <SidebarMenuItem key={item.label}>
                   <Link href={item.href}>
                     <SidebarMenuButton
-                      isActive={pathname.startsWith(item.href)}
+                      isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
                       tooltip={{ children: item.label }}
                     >
                         <item.icon />
@@ -252,7 +266,7 @@ function LiquidLayoutNav({ children }: { children: React.ReactNode }) {
 export default function LiquidLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <LiquidLayoutNav>{children}</LiquidLayoutNav>

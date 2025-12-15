@@ -44,6 +44,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- Plan Configurations ---
+    match /plan_configs/{planId} {
+      allow get: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // --- User Data Collections ---
 
     match /users/{userId} {
