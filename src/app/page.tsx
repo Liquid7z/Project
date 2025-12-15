@@ -42,12 +42,13 @@ const pricingTiers = [
     },
     {
         name: 'Premium',
-        price: '$10',
+        price: 'Rs 69',
         description: 'Unlock the full power of LiqAI.',
         features: [
             'Unlimited handwriting generations',
             'Unlimited style analyses',
-            'Save generated documents',
+            'Save and export in high resolution',
+            'Access to new handwriting models',
             'Priority support',
         ],
         cta: 'Go Premium',
