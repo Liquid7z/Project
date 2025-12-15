@@ -1,18 +1,20 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { motion, useDragControls } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { X, GripVertical } from 'lucide-react';
 import { Card } from './ui/card';
 import { cn } from '@/lib/utils';
+import { Input } from './ui/input';
 
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green';
 
 export interface StickyNoteData {
   id: string;
+  title: string;
   content: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
@@ -21,83 +23,68 @@ export interface StickyNoteData {
 
 interface StickyNoteProps {
   note: StickyNoteData;
-  onUpdate: (id: string, newContent: string) => void;
+  onUpdate: (id: string, newTitle: string, newContent: string) => void;
   onDelete: (id: string) => void;
-  onPositionChange: (id: string, newPosition: { x: number, y: number }) => void;
 }
 
-export function StickyNote({ note, onUpdate, onDelete, onPositionChange }: StickyNoteProps) {
-  const [isEditing, setIsEditing] = useState(false);
+export function StickyNote({ note, onUpdate, onDelete }: StickyNoteProps) {
+  const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const dragControls = useDragControls();
-
-
+  const cardRef = useRef<HTMLDivElement>(null);
+  
   const handleBlur = () => {
-    setIsEditing(false);
-    onUpdate(note.id, content);
+    onUpdate(note.id, title, content);
   };
   
-  const handleDragEnd = (event: any, info: any) => {
-    onPositionChange(note.id, { x: info.point.x, y: info.point.y });
-  };
-  
-  const startDrag = (event: React.PointerEvent) => {
-    dragControls.start(event, { snapToCursor: false });
+  const noteColorClasses = {
+      yellow: 'bg-yellow-200/80 border-yellow-300/80 text-yellow-900',
+      pink: 'bg-pink-200/80 border-pink-300/80 text-pink-900',
+      blue: 'bg-blue-200/80 border-blue-300/80 text-blue-900',
+      green: 'bg-green-200/80 border-green-300/80 text-green-900',
   }
 
-  const noteColorClasses = {
-      yellow: 'bg-yellow-200 border-yellow-300 text-yellow-800',
-      pink: 'bg-pink-200 border-pink-300 text-pink-800',
-      blue: 'bg-blue-200 border-blue-300 text-blue-800',
-      green: 'bg-green-200 border-green-300 text-green-800',
-  }
+  // Adjust textarea height
+  useEffect(() => {
+    const textarea = cardRef.current?.querySelector('textarea');
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [content]);
 
   return (
     <motion.div
-      drag
-      dragListener={false}
-      dragControls={dragControls}
-      dragMomentum={false}
-      dragConstraints={{ top: 0, left: 0, right: window.innerWidth - note.size.width, bottom: window.innerHeight - note.size.height }}
-      onDragEnd={handleDragEnd}
-      initial={{ opacity: 0, scale: 0.8, x: note.position.x, y: note.position.y }}
-      animate={{ opacity: 1, scale: 1, x: note.position.x, y: note.position.y }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="absolute z-20"
-      style={{
-        width: `${note.size.width}px`,
-        height: `${note.size.height}px`,
-      }}
+      layout
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.5 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      className="break-inside-avoid"
     >
-      <Card className={cn(
-        "w-full h-full p-2 flex flex-col rounded-lg border shadow-lg",
+      <Card ref={cardRef} className={cn(
+        "p-4 flex flex-col rounded-lg border shadow-md w-full",
         noteColorClasses[note.color]
       )}>
-        <div className="flex items-center justify-between pb-1">
-           <div onPointerDown={startDrag} className="cursor-grab p-1 -ml-1 flex-1">
-             <GripVertical className="h-4 w-4 text-black/40" />
-          </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-black/50 hover:bg-black/10 hover:text-black/80" onClick={() => onDelete(note.id)}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="flex-grow h-full" onDoubleClick={() => setIsEditing(true)}>
-          {isEditing ? (
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+         <div className="flex items-start justify-between mb-2">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               onBlur={handleBlur}
-              autoFocus
-              className="w-full h-full resize-none border-none focus-visible:ring-0 bg-transparent text-sm placeholder:text-inherit/70"
+              className="font-bold text-lg border-none bg-transparent focus-visible:ring-0 p-0 h-auto placeholder:text-inherit/70"
+              placeholder="Title"
             />
-          ) : (
-            <div className="p-2 text-sm whitespace-pre-wrap w-full h-full">
-              {content}
-            </div>
-          )}
-        </div>
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-black/50 hover:bg-black/10 hover:text-black/80" onClick={() => onDelete(note.id)}>
+              <X className="h-4 w-4" />
+            </Button>
+         </div>
+        
+        <Textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onBlur={handleBlur}
+          className="w-full h-auto flex-grow resize-none border-none focus-visible:ring-0 bg-transparent text-sm placeholder:text-inherit/70 p-0 leading-relaxed"
+          placeholder="Take a note..."
+        />
       </Card>
     </motion.div>
   );
