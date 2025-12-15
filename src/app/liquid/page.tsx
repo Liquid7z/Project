@@ -21,6 +21,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Zap,
+  Wrench,
 } from 'lucide-react';
 import * as React from 'react';
 import {
@@ -75,6 +76,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { Separator } from '@/components/ui/separator';
 
 const mockUsers = [
   {
@@ -135,13 +137,15 @@ const mockUsers = [
 ];
 
 const mockPremiumFeatures = [
-    { id: 'ai-coach', name: 'AI Study Coach', enabled: true, description: 'Personalized study suggestions and topic explanations.' },
-    { id: 'ai-summaries', name: 'AI Summaries', enabled: true, description: 'Automatic summarization of notes and documents.' },
-    { id: 'ocr', name: 'OCR & Text Extraction', enabled: false, description: 'Extract text from uploaded images and PDFs.' },
-    { id: 'version-history', name: 'Note Version History', enabled: true, description: 'Track changes and restore previous versions of notes.' },
-    { id: 'skill-tree', name: 'Skill-Tree Visualization', enabled: true, description: 'Interactive knowledge map of your subjects.' },
-    { id: 'advanced-exports', name: 'Advanced Exports (PDF, Markdown)', enabled: false, description: 'Export notes and subjects in various formats.' },
-    { id: 'storage-limit', name: 'Higher Storage Limit (10GB)', enabled: true, description: 'Increased storage for premium users.' },
+    { id: 'ai-coach', name: 'AI Study Coach', enabled: true, description: 'Personalized study suggestions and topic explanations.', maintenance: false },
+    { id: 'ai-summaries', name: 'AI Summaries', enabled: true, description: 'Automatic summarization of notes and documents.', maintenance: false },
+    { id: 'handwriting-generation', name: 'Handwriting Generation', enabled: true, description: 'Generate text in a handwritten style.', maintenance: true },
+    { id: 'handwriting-analysis', name: 'Handwriting Analysis', enabled: true, description: 'Analyze handwriting samples to create AI models.', maintenance: true },
+    { id: 'ocr', name: 'OCR & Text Extraction', enabled: false, description: 'Extract text from uploaded images and PDFs.', maintenance: false },
+    { id: 'version-history', name: 'Note Version History', enabled: true, description: 'Track changes and restore previous versions of notes.', maintenance: false },
+    { id: 'skill-tree', name: 'Skill-Tree Visualization', enabled: true, description: 'Interactive knowledge map of your subjects.', maintenance: false },
+    { id: 'advanced-exports', name: 'Advanced Exports (PDF, Markdown)', enabled: false, description: 'Export notes and subjects in various formats.', maintenance: false },
+    { id: 'storage-limit', name: 'Higher Storage Limit (10GB)', enabled: true, description: 'Increased storage for premium users.', maintenance: false },
 ];
 
 const usageData = [
@@ -317,21 +321,37 @@ export default function AdminDashboard() {
           <TabsContent value="features" className="space-y-4">
              <Card>
               <CardHeader>
-                <CardTitle>Premium Features</CardTitle>
+                <CardTitle>Feature Management</CardTitle>
                 <CardDescription>
-                  Enable or disable features for premium users.
+                  Control premium features and toggle maintenance mode.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {mockPremiumFeatures.map(feature => (
-                    <div key={feature.id} className="flex items-center justify-between rounded-lg border p-4">
+                    <div key={feature.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4 gap-4">
                         <div>
                             <h3 className="font-medium">{feature.name}</h3>
                             <p className="text-sm text-muted-foreground">{feature.description}</p>
                         </div>
-                        <Switch defaultChecked={feature.enabled} />
+                        <div className="flex items-center gap-4 shrink-0">
+                             <div className='flex items-center gap-2'>
+                                <Label htmlFor={`maintenance-${feature.id}`} className="text-sm flex items-center gap-1"><Wrench className="w-3 h-3" /> Maint.</Label>
+                                <Switch id={`maintenance-${feature.id}`} defaultChecked={feature.maintenance} />
+                             </div>
+                             <Separator orientation='vertical' className='h-6' />
+                             <div className='flex items-center gap-2'>
+                                <Label htmlFor={`premium-${feature.id}`} className="text-sm flex items-center gap-1"><Zap className="w-3 h-3" /> Premium</Label>
+                                <Switch id={`premium-${feature.id}`} defaultChecked={feature.enabled} />
+                             </div>
+                        </div>
                     </div>
                 ))}
+                <Card className='mt-4 bg-secondary/30'>
+                    <CardContent className='p-4 text-center text-sm text-muted-foreground'>
+                        <p>Putting a feature in maintenance mode will show a friendly message to users.</p>
+                        <p>Like what we do? <a href="#" className='underline hover:text-accent'>Buy Liquid a coffee!</a></p>
+                    </CardContent>
+                </Card>
               </CardContent>
             </Card>
           </TabsContent>
@@ -521,3 +541,5 @@ const UserProfileView = ({ user, onBack }: { user: any; onBack: () => void }) =>
         </div>
     );
 };
+
+    

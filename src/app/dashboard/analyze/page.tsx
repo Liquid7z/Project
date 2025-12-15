@@ -48,10 +48,11 @@ export default function AnalyzePage() {
         <div className="grid gap-6">
             {isLoading && <LoadingAnimation text="Analyzing your handwriting..." />}
             <Card className="glass-pane relative overflow-hidden">
-                <div className="absolute inset-0 bg-card/70 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                <div className="absolute inset-0 bg-card/70 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4 text-center">
                     <Construction className="h-16 w-16 text-accent" />
-                    <h3 className="text-2xl font-headline mt-4">Feature Coming Soon</h3>
-                    <p className="text-muted-foreground">We're working hard to bring this to you!</p>
+                    <h3 className="text-2xl font-headline mt-4">Under Maintenance</h3>
+                    <p className="text-muted-foreground mt-2">This feature is currently being improved. Check back soon!</p>
+                    <p className="text-xs text-muted-foreground/80 mt-4">Like what we do? <a href="#" className="underline hover:text-accent">Buy Liquid a coffee!</a></p>
                 </div>
                 <CardHeader>
                     <CardTitle className="font-headline">Analyze Your Handwriting Style</CardTitle>
@@ -99,3 +100,5 @@ export default function AnalyzePage() {
         </div>
     );
 }
+
+    
