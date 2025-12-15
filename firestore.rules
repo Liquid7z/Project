@@ -52,8 +52,7 @@ service cloud.firestore {
 
     // --- Payment Verifications ---
     match /paymentVerifications/{verificationId} {
-        allow list, get: if isAdmin();
-        allow delete: if isAdmin();
+        allow list, get, delete, update: if isAdmin();
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
 
@@ -63,7 +62,6 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
-      // Temporarily allow user to make themselves admin
       allow update: if (isOwner(userId) && userProfileIdIsImmutable()) || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
 

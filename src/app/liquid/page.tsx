@@ -1,6 +1,6 @@
 
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, doc, updateDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
@@ -192,7 +192,7 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
     )
 }
 
-function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }) {
+function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, userProfile: any, isProfileLoading: boolean }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     
@@ -209,13 +209,25 @@ function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }
 
     const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
     const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
-    
-    const pendingPaymentsQuery = useMemoFirebase(() => {
-        const paymentVerificationsRef = collection(firestore, 'paymentVerifications');
-        return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
-    }, [firestore]); 
 
-    const { data: pendingPayments, isLoading: arePaymentsLoading } = useCollection(pendingPaymentsQuery);
+    const [pendingPayments, setPendingPayments] = useState<any[] | null>(null);
+    const [arePaymentsLoading, setArePaymentsLoading] = useState(true);
+
+    useEffect(() => {
+        if (userProfile?.isAdmin) {
+            const paymentVerificationsRef = collection(firestore, 'paymentVerifications');
+            const q = query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setPendingPayments(payments);
+                setArePaymentsLoading(false);
+            }, (error) => {
+                console.error("Error fetching pending payments:", error);
+                setArePaymentsLoading(false);
+            });
+            return () => unsubscribe();
+        }
+    }, [userProfile?.isAdmin, firestore]);
     
     const handleAdminToggle = async (targetUser: any) => {
         const userRef = doc(firestore, "users", targetUser.id);
@@ -267,7 +279,7 @@ function AdminPageContent({ user, userProfile }: { user: any, userProfile: any }
         }
     };
 
-    const isLoading = areUsersLoading || isConfigLoading || arePaymentsLoading;
+    const isLoading = areUsersLoading || isConfigLoading || arePaymentsLoading || isProfileLoading;
 
     if (isLoading) {
         return (
@@ -509,31 +521,40 @@ export default function LiquidAdminPage() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
     useEffect(() => {
-      if (!isUserLoading && !isProfileLoading) {
-        if (!userProfile?.isAdmin) {
-          const makeAdmin = async () => {
-             if (userProfileRef) {
-                console.log("Attempting to grant admin privileges...");
-                try {
-                  await updateDoc(userProfileRef, { isAdmin: true });
-                  toast({
-                    title: "Admin Granted",
-                    description: "You have been granted admin rights. The page will now reload.",
-                  });
-                  // Brief timeout to allow toast to show before reload
-                  setTimeout(() => window.location.reload(), 2000);
-                } catch(e) {
-                   console.error("Failed to grant admin rights", e);
-                }
-             }
-          }
-          makeAdmin();
+        if (!isUserLoading && !isProfileLoading) {
+            // If the profile has loaded and there's no isAdmin flag, grant it.
+            if (userProfile && userProfile.isAdmin === undefined) {
+                const makeAdmin = async () => {
+                    if (userProfileRef) {
+                        console.log("Attempting to grant admin privileges...");
+                        try {
+                            await updateDoc(userProfileRef, { isAdmin: true });
+                            toast({
+                                title: "Admin Granted",
+                                description: "You have been granted admin rights. The page will now reload.",
+                            });
+                            setTimeout(() => window.location.reload(), 2000);
+                        } catch (e) {
+                            console.error("Failed to grant admin rights", e);
+                            toast({
+                                title: "Error",
+                                description: "Could not grant admin rights. Check console and security rules.",
+                                variant: "destructive"
+                            });
+                        }
+                    }
+                };
+                makeAdmin();
+            } else if (userProfile && !userProfile.isAdmin) {
+                // If the user is confirmed not to be an admin, redirect them.
+                router.replace('/dashboard');
+            }
         }
-      }
     }, [isUserLoading, isProfileLoading, userProfile, router, userProfileRef, toast]);
-    
-    const isLoading = isUserLoading || isProfileLoading;
 
+    const isLoading = isUserLoading || isProfileLoading;
+    
+    // While loading, or if the user profile doesn't exist yet for a new user.
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
@@ -542,16 +563,29 @@ export default function LiquidAdminPage() {
         );
     }
     
+    // If the user profile exists and the user is an admin, show the content.
     if (userProfile?.isAdmin) {
-      return <AdminPageContent user={user} userProfile={userProfile} />;
+        return <AdminPageContent user={user} userProfile={userProfile} isProfileLoading={isProfileLoading} />;
     }
 
+    // If the user profile is loaded but isAdmin is not true (could be false or undefined),
+    // show the granting/unauthorized message.
     return (
-         <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
+        <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
             <Card className="glass-pane p-8 text-center">
-                <AlertTriangle className="mx-auto h-12 w-12 text-destructive"/>
-                <h2 className="mt-4 text-2xl font-bold font-headline">Granting Admin...</h2>
-                <p className="mt-2 text-muted-foreground">Attempting to grant you administrative privileges. The page will reload shortly.</p>
+                {userProfile?.isAdmin === undefined ? (
+                    <>
+                        <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+                        <h2 className="mt-4 text-2xl font-bold font-headline">Granting Admin...</h2>
+                        <p className="mt-2 text-muted-foreground">Attempting to grant you administrative privileges. The page will reload shortly.</p>
+                    </>
+                ) : (
+                     <>
+                        <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+                        <h2 className="mt-4 text-2xl font-bold font-headline">Not Authorized</h2>
+                        <p className="mt-2 text-muted-foreground">You do not have permission to view this page.</p>
+                    </>
+                )}
             </Card>
         </div>
     );
