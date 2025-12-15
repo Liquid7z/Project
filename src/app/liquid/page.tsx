@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, collectionGroup, updateDoc, getDoc, query } from 'firebase/firestore';
-import { Loader, Users, ToggleRight, Shield, AlertTriangle, Notebook, FileText } from 'lucide-react';
+import { Loader, Users, ToggleRight, Shield, AlertTriangle, Notebook, FileText, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -148,7 +148,7 @@ export default function LiquidAdminPage() {
         if (!appConfigRef) return;
         try {
             await updateDoc(appConfigRef, {
-                [`${featureName}.${type}`]: value
+                [`features.${featureName}.${type}`]: value
             });
             toast({
                 title: "Feature Updated",
@@ -227,7 +227,7 @@ export default function LiquidAdminPage() {
                 <TabsContent value="features" className="mt-4">
                      <Card>
                         <CardHeader>
-                            <CardTitle>Feature Toggles</CardTitle>
+                            <CardTitle className="flex items-center gap-2"><Settings /> Feature Toggles</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                              {configError && <div className="text-destructive">Error loading feature config: {configError.message}</div>}

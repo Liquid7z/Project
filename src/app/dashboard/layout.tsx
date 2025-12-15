@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -26,6 +27,7 @@ import {
   Sun,
   LayoutDashboard,
   Shield,
+  Construction,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -72,13 +74,18 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   }, [user, firestore]);
   const { data: userProfile } = useDoc(userProfileRef);
 
+  const appConfigRef = useMemoFirebase(() => doc(firestore, 'appConfig', 'features'), [firestore]);
+  const { data: appConfig, isLoading: isConfigLoading } = useDoc(appConfigRef);
+
+  const isMaintenanceMode = appConfig?.features?.['site-maintenance']?.maintenance || false;
+
   useEffect(() => {
     if (!isUserLoading && (userError || !user)) {
       router.replace('/login');
     }
   }, [isUserLoading, user, userError, router]);
 
-  if (isUserLoading || !userProfile) {
+  if (isUserLoading || !userProfile || isConfigLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
@@ -251,6 +258,13 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
           </header>
           
           <main className="flex-1 p-4 md:p-6 relative">
+            {isMaintenanceMode && (
+                <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                    <Construction className="h-16 w-16 text-accent" />
+                    <h3 className="text-2xl font-headline mt-4">Under Maintenance</h3>
+                    <p className="text-muted-foreground mt-2">We are currently improving our services. Please check back soon.</p>
+                </div>
+            )}
             {children}
           </main>
         </div>

@@ -122,7 +122,8 @@
                     "version-history": { "$ref": "#/backend/entities/FeatureToggle" },
                     "skill-tree": { "$ref": "#/backend/entities/FeatureToggle" },
                     "advanced-exports": { "$ref": "#/backend/entities/FeatureToggle" },
-                    "storage-limit": { "$ref": "#/backend/entities/FeatureToggle" }
+                    "storage-limit": { "$ref": "#/backend/entities/FeatureToggle" },
+                    "site-maintenance": { "$ref": "#/backend/entities/FeatureToggle" }
                 }
             }
         }
