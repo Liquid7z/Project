@@ -3,13 +3,12 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card } from './ui/card';
-import { Loader, Network, Wand2, Plus, GraduationCap } from 'lucide-react';
+import { Loader, Network, Wand2, Plus } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc, collectionGroup, query } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { generateSkillTreeFromTopic } from '@/ai/flows/generate-skill-tree';
-import { explainTopic } from '@/ai/flows/study-coach';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +30,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 
 // A simple deterministic hash function for positioning
@@ -149,9 +147,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const { user, firestore } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
-
-    const [isExplaining, setIsExplaining] = useState(false);
-    const [explanation, setExplanation] = useState<{ title: string; content: string } | null>(null);
 
     const notesQuery = useMemoFirebase(() => {
         if (!user) return null;
@@ -289,21 +284,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         }
     }
     
-    const handleExplain = async (node: Node) => {
-        if (!user) return;
-        setIsExplaining(true);
-        setExplanation({ title: node.label, content: '' });
-        try {
-            const result = await explainTopic({ userId: user.uid, topic: node.label });
-            setExplanation({ title: node.label, content: result });
-        } catch (e) {
-            console.error("Explanation failed:", e);
-            setExplanation({ title: node.label, content: "<p>Sorry, I couldn't generate an explanation for that topic.</p>" });
-        } finally {
-            setIsExplaining(false);
-        }
-    };
-    
     const getNodeStyles = (nodeType: Node['type']) => {
         switch (nodeType) {
             case 'key-concept':
@@ -422,7 +402,6 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                                 initial={{ opacity: 0, scale: 0.5 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ duration: 0.3 }}
-                                                onClick={() => handleExplain(node)}
                                                 onDoubleClick={() => handleNodeDoubleClick(node)}
                                             >
                                                 <span className="truncate">{node.label}</span>
@@ -436,7 +415,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                             </motion.div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p className="text-xs">Click for AI explanation. Double-click to expand/navigate.</p>
+                                            <p className="text-xs">Double-click to expand/navigate.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -455,31 +434,11 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                             </AlertDialog>
                         ))}
                         <div className="absolute bottom-2 right-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
-                            Click for AI explanation. Double-click to expand.
+                           Double-click to expand/navigate.
                         </div>
                     </div>
                  )}
             </Card>
-
-            <Dialog open={!!explanation} onOpenChange={(isOpen) => !isOpen && setExplanation(null)}>
-                <DialogContent className="glass-pane max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="font-headline text-accent text-glow">{explanation?.title}</DialogTitle>
-                         <DialogDescription>
-                           AI-generated explanation
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-foreground max-h-[60vh] overflow-y-auto p-1">
-                        {isExplaining && !explanation?.content ? (
-                            <div className="flex items-center justify-center p-8">
-                                <Loader className="animate-spin mr-2" /> Generating explanation...
-                            </div>
-                        ) : (
-                            <div dangerouslySetInnerHTML={{ __html: explanation?.content || ''}} />
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }
