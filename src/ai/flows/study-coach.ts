@@ -10,14 +10,31 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { initializeServerFirebase } from '@/firebase/server-init';
 
 // Helper to get Firestore instance
 // This function needs to be adapted for server-side execution
-async function getDb() {
-  await initializeServerFirebase();
-  return getFirestore();
+async function getDb(): Promise<Firestore> {
+  try {
+    await initializeServerFirebase();
+    return getFirestore();
+  } catch (error) {
+      console.error(
+        'Failed to initialize server-side Firebase. This is likely a permissions issue. The AI flow will continue with an empty database connection.',
+        error
+      );
+      // Return a mock Firestore instance to prevent crashes.
+      // The calling functions will gracefully handle empty results.
+      return {
+          collectionGroup: () => ({
+              get: async () => ({
+                  docs: [],
+                  forEach: (callback: (doc: any) => void) => {},
+              }),
+          }),
+      } as unknown as Firestore;
+  }
 }
 
 // --- Summarize and Evaluate Topic Flow ---
