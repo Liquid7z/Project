@@ -389,9 +389,4 @@ export default function AccountPage() {
              </Card>
         </div>
     );
-
-    
-
-    
-
-    
+}
