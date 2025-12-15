@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, collectionGroup, updateDoc, getDoc, query } from 'firebase/firestore';
-import { Loader, Users, ToggleRight, Shield, AlertTriangle, Notebook, FileText, Settings } from 'lucide-react';
+import { Loader, Users, ToggleRight, Shield, AlertTriangle, Notebook, FileText, Settings, Construction } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -139,8 +139,11 @@ export default function LiquidAdminPage() {
     const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
 
     useEffect(() => {
-        if (!isLoading && (!user || !userProfile?.isAdmin)) {
-            router.replace('/dashboard');
+        // Wait until all loading is finished before checking permissions
+        if (!isLoading) {
+            if (!user || !userProfile?.isAdmin) {
+                router.replace('/dashboard');
+            }
         }
     }, [user, userProfile, isLoading, router]);
 
