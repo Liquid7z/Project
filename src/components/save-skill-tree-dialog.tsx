@@ -19,7 +19,7 @@ import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, addDoc, updateDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { generateSkillTreeImageAction } from '@/actions/generation';
+import { generateSkillTreeImageAction, explainTopicAction } from '@/actions/generation';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,9 +29,10 @@ interface SaveSkillTreeDialogProps {
   topic: string;
   nodes: any[];
   edges: any[];
+  explanations: Record<string, string>;
 }
 
-export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges }: SaveSkillTreeDialogProps) {
+export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges, explanations }: SaveSkillTreeDialogProps) {
   const [targetType, setTargetType] = useState<'new' | 'existing'>('new');
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
@@ -56,6 +57,12 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges 
   useEffect(() => {
       setSelectedNote(null);
   }, [selectedSubject]);
+  
+  useEffect(() => {
+    if (topic && targetType === 'new') {
+      setNewNoteTitle(`${topic} - Skill Tree`);
+    }
+  }, [topic, targetType, isOpen]);
 
   const handleSave = async () => {
     if (!user || !firestore || !storage) return;
@@ -63,38 +70,70 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges 
     setIsSaving(true);
     try {
         // 1. Generate image from skill tree
-        toast({ title: 'Generating Image...', description: 'Creating a visual representation of the skill tree.' });
-        
-        // Create a deep copy and remove circular references before sending to server action
+        toast({ title: 'Step 1/3: Generating Image...' });
         const cleanNodes = nodes.map(n => {
-            const { parent, children, ...rest } = n;
+            const { parent, children, x, y, width, ...rest } = n;
             return rest;
         });
 
         const imageResult = await generateSkillTreeImageAction({ topic, nodes: cleanNodes, edges });
-        
         if (!imageResult || !imageResult.imageDataUri) {
             throw new Error('Failed to generate skill tree image.');
         }
 
         // 2. Upload image to Firebase Storage
-        toast({ title: 'Uploading Image...', description: 'Saving the image to your storage.' });
+        toast({ title: 'Step 2/3: Uploading Image...' });
         const filePath = `users/${user.uid}/skill-trees/${uuidv4()}.png`;
         const storageRef = ref(storage, filePath);
         const uploadResult = await uploadString(storageRef, imageResult.imageDataUri, 'data_url');
         const downloadUrl = await getDownloadURL(uploadResult.ref);
-
         const imageBlock = {
-            id: `skill-tree-${Date.now()}`,
+            id: `skill-tree-img-${Date.now()}`,
             type: 'image',
             downloadUrl,
             fileName: `${topic}-skill-tree.png`,
         };
+        
+        // 3. Gather all explanations
+        toast({ title: 'Step 3/3: Compiling Explanations...'});
+        const allExplanations: Record<string, string> = { ...explanations };
+        const explanationPromises = nodes
+            .filter(node => !allExplanations[node.id])
+            .map(async (node) => {
+                const result = await explainTopicAction({ topic: node.label });
+                allExplanations[node.id] = result.explanation;
+            });
+        await Promise.all(explanationPromises);
+        
+        // 4. Create text content block
+        let textContent = '';
+        const keyConcept = nodes.find(n => n.type === 'key-concept');
 
-        let noteRef;
-        let noteData;
+        if (keyConcept) {
+            textContent += `<h2>${keyConcept.label}</h2><p>${allExplanations[keyConcept.id] || '...'}</p>`;
+            const mainIdeas = nodes.filter(n => n.parent?.id === keyConcept.id);
+            mainIdeas.forEach(idea => {
+                textContent += `<h3>${idea.label}</h3><p>${allExplanations[idea.id] || '...'}</p>`;
+                const details = nodes.filter(n => n.parent?.id === idea.id);
+                if (details.length > 0) {
+                    textContent += `<ul>`;
+                    details.forEach(detail => {
+                        textContent += `<li><strong>${detail.label}:</strong> ${allExplanations[detail.id] || '...'}</li>`;
+                    });
+                    textContent += `</ul>`;
+                }
+            });
+        }
+        
+        const textBlock = {
+            id: `skill-tree-text-${Date.now()}`,
+            type: 'text',
+            content: textContent,
+        };
 
-        // 3. Add to new or existing note
+        const finalBlocks = [imageBlock, textBlock];
+
+        // 5. Add to new or existing note
         if (targetType === 'new') {
             if (!selectedSubject || !newNoteTitle) {
                 throw new Error('Please select a subject and provide a title for the new note.');
@@ -102,7 +141,7 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges 
             toast({ title: 'Creating New Note...', description: `Adding "${newNoteTitle}".`});
             const newNote = {
                 title: newNoteTitle,
-                blocks: [imageBlock],
+                blocks: finalBlocks,
                 createdAt: serverTimestamp(),
                 lastUpdated: serverTimestamp(),
                 isImportant: false,
@@ -113,11 +152,11 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges 
                 throw new Error('Please select a subject and a note to append to.');
             }
             toast({ title: 'Updating Note...', description: 'Adding skill tree to existing note.'});
-            noteRef = doc(firestore, 'users', user.uid, 'subjects', selectedSubject, 'notes', selectedNote);
+            const noteRef = doc(firestore, 'users', user.uid, 'subjects', selectedSubject, 'notes', selectedNote);
             const existingNote = notes?.find(n => n.id === selectedNote);
             if (!existingNote) throw new Error('Selected note not found.');
 
-            const updatedBlocks = [...(existingNote.blocks || []), imageBlock];
+            const updatedBlocks = [...(existingNote.blocks || []), ...finalBlocks];
             await updateDoc(noteRef, {
                 blocks: updatedBlocks,
                 lastUpdated: serverTimestamp(),

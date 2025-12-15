@@ -135,7 +135,7 @@ export function SkillTreeView() {
     const router = useRouter();
     const { toast } = useToast();
     
-    const [explanation, setExplanation] = useState<Record<string, string>>({});
+    const [explanations, setExplanations] = useState<Record<string, string>>({});
     const [explainingNode, setExplainingNode] = useState<string | null>(null);
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
@@ -144,7 +144,7 @@ export function SkillTreeView() {
         setIsGenerating(true);
         setNodes([]);
         setEdges([]);
-        setExplanation({});
+        setExplanations({});
 
         try {
             const result: GenerateSkillTreeOutput = await generateSkillTreeAction({ topic: newTopic });
@@ -199,7 +199,7 @@ export function SkillTreeView() {
     }
 
     const handleNodeClick = useCallback(async (node: Node) => {
-        if (explanation[node.id]) {
+        if (explanations[node.id]) {
             // Explanation already exists, do nothing
             return;
         }
@@ -207,14 +207,14 @@ export function SkillTreeView() {
         setExplainingNode(node.id);
         try {
             const result = await explainTopicAction({ topic: node.label });
-            setExplanation(prev => ({ ...prev, [node.id]: result.explanation }));
+            setExplanations(prev => ({ ...prev, [node.id]: result.explanation }));
         } catch (error) {
             console.error("Failed to get explanation:", error);
-            setExplanation(prev => ({ ...prev, [node.id]: 'Could not load explanation.' }));
+            setExplanations(prev => ({ ...prev, [node.id]: 'Could not load explanation.' }));
         } finally {
             setExplainingNode(null);
         }
-    }, [explanation]);
+    }, [explanations]);
 
 
     const handleNodeDoubleClick = (node: Node) => {
@@ -356,15 +356,15 @@ export function SkillTreeView() {
                                         </PopoverTrigger>
                                         <PopoverContent className="w-80 glass-pane" side="bottom" align="center">
                                             {explainingNode === node.id && <Loader className="animate-spin" />}
-                                            {explanation[node.id] && (
+                                            {explanations[node.id] && (
                                                 <div className="space-y-2">
                                                      <h4 className="font-medium leading-none">{node.label}</h4>
                                                      <p className="text-sm text-muted-foreground">
-                                                         {explanation[node.id]}
+                                                         {explanations[node.id]}
                                                      </p>
                                                 </div>
                                             )}
-                                            {!explanation[node.id] && explainingNode !== node.id && (
+                                            {!explanations[node.id] && explainingNode !== node.id && (
                                                  <p className="text-sm text-muted-foreground">Click to get an explanation.</p>
                                             )}
                                         </PopoverContent>
@@ -397,6 +397,7 @@ export function SkillTreeView() {
                     topic={topic}
                     nodes={nodes}
                     edges={edges}
+                    explanations={explanations}
                 />
             )}
         </div>
