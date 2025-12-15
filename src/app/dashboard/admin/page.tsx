@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -28,16 +28,23 @@ export default function AdminPage() {
 
     const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
 
-    if (isUserLoading) {
+    useEffect(() => {
+        // Wait until user loading is complete before checking auth status
+        if (!isUserLoading) {
+            // If user is not logged in or is not an admin, redirect them.
+            if (!user || !decodedClaims?.admin) {
+                router.replace('/dashboard');
+            }
+        }
+    }, [isUserLoading, user, decodedClaims, router]);
+
+
+    const isLoading = isUserLoading || areUsersLoading;
+
+    // Show a loader while checking for user and admin status, or if we are about to redirect
+    if (isLoading || !user || !decodedClaims?.admin) {
         return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
     }
-
-    if (!user || !decodedClaims?.admin) {
-        router.replace('/dashboard');
-        return null;
-    }
-    
-    const isLoading = isUserLoading || areUsersLoading;
 
     return (
         <div className="space-y-6">
