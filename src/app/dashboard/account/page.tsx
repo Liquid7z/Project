@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -22,6 +23,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
+import Link from 'next/link';
 
 
 const freePlanFeatures = [
@@ -330,8 +332,8 @@ export default function AccountPage() {
                             </ul>
                         </CardContent>
                         <CardFooter>
-                            <Button variant="glow" className="w-full">
-                                Upgrade to Premium
+                            <Button variant="glow" className="w-full" asChild>
+                                <Link href="/dashboard/upgrade">Upgrade to Premium</Link>
                             </Button>
                         </CardFooter>
                     </Card>
