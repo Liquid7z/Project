@@ -26,8 +26,8 @@ service cloud.firestore {
       return request.resource.data.id == resource.data.id;
     }
 
-    function isAdmin(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.isAdmin == true;
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
     // --- Admin & Config Collections ---
@@ -35,18 +35,18 @@ service cloud.firestore {
     match /appConfig/{docId} {
       allow get: if true;
       allow list: if true;
-      allow write: if isSignedIn() && isAdmin(request.auth.uid);
+      allow write: if isAdmin();
     }
 
 
     // --- User Data Collections ---
 
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
       allow update: if isExistingOwner(userId) && userProfileIdIsImmutable();
       allow delete: if isExistingOwner(userId);
-      allow list: if isSignedIn() && isAdmin(request.auth.uid);
+      allow list: if isAdmin();
 
       match /subscriptions/{subscriptionId} {
         allow create, update, delete: if isOwner(userId);
@@ -90,7 +90,7 @@ service cloud.firestore {
       allow list: if isSignedIn();
     }
      match /{path=**}/subjects/{subjectId} {
-      allow list: if isSignedIn() && isAdmin(request.auth.uid);
+      allow list: if isAdmin();
     }
   }
 }
