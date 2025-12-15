@@ -40,13 +40,13 @@ service cloud.firestore {
 
     // --- Site-wide Config ---
     match /site_config/maintenance {
-      allow get: if isSignedIn();
+      allow get: if true;
       allow write: if isAdmin();
     }
 
     // --- Plan Configurations ---
     match /plan_configs/{planId} {
-      allow get: if isSignedIn();
+      allow get: if true;
       allow write: if isAdmin();
     }
 

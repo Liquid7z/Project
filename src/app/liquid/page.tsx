@@ -212,22 +212,26 @@ export default function LiquidAdminPage() {
     }, [isProfileLoading, userProfile, router]);
     
     const handleAdminToggle = async (targetUser: any) => {
+        if (!firestore) return;
         const userRef = doc(firestore, "users", targetUser.id);
         await updateDoc(userRef, { isAdmin: !targetUser.isAdmin });
         toast({ title: "Permissions Updated" });
     };
     
     const handleSuspendToggle = async (targetUser: any) => {
+        if (!firestore) return;
         const userRef = doc(firestore, "users", targetUser.id);
         await updateDoc(userRef, { isSuspended: !targetUser.isSuspended });
         toast({ title: "User Status Updated" });
     };
 
     const handleConfigToggle = async (key: string, value: boolean) => {
+        if (!siteConfigRef) return;
         await setDoc(siteConfigRef, { [key]: value }, { merge: true });
     };
 
     const handlePlanConfigSave = async (planId: string, data: PlanConfig) => {
+        if (!firestore) return;
         const planRef = doc(firestore, 'plan_configs', planId);
         await setDoc(planRef, data, { merge: true });
     };
@@ -334,8 +338,8 @@ export default function LiquidAdminPage() {
                                <CardDescription>Toggle features on or off. 'Off' puts the feature into maintenance mode for non-admins.</CardDescription>
                            </CardHeader>
                            <CardContent className="grid sm:grid-cols-2 gap-4">
-                               <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                                   <Label htmlFor="siteWideMaintenance" className="font-semibold">Enable Site-wide Maintenance</Label>
+                               <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-3">
+                                   <Label htmlFor="siteWideMaintenance" className="font-semibold text-destructive">Enable Site-wide Maintenance</Label>
                                    <Switch id="siteWideMaintenance" checked={siteConfig?.siteWideMaintenance || false} onCheckedChange={(c) => handleConfigToggle('siteWideMaintenance', c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
