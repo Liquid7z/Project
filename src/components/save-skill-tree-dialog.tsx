@@ -19,7 +19,7 @@ import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, addDoc, updateDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { generateSkillTreeImageAction, explainTopicAction } from '@/actions/generation';
+import { explainTopicAction } from '@/actions/generation';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -68,44 +68,12 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
   }, [topic, targetType, isOpen]);
 
   const handleSave = async () => {
-    if (!user || !firestore || !storage) return;
+    if (!user || !firestore) return;
 
     setIsSaving(true);
     try {
-        // 1. Generate image from skill tree
-        toast({ title: 'Step 1/3: Generating Image...' });
-        const cleanNodes = nodes.map(n => {
-            const { parent, children, x, y, width, ...rest } = n;
-            return rest;
-        });
-
-        const imageResult = await generateSkillTreeImageAction({ topic, nodes: cleanNodes, edges });
-        if (!imageResult || !imageResult.imageDataUri) {
-            throw new Error('Failed to generate skill tree image.');
-        }
-
-        // 2. Upload image to Firebase Storage
-        toast({ title: 'Step 2/3: Uploading Image...' });
-        const filePath = `users/${user.uid}/skill-trees/${uuidv4()}.png`;
-        const storageRef = ref(storage, filePath);
-        
-        // Correctly handle the data URI for upload
-        const base64String = imageResult.imageDataUri.split(',')[1];
-        if (!base64String) {
-          throw new Error('Invalid image data URI received from AI.');
-        }
-
-        const uploadResult = await uploadString(storageRef, base64String, 'base64', { contentType: 'image/png' });
-        const downloadUrl = await getDownloadURL(uploadResult.ref);
-        const imageBlock = {
-            id: `skill-tree-img-${Date.now()}`,
-            type: 'image',
-            downloadUrl,
-            fileName: `${topic}-skill-tree.png`,
-        };
-        
-        // 3. Gather all explanations
-        toast({ title: 'Step 3/3: Compiling Explanations...'});
+        // 1. Gather all explanations
+        toast({ title: 'Step 1/2: Compiling Explanations...'});
         const allExplanations: Record<string, string> = { ...explanations };
         const explanationPromises = nodes
             .filter(node => !allExplanations[node.id])
@@ -115,7 +83,8 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
             });
         await Promise.all(explanationPromises);
         
-        // 4. Create text content block
+        // 2. Create professionally formatted text content block
+        toast({ title: 'Step 2/2: Formatting Content...'});
         let textContent = '';
         const keyConcept = nodes.find(n => n.type === 'key-concept');
 
@@ -153,10 +122,10 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
             content: textContent,
         };
 
-        const finalBlocks = [imageBlock, textBlock];
+        const finalBlocks = [textBlock];
         const singularContentType = contentType === 'notes' ? 'note' : 'resource';
 
-        // 5. Add to new or existing item
+        // 3. Add to new or existing item
         if (targetType === 'new') {
             if (!selectedSubject || !newItemTitle) {
                 throw new Error(`Please select a subject and provide a title for the new ${singularContentType}.`);
