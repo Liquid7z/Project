@@ -317,7 +317,7 @@ export default function AccountPage() {
                      <Card className="border-accent bg-accent/10">
                         <CardHeader>
                             <CardTitle className="text-lg font-bold text-glow">Premium Plan</CardTitle>
-                            <p className="text-3xl font-bold font-headline mt-2">$10<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                            <p className="text-3xl font-bold font-headline mt-2">Rs 69<span className="text-sm font-normal text-muted-foreground">/month</span></p>
                         </CardHeader>
                         <CardContent>
                             <ul className="space-y-2 text-sm text-foreground">
