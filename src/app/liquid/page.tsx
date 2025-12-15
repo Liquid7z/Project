@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote } from 'lucide-react';
+import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote, Notebook, ScanLine } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -196,31 +196,31 @@ export default function LiquidAdminPage() {
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between rounded-lg border border-border p-3">
                             <Label htmlFor="siteWideMaintenance" className="font-semibold">Site-wide Maintenance</Label>
-                            <Switch id="siteWideMaintenance" checked={siteConfig?.siteWideMaintenance} onCheckedChange={(c) => handleConfigToggle('siteWideMaintenance', c)} />
+                            <Switch id="siteWideMaintenance" checked={siteConfig?.siteWideMaintenance || false} onCheckedChange={(c) => handleConfigToggle('siteWideMaintenance', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
                             <Label htmlFor="stickyNotesWip" className="flex items-center gap-2"><StickyNote className="w-4 h-4" />Sticky Notes (WIP)</Label>
-                            <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c)} />
+                            <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip || false} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
                             <Label htmlFor="generateWip" className="flex items-center gap-2"><Bot className="w-4 h-4" />Generate Page (WIP)</Label>
-                            <Switch id="generateWip" checked={siteConfig?.generateWip} onCheckedChange={(c) => handleConfigToggle('generateWip', c)} />
+                            <Switch id="generateWip" checked={siteConfig?.generateWip || false} onCheckedChange={(c) => handleConfigToggle('generateWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
-                            <Label htmlFor="notesWip" className="flex items-center gap-2"><User className="w-4 h-4" />Notes Page (WIP)</Label>
-                            <Switch id="notesWip" checked={siteConfig?.notesWip} onCheckedChange={(c) => handleConfigToggle('notesWip', c)} />
+                            <Label htmlFor="notesWip" className="flex items-center gap-2"><Notebook className="w-4 h-4" />Notes Page (WIP)</Label>
+                            <Switch id="notesWip" checked={siteConfig?.notesWip || false} onCheckedChange={(c) => handleConfigToggle('notesWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
-                            <Label htmlFor="analyzeWip" className="flex items-center gap-2"><User className="w-4 h-4" />Analyze Page (WIP)</Label>
-                            <Switch id="analyzeWip" checked={siteConfig?.analyzeWip} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c)} />
+                            <Label htmlFor="analyzeWip" className="flex items-center gap-2"><ScanLine className="w-4 h-4" />Analyze Page (WIP)</Label>
+                            <Switch id="analyzeWip" checked={siteConfig?.analyzeWip || false} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
                             <Label htmlFor="accountWip" className="flex items-center gap-2"><User className="w-4 h-4" />Account Page (WIP)</Label>
-                            <Switch id="accountWip" checked={siteConfig?.accountWip} onCheckedChange={(c) => handleConfigToggle('accountWip', c)} />
+                            <Switch id="accountWip" checked={siteConfig?.accountWip || false} onCheckedChange={(c) => handleConfigToggle('accountWip', c)} />
                         </div>
                         <div className="flex items-center justify-between p-3">
                             <Label htmlFor="skillTreeWip" className="flex items-center gap-2"><Network className="w-4 h-4" />Skill Tree (WIP)</Label>
-                            <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', c)} />
+                            <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip || false} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', c)} />
                         </div>
                     </CardContent>
                 </Card>
@@ -232,7 +232,7 @@ export default function LiquidAdminPage() {
                     <CardContent className="space-y-4">
                          <div className="flex items-center justify-between rounded-lg border border-border p-3">
                             <Label htmlFor="premiumStyleAnalysis" className="font-semibold">Premium Style Analysis</Label>
-                            <Switch id="premiumStyleAnalysis" checked={siteConfig?.premiumStyleAnalysis} onCheckedChange={(c) => handleConfigToggle('premiumStyleAnalysis', c)} />
+                            <Switch id="premiumStyleAnalysis" checked={siteConfig?.premiumStyleAnalysis || false} onCheckedChange={(c) => handleConfigToggle('premiumStyleAnalysis', c)} />
                         </div>
                     </CardContent>
                 </Card>
