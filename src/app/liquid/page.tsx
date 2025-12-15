@@ -1,4 +1,5 @@
 
+
 'use client';
 import {
   Activity,
@@ -25,6 +26,7 @@ import {
   Wrench,
   Loader2,
   AlertTriangle,
+  Notebook,
 } from 'lucide-react';
 import * as React from 'react';
 import {
@@ -81,11 +83,12 @@ import {
 } from 'recharts';
 import { Separator } from '@/components/ui/separator';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, collectionGroup, query } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 
 export default function AdminDashboard() {
@@ -133,12 +136,17 @@ export default function AdminDashboard() {
           <div className="flex items-center">
               <h1 className="text-3xl font-bold font-headline">Liquid Admin</h1>
           </div>
+          <DashboardStats />
           <Tabs defaultValue="users">
             <div className="flex items-center">
               <TabsList>
                 <TabsTrigger value="users">
                   <Users className="mr-2" />
                   Users
+                </TabsTrigger>
+                 <TabsTrigger value="content">
+                  <BookUser className="mr-2" />
+                  Content
                 </TabsTrigger>
                 <TabsTrigger value="features">
                   <Zap className="mr-2" />
@@ -159,6 +167,19 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="content" className="space-y-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Content</CardTitle>
+                        <CardDescription>
+                            Browse and manage all user-generated content.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ContentTable />
+                    </CardContent>
+                </Card>
+            </TabsContent>
             <TabsContent value="features" className="space-y-4">
               <FeatureManagementPanel />
             </TabsContent>
@@ -172,10 +193,69 @@ export default function AdminDashboard() {
   return null;
 }
 
+const StatCard = ({ title, value, icon: Icon, isLoading }: { title: string, value: number, icon: React.ElementType, isLoading: boolean }) => {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <Skeleton className="h-8 w-1/2" />
+                ) : (
+                    <div className="text-2xl font-bold">{value}</div>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
+const DashboardStats = () => {
+    const firestore = useFirestore();
+
+    const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+    const { data: users, isLoading: usersLoading } = useCollection(usersRef);
+
+    const subjectsQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'subjects')), [firestore]);
+    const { data: subjects, isLoading: subjectsLoading } = useCollection(subjectsQuery);
+
+    const notesQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'notes')), [firestore]);
+    const { data: notes, isLoading: notesLoading } = useCollection(notesQuery);
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <StatCard title="Total Users" value={users?.length || 0} icon={Users} isLoading={usersLoading} />
+            <StatCard title="Total Subjects" value={subjects?.length || 0} icon={BookUser} isLoading={subjectsLoading} />
+            <StatCard title="Total Notes" value={notes?.length || 0} icon={Notebook} isLoading={notesLoading} />
+        </div>
+    )
+}
+
 const UserTable = () => {
   const firestore = useFirestore();
+  const {toast} = useToast();
   const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: users, isLoading, error } = useCollection(usersRef);
+
+  const toggleAdmin = async (user: any) => {
+    const userDocRef = doc(firestore, 'users', user.id);
+    try {
+        await updateDoc(userDocRef, {
+            isAdmin: !user.isAdmin
+        });
+        toast({
+            title: "Permissions Updated",
+            description: `${user.displayName} is ${!user.isAdmin ? 'now an admin' : 'no longer an admin'}.`
+        });
+    } catch(e) {
+         toast({
+            variant: 'destructive',
+            title: "Update Failed",
+            description: "Could not update user permissions."
+        });
+    }
+  }
 
   if (isLoading) {
     return (
@@ -234,6 +314,7 @@ const UserTable = () => {
           <TableRow>
             <TableHead>User</TableHead>
             <TableHead>Plan</TableHead>
+            <TableHead>Role</TableHead>
             <TableHead className="hidden md:table-cell">Last Login</TableHead>
             <TableHead>
               <span className="sr-only">Actions</span>
@@ -261,6 +342,11 @@ const UserTable = () => {
                   {user.plan || 'Free'}
                 </Badge>
               </TableCell>
+              <TableCell>
+                 <Badge variant={user.isAdmin ? 'outline' : 'secondary'}>
+                    {user.isAdmin ? 'Admin' : 'User'}
+                 </Badge>
+              </TableCell>
               <TableCell className="hidden md:table-cell">
                 {user.lastSignInTime ? formatDistanceToNow(new Date(user.lastSignInTime), { addSuffix: true }) : 'Never'}
               </TableCell>
@@ -279,6 +365,9 @@ const UserTable = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => toggleAdmin(user)}>
+                        {user.isAdmin ? 'Revoke Admin' : 'Make Admin'}
+                    </DropdownMenuItem>
                     <DropdownMenuItem>Upgrade to Premium</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive">
@@ -303,6 +392,71 @@ const UserTable = () => {
     </>
   );
 };
+
+const ContentTable = () => {
+    const firestore = useFirestore();
+    const subjectsQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'subjects')), [firestore]);
+    const { data: subjects, isLoading, error } = useCollection(subjectsQuery);
+
+    const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+    const { data: users, isLoading: usersLoading } = useCollection(usersRef);
+
+    const usersMap = React.useMemo(() => {
+        if (!users) return new Map();
+        return new Map(users.map(u => [u.id, u]));
+    }, [users]);
+
+    if (isLoading || usersLoading) {
+         return (
+            <div className="space-y-2">
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+                <AlertTriangle className="h-12 w-12 text-destructive" />
+                <p className="mt-4 font-semibold">Failed to load content</p>
+                <p className="text-sm text-muted-foreground">{error.message}</p>
+            </div>
+        );
+    }
+
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Subject Name</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead><span className="sr-only">Actions</span></TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {subjects?.map(subject => {
+                    const ownerId = (subject as any).ref?.parent?.parent?.id;
+                    const owner = ownerId ? usersMap.get(ownerId) : null;
+                    return (
+                        <TableRow key={subject.id}>
+                            <TableCell className="font-medium">{subject.name}</TableCell>
+                            <TableCell>{owner?.displayName || owner?.email || 'Unknown User'}</TableCell>
+                            <TableCell>
+                                {subject.lastUpdated ? formatDistanceToNow(subject.lastUpdated.toDate(), { addSuffix: true }) : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                                 <Button variant="outline" size="sm" asChild>
+                                    <Link href={`/dashboard/notes/${subject.id}`}>View</Link>
+                                 </Button>
+                            </TableCell>
+                        </TableRow>
+                    )
+                })}
+            </TableBody>
+        </Table>
+    )
+}
 
 const initialFeatures = [
     { id: 'ai-coach', name: 'AI Study Coach', description: 'Personalized study suggestions and topic explanations.' },
@@ -414,3 +568,5 @@ const FeatureManagementPanel = () => {
         </Card>
     )
 }
+
+    
