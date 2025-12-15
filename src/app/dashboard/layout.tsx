@@ -78,7 +78,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
     }
   }, [isUserLoading, user, userError, router]);
 
-  if (isUserLoading) {
+  if (isUserLoading || !userProfile) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader className="h-16 w-16 animate-spin text-primary" />
@@ -137,7 +137,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                             </Avatar>
                             <div className="grow overflow-hidden text-left">
                                 <p className="font-medium truncate text-sm">{user?.displayName ?? 'User'}</p>
-                                <p className="text-xs text-muted-foreground">Free Plan</p>
+                                <p className="text-xs text-muted-foreground">{userProfile.plan || 'Free'} Plan</p>
                             </div>
                         </SidebarMenuButton>
                     </div>
@@ -149,6 +149,17 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                         <Link href="/dashboard/account">Profile</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Billing</DropdownMenuItem>
+                    {userProfile.isAdmin && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href="/liquid">
+                                    <Shield className="mr-2 h-4 w-4" />
+                                    Admin
+                                </Link>
+                            </DropdownMenuItem>
+                        </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/') }}>
                         <LogOut className="mr-2 h-4 w-4" />
@@ -219,6 +230,17 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                     <Link href="/dashboard/account">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>Billing</DropdownMenuItem>
+                   {userProfile.isAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href="/liquid">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Admin
+                            </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/')}}>
                     <LogOut className="mr-2 h-4 w-4" />

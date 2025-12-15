@@ -1,22 +1,6 @@
-/**
- * Core Philosophy: This ruleset enforces a strict user-ownership security model. All
- * user-generated data is stored within a dedicated user-specific document tree, ensuring
- * that users can only access and modify their own information.
- *
- * Data Structure: The entire database is structured hierarchically under the top-level
- * '/users' collection. Each user's data, including their profile, subscriptions, subjects,
- * and notes, is nested under a document corresponding to their unique user ID
- * (e.g., /users/{userId}/...).
- *
- * Key Security Decisions:
- * - Default Deny: All access is denied by default. Permissions are explicitly granted.
- * - No Public User Listing: Users cannot list all users in the database, protecting privacy.
- * - Strict Ownership for Users: All user-level read and write operations are gated by functions
- *   that verify the authenticated user's ID matches the ID in the document path.
- * - Path and Data Consistency: Rules enforce that `userId` or `id` fields within documents
- *   match the path on creation and are immutable, ensuring relational integrity.
- */
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -42,89 +26,58 @@ service cloud.firestore {
       return request.resource.data.id == resource.data.id;
     }
 
+    function isAdmin(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.isAdmin == true;
+    }
+
     // --- Admin & Config Collections ---
     
     match /appConfig/{docId} {
       allow get: if true;
       allow list: if true;
-      // Allow write only for authenticated users for demo purposes.
-      // In a real app, you would restrict this to admins.
-      allow write: if isSignedIn();
+      allow write: if isSignedIn() && isAdmin(request.auth.uid);
     }
 
 
     // --- User Data Collections ---
 
-    /**
-     * @description Manages user profile documents.
-     * - Users can create, read, update, and delete their own profile.
-     * @path /users/{userId}
-     */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow create: if isOwner(userId) && userProfileHasCorrectIdOnCreate(userId);
       allow update: if isExistingOwner(userId) && userProfileIdIsImmutable();
       allow delete: if isExistingOwner(userId);
+      allow list: if isSignedIn() && isAdmin(request.auth.uid);
 
-      /**
-       * @description Manages a user's subscription information.
-       * - Users can manage their own subscription.
-       * @path /users/{userId}/subscriptions/{subscriptionId}
-       */
       match /subscriptions/{subscriptionId} {
         allow create, update, delete: if isOwner(userId);
         allow get, list: if isOwner(userId);
       }
       
-      /**
-       * @description Manages a user's subjects. Only the user can manage their own subjects.
-       * @path /users/{userId}/subjects/{subjectId}
-       */
       match /subjects/{subjectId} {
         allow create, update, delete: if isOwner(userId);
         allow get, list: if isOwner(userId);
 
-        /**
-         * @description Manages notes within a subject. Only the subject owner can manage notes.
-         * @path /users/{userId}/subjects/{subjectId}/notes/{noteId}
-         */
         match /notes/{noteId} {
           allow create, update, delete: if isOwner(userId);
           allow get, list: if isOwner(userId);
         }
         
-        /**
-         * @description Manages exam questions within a subject.
-         * @path /users/{userId}/subjects/{subjectId}/examQuestions/{questionId}
-         */
         match /examQuestions/{questionId} {
           allow create, update, delete: if isOwner(userId);
           allow get, list: if isOwner(userId);
         }
 
-        /**
-         * @description Manages syllabus items within a subject.
-         * @path /users/{userId}/subjects/{subjectId}/syllabus/{syllabusId}
-         */
         match /syllabus/{syllabusId} {
           allow create, update, delete: if isOwner(userId);
           allow get, list: if isOwner(userId);
         }
 
-        /**
-         * @description Manages resources within a subject.
-         * @path /users/{userId}/subjects/{subjectId}/resources/{resourceId}
-         */
         match /resources/{resourceId} {
           allow create, update, delete: if isOwner(userId);
           allow get, list: if isOwner(userId);
         }
       }
 
-      /**
-       * @description Manages dashboard sticky notes. Only the user can manage their own.
-       * @path /users/{userId}/stickyNotes/{noteId}
-       */
       match /stickyNotes/{noteId} {
         allow create, update, delete: if isOwner(userId);
         allow get, list: if isOwner(userId);
@@ -133,26 +86,21 @@ service cloud.firestore {
     
     // --- Collection Group Rules ---
     
-    /**
-     * @description Allows a user to list their own notes across all subjects.
-     * This is required for features like the AI Study Coach.
-     */
     match /{path=**}/notes/{noteId} {
-      // This rule is INTENTIONALLY broad for the collectionGroup query.
-      // The AI flow is responsible for filtering by the user's ID.
       allow list: if isSignedIn();
+    }
+     match /{path=**}/subjects/{subjectId} {
+      allow list: if isSignedIn() && isAdmin(request.auth.uid);
     }
   }
 }
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Only allow authenticated users to access storage
     match /{allPaths=**} {
       allow read, write: if request.auth != null;
     }
 
-    // Allow users to read and write to their own folder
     match /users/{userId}/{allPaths=**} {
       allow read, write: if request.auth.uid == userId;
     }
