@@ -1,9 +1,12 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser } from '@/firebase';
-import { Check, User, CreditCard, Shield, Loader } from 'lucide-react';
+import { useAuth, useUser } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { sendEmailVerification } from 'firebase/auth';
+import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const freePlanFeatures = [
@@ -22,7 +25,9 @@ const premiumPlanFeatures = [
 
 export default function AccountPage() {
     const { user, isUserLoading } = useUser();
+    const auth = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
 
     if (isUserLoading) {
         return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
@@ -35,6 +40,23 @@ export default function AccountPage() {
     
     // This would come from user data in a real app
     const currentUserPlan = 'Free';
+
+    const handleVerifyEmail = async () => {
+        if (!user) return;
+        try {
+            await sendEmailVerification(user);
+            toast({
+                title: "Verification Email Sent",
+                description: "A verification link has been sent to your email address. Please check your inbox.",
+            });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error Sending Verification",
+                description: error.message,
+            });
+        }
+    };
 
     return (
         <div className="grid gap-6">
@@ -93,22 +115,43 @@ export default function AccountPage() {
                     <CardTitle className="font-headline">Account Information</CardTitle>
                 </CardHeader>
                  <CardContent className="grid sm:grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-center gap-3 p-4 rounded-md bg-background/50">
-                        <User className="w-5 h-5 text-accent"/>
+                    <div className="flex items-start gap-3 p-4 rounded-md bg-background/50">
+                        <User className="w-5 h-5 text-accent mt-1"/>
                         <div>
                             <p className="font-semibold">Email</p>
                             <p className="text-muted-foreground">{user.email}</p>
+                            {user.emailVerified ? (
+                                <div className="flex items-center gap-1 text-xs text-green-400 mt-2">
+                                    <MailCheck className="w-3 h-3" />
+                                    <span>Verified</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 mt-2">
+                                    <div className="flex items-center gap-1 text-xs text-amber-400">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      <span>Not Verified</span>
+                                    </div>
+                                    <Button variant="secondary" size="sm" className="h-auto px-2 py-0.5 text-xs" onClick={handleVerifyEmail}>Verify Now</Button>
+                                </div>
+                            )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-3 p-4 rounded-md bg-background/50">
-                        <CreditCard className="w-5 h-5 text-accent"/>
+                     <div className="flex items-start gap-3 p-4 rounded-md bg-background/50">
+                        <Phone className="w-5 h-5 text-accent mt-1"/>
                         <div>
-                            <p className="font-semibold">Payment Method</p>
-                            <p className="text-muted-foreground">Not set up</p>
+                            <p className="font-semibold">Phone Number</p>
+                            {user.phoneNumber ? (
+                                <p className="text-muted-foreground">{user.phoneNumber}</p>
+                            ) : (
+                                <div className="flex items-center gap-2 mt-2">
+                                    <p className="text-xs text-muted-foreground">Not set</p>
+                                    <Button variant="secondary" size="sm" className="h-auto px-2 py-0.5 text-xs">Add Phone</Button>
+                                </div>
+                            )}
                         </div>
                     </div>
-                     <div className="flex items-center gap-3 p-4 rounded-md bg-background/50">
-                        <Shield className="w-5 h-5 text-accent"/>
+                     <div className="flex items-start gap-3 p-4 rounded-md bg-background/50">
+                        <Shield className="w-5 h-5 text-accent mt-1"/>
                         <div>
                             <p className="font-semibold">Password</p>
                             <Button variant="secondary" size="sm" className="h-auto px-2 py-1 mt-1">Change Password</Button>

@@ -1,3 +1,4 @@
+
 'use client';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -5,17 +6,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, setDocumentNonBlocking } from "@/firebase";
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { doc, setDoc } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
+    name: z.string().min(1, 'Name is required.'),
     email: z.string().email({ message: "Invalid email address." }),
     password: z.string().min(6, { message: "Password must be at least 6 characters." }),
     confirmPassword: z.string()
@@ -34,29 +36,33 @@ export default function SignupPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            name: "",
             email: "",
             password: "",
             confirmPassword: ""
         },
     });
 
-    const createUserProfile = async (user: any) => {
+    const createUserProfile = (user: any, displayName?: string) => {
         const userDocRef = doc(firestore, 'users', user.uid);
         const userData = {
             id: user.uid,
             email: user.email,
-            displayName: user.displayName || user.email?.split('@')[0],
+            displayName: displayName || user.displayName || user.email?.split('@')[0],
             photoURL: user.photoURL,
+            emailVerified: user.emailVerified,
+            phoneNumber: user.phoneNumber,
             creationTime: new Date().toISOString(),
             lastSignInTime: new Date().toISOString(),
         };
-        await setDoc(userDocRef, userData, { merge: true });
+        setDocumentNonBlocking(userDocRef, userData, { merge: true });
     };
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-            await createUserProfile(userCredential.user);
+            await updateProfile(userCredential.user, { displayName: values.name });
+            createUserProfile(userCredential.user, values.name);
             router.push('/dashboard');
         } catch (error: any) {
             toast({
@@ -71,7 +77,7 @@ export default function SignupPage() {
         const provider = new GoogleAuthProvider();
         try {
             const result = await signInWithPopup(auth, provider);
-            await createUserProfile(result.user);
+            createUserProfile(result.user);
             router.push('/dashboard');
         } catch (error: any) {
             toast({
@@ -113,6 +119,19 @@ export default function SignupPage() {
                     </div>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-2">
+                             <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <Label htmlFor="name">Display Name</Label>
+                                        <FormControl>
+                                            <Input id="name" placeholder="Your Name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                              <FormField
                                 control={form.control}
                                 name="email"

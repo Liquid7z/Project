@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -10,6 +11,8 @@
         "email": { "type": "string", "description": "Email address of the user.", "format": "email" },
         "displayName": { "type": "string", "description": "Display name of the user." },
         "photoURL": { "type": "string", "description": "URL of the user's profile photo.", "format": "uri" },
+        "emailVerified": { "type": "boolean", "description": "Whether the user's email address has been verified." },
+        "phoneNumber": { "type": ["string", "null"], "description": "The user's phone number." },
         "creationTime": { "type": "string", "description": "Timestamp indicating when the user profile was created.", "format": "date-time" },
         "lastSignInTime": { "type": "string", "description": "Timestamp indicating when the user last signed in.", "format": "date-time" },
         "subscriptionId": { "type": "string", "description": "Reference to Subscription. (Relationship: UserProfile 1:1 Subscription)" },
