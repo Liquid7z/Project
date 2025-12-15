@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
-import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone, Save, Upload, Edit, CheckCircle } from 'lucide-react';
+import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone, Save, Upload, Edit, CheckCircle, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -50,6 +50,7 @@ export default function AccountPage() {
     const router = useRouter();
     const { toast } = useToast();
     
+    const [isEditing, setIsEditing] = useState(false);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -100,6 +101,18 @@ export default function AccountPage() {
         setAvatarFile(null); // Clear any uploaded file
         setAvatarPreview(imageUrl);
     }
+
+    const handleEditToggle = () => {
+        if (isEditing) {
+            // If canceling edit, reset form to original user data
+            if(user) {
+                profileForm.setValue('displayName', user.displayName || '');
+                setAvatarPreview(user.photoURL);
+            }
+            setAvatarFile(null);
+        }
+        setIsEditing(!isEditing);
+    }
     
      const handleProfileSave = async (values: z.infer<typeof profileFormSchema>) => {
         if (!user || !auth.currentUser) return;
@@ -134,6 +147,7 @@ export default function AccountPage() {
                 title: "Profile Updated",
                 description: "Your account information has been saved.",
             });
+            setIsEditing(false); // Exit editing mode on successful save
 
         } catch (error: any) {
             toast({
@@ -207,23 +221,28 @@ export default function AccountPage() {
     return (
         <div className="grid gap-6">
              <Card className="glass-pane">
-                <CardHeader>
-                    <CardTitle className="font-headline">Your Profile</CardTitle>
-                    <CardDescription>Manage your public profile and personal information.</CardDescription>
-                </CardHeader>
                 <Form {...profileForm}>
                     <form onSubmit={profileForm.handleSubmit(handleProfileSave)}>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                               <CardTitle className="font-headline">Your Profile</CardTitle>
+                               <CardDescription>Manage your public profile and personal information.</CardDescription>
+                            </div>
+                             {!isEditing && (
+                                <Button variant="outline" onClick={handleEditToggle}><Edit className="mr-2"/>Edit Profile</Button>
+                             )}
+                        </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="flex flex-col sm:flex-row items-center gap-6">
-                                <div className="relative">
+                                <div className={cn("relative", !isEditing && "pointer-events-none")}>
                                     <Avatar className="h-24 w-24 border-2 border-accent">
                                         <AvatarImage src={avatarPreview || `https://avatar.vercel.sh/${user?.email}.png`} alt={user.displayName || 'user'}/>
                                         <AvatarFallback>{user.displayName?.[0]}</AvatarFallback>
                                     </Avatar>
-                                     <label htmlFor="avatar-upload" className="absolute -bottom-2 -right-2 bg-secondary text-secondary-foreground rounded-full p-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">
-                                        <Edit className="h-4 w-4" />
+                                     {isEditing && <label htmlFor="avatar-upload" className="absolute -bottom-2 -right-2 bg-secondary text-secondary-foreground rounded-full p-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">
+                                        <Upload className="h-4 w-4" />
                                         <input id="avatar-upload" type="file" className="sr-only" accept="image/png, image/jpeg" onChange={handleAvatarChange} />
-                                    </label>
+                                    </label>}
                                 </div>
                                  <FormField
                                     control={profileForm.control}
@@ -232,14 +251,14 @@ export default function AccountPage() {
                                         <FormItem className="flex-grow w-full sm:w-auto">
                                             <FormLabel>Display Name</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Your Name" {...field} />
+                                                <Input placeholder="Your Name" {...field} readOnly={!isEditing} className={cn(!isEditing && "border-none bg-transparent")} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
                             </div>
-                            <div className="space-y-2">
+                            {isEditing && <div className="space-y-2">
                                 <Label>Or choose an avatar</Label>
                                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                                     {inbuiltAvatars.map(avatar => (
@@ -253,14 +272,18 @@ export default function AccountPage() {
                                         </button>
                                     ))}
                                 </div>
-                            </div>
+                            </div>}
                         </CardContent>
-                        <CardFooter>
+                        {isEditing && <CardFooter className="gap-2">
+                            <Button variant="ghost" type="button" onClick={handleEditToggle}>
+                                <X className="mr-2"/>
+                                Cancel
+                            </Button>
                             <Button variant="glow" type="submit" disabled={isSavingProfile}>
                                 {isSavingProfile ? <Loader className="animate-spin mr-2"/> : <Save className="mr-2"/>}
-                                Save Profile
+                                Save Changes
                             </Button>
-                        </CardFooter>
+                        </CardFooter>}
                     </form>
                 </Form>
             </Card>
@@ -366,6 +389,8 @@ export default function AccountPage() {
              </Card>
         </div>
     );
+
+    
 
     
 
