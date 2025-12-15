@@ -1,24 +1,32 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, updateDoc, writeBatch } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader, User, Shield, AlertTriangle } from 'lucide-react';
+import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
 
 export default function LiquidAdminPage() {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    
+    // Mock state for new controls
+    const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+    const [isGenerateWip, setIsGenerateWip] = useState(false);
+    const [isAnalyzeWip, setIsAnalyzeWip] = useState(true);
+    const [isAdvancedStyleFeature, setIsAdvancedStyleFeature] = useState(false);
+
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -170,6 +178,52 @@ export default function LiquidAdminPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+            <div className="grid md:grid-cols-3 gap-6">
+                <Card className="glass-pane border-accent/50">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-accent flex items-center gap-2"><Wrench/>Site Status</CardTitle>
+                        <CardDescription>Manage site-wide maintenance and work-in-progress pages.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                            <Label htmlFor="maintenance-mode" className="font-semibold">Site-wide Maintenance</Label>
+                            <Switch id="maintenance-mode" checked={isMaintenanceMode} onCheckedChange={setIsMaintenanceMode} />
+                        </div>
+                         <div className="flex items-center justify-between p-3">
+                            <Label htmlFor="generate-wip">Generate Page (WIP)</Label>
+                            <Switch id="generate-wip" checked={isGenerateWip} onCheckedChange={setIsGenerateWip} />
+                        </div>
+                         <div className="flex items-center justify-between p-3">
+                            <Label htmlFor="analyze-wip">Analyze Page (WIP)</Label>
+                            <Switch id="analyze-wip" checked={isAnalyzeWip} onCheckedChange={setIsAnalyzeWip} />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="glass-pane border-accent/50">
+                     <CardHeader>
+                        <CardTitle className="font-headline text-accent flex items-center gap-2"><Bot/>Feature Flags</CardTitle>
+                        <CardDescription>Toggle premium or experimental features across the app.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                         <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                            <Label htmlFor="advanced-style" className="font-semibold">Premium Style Analysis</Label>
+                            <Switch id="advanced-style" checked={isAdvancedStyleFeature} onCheckedChange={setIsAdvancedStyleFeature} />
+                        </div>
+                    </CardContent>
+                </Card>
+                 <Card className="glass-pane border-accent/50">
+                     <CardHeader>
+                        <CardTitle className="font-headline text-accent flex items-center gap-2"><Coffee/>Support</CardTitle>
+                        <CardDescription>Manage support links and other resources.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                       <Button variant="glow" className="w-full">
+                           Buy Liquid a Coffee!
+                       </Button>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
