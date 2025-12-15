@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot, getDocs, serverTimestamp, addDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -273,18 +273,34 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
     const handleApprovePayment = async (verification: any) => {
         const userRef = doc(firestore, 'users', verification.userId);
         const verificationRef = doc(firestore, 'paymentVerifications', verification.id);
+        const notificationsRef = collection(firestore, 'users', verification.userId, 'notifications');
         const premiumEndDate = addDays(new Date(), 30);
 
         try {
-            await writeBatch(firestore)
-                .update(userRef, { 
-                    plan: 'Premium', 
-                    paymentStatus: 'none',
-                    premiumUntil: premiumEndDate.toISOString(),
-                    subscriptionStatus: 'active'
-                })
-                .delete(verificationRef)
-                .commit();
+            const batch = writeBatch(firestore);
+            
+            // Update user profile
+            batch.update(userRef, { 
+                plan: 'Premium', 
+                paymentStatus: 'none',
+                premiumUntil: premiumEndDate.toISOString(),
+                subscriptionStatus: 'active'
+            });
+            
+            // Delete verification request
+            batch.delete(verificationRef);
+            
+            // Create notification
+            const notificationDoc = doc(notificationsRef); // Create a new doc ref for the notification
+            batch.set(notificationDoc, {
+                message: 'Your Premium subscription has been approved! Enjoy your 30 days of premium access.',
+                type: 'premium-update',
+                isRead: false,
+                createdAt: serverTimestamp(),
+                href: '/dashboard/account',
+            });
+
+            await batch.commit();
             
             toast({ title: "Payment Approved", description: `${verification.userName}'s plan has been upgraded to Premium for 30 days.` });
         } catch (error) {
@@ -293,11 +309,33 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
         }
     };
     
-    const handleRejectPayment = async (verificationId: string) => {
-        const verificationRef = doc(firestore, 'paymentVerifications', verificationId);
-         try {
-            await deleteDoc(verificationRef);
-            toast({ title: "Payment Rejected", description: "The verification request has been deleted." });
+    const handleRejectPayment = async (verification: any) => {
+        const verificationRef = doc(firestore, 'paymentVerifications', verification.id);
+        const userRef = doc(firestore, 'users', verification.userId);
+        const notificationsRef = collection(firestore, 'users', verification.userId, 'notifications');
+        
+        try {
+            const batch = writeBatch(firestore);
+
+            // Delete verification request
+            batch.delete(verificationRef);
+
+            // Update user's payment status back to 'none'
+            batch.update(userRef, { paymentStatus: 'none' });
+
+            // Create notification for rejection
+            const notificationDoc = doc(notificationsRef);
+            batch.set(notificationDoc, {
+                message: 'Your payment verification was rejected. Please check your details and try again.',
+                type: 'premium-update',
+                isRead: false,
+                createdAt: serverTimestamp(),
+                href: '/dashboard/upgrade',
+            });
+
+            await batch.commit();
+            
+            toast({ title: "Payment Rejected", description: "The verification request has been deleted and the user notified." });
         } catch (error) {
             console.error("Error rejecting payment:", error);
             toast({ variant: 'destructive', title: "Rejection Failed", description: "Could not delete the request." });
@@ -418,7 +456,7 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
                                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleRejectPayment(p.id)} className="bg-destructive hover:bg-destructive/90">Reject</AlertDialogAction>
+                                                                <AlertDialogAction onClick={() => handleRejectPayment(p)} className="bg-destructive hover:bg-destructive/90">Reject</AlertDialogAction>
                                                             </AlertDialogFooter>
                                                         </AlertDialogContent>
                                                     </AlertDialog>
@@ -696,6 +734,7 @@ export default function LiquidAdminPage() {
 }
 
     
+
 
 
 
