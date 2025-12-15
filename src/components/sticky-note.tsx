@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useDragControls } from 'framer-motion';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { X, GripVertical } from 'lucide-react';
@@ -24,6 +25,8 @@ interface StickyNoteProps {
 export function StickyNote({ note, onUpdate, onDelete, onPositionChange }: StickyNoteProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content);
+  const dragControls = useDragControls();
+
 
   const handleBlur = () => {
     setIsEditing(false);
@@ -33,11 +36,17 @@ export function StickyNote({ note, onUpdate, onDelete, onPositionChange }: Stick
   const handleDragEnd = (event: any, info: any) => {
     onPositionChange(note.id, { x: info.point.x, y: info.point.y });
   };
+  
+  const startDrag = (event: React.PointerEvent) => {
+    dragControls.start(event, { snapToCursor: false });
+  }
 
 
   return (
     <motion.div
       drag
+      dragListener={false}
+      dragControls={dragControls}
       dragMomentum={false}
       dragConstraints={{ top: 0, left: 0, right: window.innerWidth - 250, bottom: window.innerHeight - 250 }}
       onDragEnd={handleDragEnd}
@@ -53,9 +62,9 @@ export function StickyNote({ note, onUpdate, onDelete, onPositionChange }: Stick
     >
       <Card className="w-full h-full p-2 flex flex-col glass-pane border-accent/50 shadow-lg shadow-accent/10">
         <div className="flex items-center justify-between pb-1">
-          <motion.div dragMomentum={false} dragControls={{start: () => {}}} className="cursor-grab p-1 -ml-1">
+          <div onPointerDown={startDrag} className="cursor-grab p-1 -ml-1">
              <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </motion.div>
+          </div>
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onDelete(note.id)}>
             <X className="h-4 w-4" />
           </Button>
