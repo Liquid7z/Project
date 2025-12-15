@@ -113,13 +113,16 @@ export default function AdminDashboard() {
   const isCheckingAdmin = isUserLoading || isProfileLoading;
 
   React.useEffect(() => {
+    if (!isUserLoading && !user) {
+        router.replace('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  React.useEffect(() => {
     if (!isCheckingAdmin && !isAdmin) {
       router.replace('/dashboard');
     }
-     if (!isUserLoading && !user) {
-        router.replace('/login');
-    }
-  }, [user, isUserLoading, isCheckingAdmin, isAdmin, router]);
+  }, [isCheckingAdmin, isAdmin, router]);
 
   const handleSelectUser = (user: any) => {
     setSelectedUser(user);
@@ -137,7 +140,8 @@ export default function AdminDashboard() {
   }
   
   if (!isAdmin) {
-    // This is a fallback, the useEffect should have already redirected
+    // This is a fallback, the useEffect should have already redirected.
+    // It also prevents rendering the admin dashboard for non-admins.
     return null;
   }
 
