@@ -66,7 +66,7 @@ export default function GeneratePage() {
         };
 
         setIsLoading(true);
-        setLoadingText('Generating your assignment...');
+        setLoadingText('Generating your study note...');
 
         try {
             // Using a default or placeholder style model ID
@@ -137,7 +137,7 @@ export default function GeneratePage() {
                 <Card className="glass-pane relative overflow-hidden">
                     <CardHeader>
                         <CardTitle className="font-headline">Input Content</CardTitle>
-                        <CardDescription>Provide the text for your assignment.</CardDescription>
+                        <CardDescription>Provide the text for your study note.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="text">
@@ -163,7 +163,7 @@ export default function GeneratePage() {
                     </CardContent>
                     <CardFooter>
                         <Button variant="glow" onClick={handleGenerateClick} disabled={!textContent || isLoading}>
-                            Generate Handwriting
+                            Generate Study Note
                         </Button>
                     </CardFooter>
                 </Card>
@@ -171,7 +171,7 @@ export default function GeneratePage() {
                 <Card className="glass-pane relative overflow-hidden">
                     <CardHeader>
                         <CardTitle className="font-headline">Generated Output</CardTitle>
-                        <CardDescription>Your handwritten assignment will appear here.</CardDescription>
+                        <CardDescription>Your AI-generated study note will appear here.</CardDescription>
                     </CardHeader>
                     <CardContent className="min-h-[365px] flex items-center justify-center bg-background/30 rounded-md p-0 md:p-6">
                         {renderOutputContent()}
