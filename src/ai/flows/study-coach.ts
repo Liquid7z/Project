@@ -181,9 +181,9 @@ const explainTopicFlow = ai.defineFlow(
             name: 'explainTopicPrompt',
             input: { schema: z.object({ topic: z.string(), notes: z.any() }) },
             output: { schema: ExplainOutputSchema },
-            prompt: `You are an expert tutor. A student has asked for an explanation of the topic "{{topic}}".
+            prompt: `You are an expert tutor using the Gemini model. A student has asked for an explanation of the topic "{{topic}}".
 
-Use their existing notes (if any) as a starting point, but expand on them to provide a comprehensive explanation suitable for a student.
+Use their existing notes (if any) as a starting point, but expand on them to provide a comprehensive explanation suitable for a student. Include definitions, examples, and formulas where relevant.
 Format your response in simple HTML using paragraphs, lists, and bold tags for emphasis.
 
 Topic to Explain: {{topic}}
