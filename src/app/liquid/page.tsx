@@ -203,7 +203,7 @@ export default function LiquidAdminPage() {
                             <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip !== false} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
-                            <Label htmlFor="generateWip" className="flex items-center gap-2"><Bot className="w-4 h-4" />Enable Generate Page</Label>
+                            <Label htmlFor="generateWip" className="flex items-center gap-2"><Bot className="w-4 h-4" />Enable /generate</Label>
                             <Switch id="generateWip" checked={siteConfig?.generateWip !== false} onCheckedChange={(c) => handleConfigToggle('generateWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
@@ -211,7 +211,7 @@ export default function LiquidAdminPage() {
                             <Switch id="notesWip" checked={siteConfig?.notesWip !== false} onCheckedChange={(c) => handleConfigToggle('notesWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
-                            <Label htmlFor="analyzeWip" className="flex items-center gap-2"><ScanLine className="w-4 h-4" />Enable Analyze Page</Label>
+                            <Label htmlFor="analyzeWip" className="flex items-center gap-2"><ScanLine className="w-4 h-4" />Enable /analyze</Label>
                             <Switch id="analyzeWip" checked={siteConfig?.analyzeWip !== false} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c)} />
                         </div>
                          <div className="flex items-center justify-between p-3">
@@ -251,5 +251,6 @@ export default function LiquidAdminPage() {
         </div>
     );
 }
+
 
     
