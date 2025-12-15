@@ -3,6 +3,7 @@
 import { useState, useCallback, PropsWithChildren } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
 import { UploadCloud, File, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface FileUploaderProps {
   onFileUpload: (file: File) => void;
@@ -11,15 +12,22 @@ interface FileUploaderProps {
   children?: React.ReactNode;
 }
 
-export function FileUploader({ onFileUpload, acceptedFiles = ['image/png', 'image/jpeg', 'application/pdf'], maxSize = 5 * 1024 * 1024, children }: PropsWithChildren<FileUploaderProps>) {
+export function FileUploader({ onFileUpload, acceptedFiles = ['image/png', 'image/jpeg', 'application/pdf'], maxSize = 100 * 1024 * 1024, children }: PropsWithChildren<FileUploaderProps>) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const onDrop = useCallback((accepted: File[], fileRejections: FileRejection[]) => {
     setError(null);
     if (fileRejections.length > 0) {
-      setError(fileRejections[0].errors[0].message);
+      const message = fileRejections[0].errors[0].message;
+      setError(message);
       setFile(null);
+      toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: message,
+      });
       return;
     }
 
@@ -30,7 +38,7 @@ export function FileUploader({ onFileUpload, acceptedFiles = ['image/png', 'imag
       // Reset file state after upload to allow re-uploading the same file if needed
       setTimeout(() => setFile(null), 1000);
     }
-  }, [onFileUpload]);
+  }, [onFileUpload, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
