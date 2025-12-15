@@ -340,27 +340,27 @@ export default function LiquidAdminPage() {
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="stickyNotesWip" className="flex items-center gap-2"><StickyNote className="w-4 h-4" />Enable Sticky Notes</Label>
-                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip !== false} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', c)} />
+                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip !== false} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', !c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="generateWip" className="flex items-center gap-2"><Bot className="w-4 h-4" />Enable /dashboard/generate</Label>
-                                   <Switch id="generateWip" checked={siteConfig?.generateWip !== false} onCheckedChange={(c) => handleConfigToggle('generateWip', c)} />
+                                   <Switch id="generateWip" checked={siteConfig?.generateWip !== false} onCheckedChange={(c) => handleConfigToggle('generateWip', !c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="notesWip" className="flex items-center gap-2"><Notebook className="w-4 h-4" />Enable Notes Page</Label>
-                                   <Switch id="notesWip" checked={siteConfig?.notesWip !== false} onCheckedChange={(c) => handleConfigToggle('notesWip', c)} />
+                                   <Switch id="notesWip" checked={siteConfig?.notesWip !== false} onCheckedChange={(c) => handleConfigToggle('notesWip', !c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="analyzeWip" className="flex items-center gap-2"><ScanLine className="w-4 h-4" />Enable /dashboard/analyze</Label>
-                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip !== false} onCheckedChange={(c) => handleConfigToggle('analyzeWip', c)} />
+                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip !== false} onCheckedChange={(c) => handleConfigToggle('analyzeWip', !c)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="accountWip" className="flex items-center gap-2"><User className="w-4 h-4" />Enable Account Page</Label>
-                                   <Switch id="accountWip" checked={siteConfig?.accountWip !== false} onCheckedChange={(c) => handleConfigToggle('accountWip', c)} />
+                                   <Switch id="accountWip" checked={siteConfig?.accountWip !== false} onCheckedChange={(c) => handleConfigToggle('accountWip', !c)} />
                                </div>
                                <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="skillTreeWip" className="flex items-center gap-2"><Network className="w-4 h-4" />Enable Skill Tree</Label>
-                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip !== false} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', c)} />
+                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip !== false} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', !c)} />
                                </div>
                            </CardContent>
                        </Card>
@@ -371,7 +371,7 @@ export default function LiquidAdminPage() {
                            </CardHeader>
                            <CardContent className="space-y-4">
                               <Button variant="glow" className="w-full" asChild>
-                                  <a href="https://buymeacoffee.com/yourusername" target="_blank" rel="noopener noreferrer">Buy Liquid a Coffee!</a>
+                                  <a href="https://buymeacoffee.com/liquidd" target="_blank" rel="noopener noreferrer">Buy Liquid a Coffee!</a>
                               </Button>
                            </CardContent>
                        </Card>

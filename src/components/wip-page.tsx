@@ -20,7 +20,7 @@ export function WipPage() {
                 </CardHeader>
                 <CardContent>
                     <Button variant="glow" asChild>
-                        <a href="https://buymeacoffee.com/yourusername" target="_blank" rel="noopener noreferrer">
+                        <a href="https://buymeacoffee.com/liquidd" target="_blank" rel="noopener noreferrer">
                            <Coffee className="mr-2" /> Buy Liquid a Coffee!
                         </a>
                     </Button>
