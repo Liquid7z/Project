@@ -221,7 +221,7 @@ export default function AccountPage() {
                                         <AvatarFallback>{user.displayName?.[0]}</AvatarFallback>
                                     </Avatar>
                                      <label htmlFor="avatar-upload" className="absolute -bottom-2 -right-2 bg-secondary text-secondary-foreground rounded-full p-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">
-                                        <Upload className="h-4 w-4" />
+                                        <Edit className="h-4 w-4" />
                                         <input id="avatar-upload" type="file" className="sr-only" accept="image/png, image/jpeg" onChange={handleAvatarChange} />
                                     </label>
                                 </div>
@@ -366,5 +366,7 @@ export default function AccountPage() {
              </Card>
         </div>
     );
+
+    
 
     
