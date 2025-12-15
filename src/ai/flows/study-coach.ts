@@ -182,12 +182,17 @@ const explainTopicFlow = ai.defineFlow(
             name: 'explainTopicPrompt',
             input: { schema: z.object({ topic: z.string(), notes: z.any() }) },
             output: { schema: ExplainOutputSchema },
-            prompt: `You are an expert tutor using the Gemini model. A student has asked for an explanation of the topic "{{topic}}".
+            prompt: `You are an expert tutor. A student has asked for an explanation of the topic "{{topic}}".
+Your goal is to provide a clear, concise, and student-friendly explanation.
 
-Use their existing notes (if any) as a starting point, but expand on them to provide a comprehensive explanation suitable for a student. Include definitions, examples, and formulas where relevant.
-Format your response in simple HTML using paragraphs, lists, and bold tags for emphasis.
+Your response MUST be formatted in simple HTML. Structure your response as follows:
 
-Topic to Explain: {{topic}}
+1.  **Explanation:** Start with a simple definition or explanation of the topic. Use an <h2>Explanation</h2> heading.
+2.  **Example:** If applicable, provide a short, clear example to illustrate the concept. Use an <h2>Example</h2> heading.
+3.  **Formula:** If the topic involves a mathematical or scientific formula, provide it. Use an <h2>Formula</h2> heading.
+
+If an example or formula is not relevant for the topic, omit that section completely.
+Use the student's existing notes for context if they are available.
 
 Student's Existing Notes (for context):
 ----------------
