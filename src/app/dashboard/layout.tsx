@@ -292,9 +292,11 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                       </div>
                   </SheetContent>
               </Sheet>
-              <div className="flex-1">
-                 <NotificationsPanel />
-              </div>
+              
+              <NotificationsPanel />
+              
+              <div className="flex-1" />
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
@@ -342,5 +344,7 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
+
+    
 
     
