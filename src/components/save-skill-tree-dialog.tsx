@@ -32,11 +32,14 @@ interface SaveSkillTreeDialogProps {
   explanations: Record<string, string>;
 }
 
+type ContentType = 'notes' | 'resources';
+
 export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges, explanations }: SaveSkillTreeDialogProps) {
   const [targetType, setTargetType] = useState<'new' | 'existing'>('new');
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [selectedNote, setSelectedNote] = useState<string | null>(null);
-  const [newNoteTitle, setNewNoteTitle] = useState('');
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [newItemTitle, setNewItemTitle] = useState('');
+  const [contentType, setContentType] = useState<ContentType>('notes');
   const [isSaving, setIsSaving] = useState(false);
 
   const { user, firestore, storage } = useFirebase();
@@ -48,19 +51,19 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
   }, [user, firestore]);
   const { data: subjects, isLoading: isLoadingSubjects } = useCollection(subjectsCollectionRef);
 
-  const notesCollectionRef = useMemoFirebase(() => {
+  const itemsCollectionRef = useMemoFirebase(() => {
     if (!user || !selectedSubject) return null;
-    return collection(firestore, 'users', user.uid, 'subjects', selectedSubject, 'notes');
-  }, [user, selectedSubject, firestore]);
-  const { data: notes, isLoading: isLoadingNotes } = useCollection(notesCollectionRef);
+    return collection(firestore, 'users', user.uid, 'subjects', selectedSubject, contentType);
+  }, [user, selectedSubject, firestore, contentType]);
+  const { data: items, isLoading: isLoadingItems } = useCollection(itemsCollectionRef);
   
   useEffect(() => {
-      setSelectedNote(null);
-  }, [selectedSubject]);
+      setSelectedItem(null);
+  }, [selectedSubject, contentType]);
   
   useEffect(() => {
     if (topic && targetType === 'new') {
-      setNewNoteTitle(`${topic} - Skill Tree`);
+      setNewItemTitle(`${topic} - Skill Tree`);
     }
   }, [topic, targetType, isOpen]);
 
@@ -132,38 +135,39 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
         };
 
         const finalBlocks = [imageBlock, textBlock];
+        const singularContentType = contentType === 'notes' ? 'note' : 'resource';
 
-        // 5. Add to new or existing note
+        // 5. Add to new or existing item
         if (targetType === 'new') {
-            if (!selectedSubject || !newNoteTitle) {
-                throw new Error('Please select a subject and provide a title for the new note.');
+            if (!selectedSubject || !newItemTitle) {
+                throw new Error(`Please select a subject and provide a title for the new ${singularContentType}.`);
             }
-            toast({ title: 'Creating New Note...', description: `Adding "${newNoteTitle}".`});
-            const newNote = {
-                title: newNoteTitle,
+            toast({ title: `Creating New ${singularContentType}...`, description: `Adding "${newItemTitle}".`});
+            const newItem = {
+                title: newItemTitle,
                 blocks: finalBlocks,
                 createdAt: serverTimestamp(),
                 lastUpdated: serverTimestamp(),
                 isImportant: false,
             };
-            await addDoc(collection(firestore, 'users', user.uid, 'subjects', selectedSubject, 'notes'), newNote);
+            await addDoc(collection(firestore, 'users', user.uid, 'subjects', selectedSubject, contentType), newItem);
         } else {
-            if (!selectedSubject || !selectedNote) {
-                throw new Error('Please select a subject and a note to append to.');
+            if (!selectedSubject || !selectedItem) {
+                throw new Error(`Please select a subject and a ${singularContentType} to append to.`);
             }
-            toast({ title: 'Updating Note...', description: 'Adding skill tree to existing note.'});
-            const noteRef = doc(firestore, 'users', user.uid, 'subjects', selectedSubject, 'notes', selectedNote);
-            const existingNote = notes?.find(n => n.id === selectedNote);
-            if (!existingNote) throw new Error('Selected note not found.');
+            toast({ title: `Updating ${singularContentType}...`, description: `Adding skill tree to existing ${singularContentType}.`});
+            const itemRef = doc(firestore, 'users', user.uid, 'subjects', selectedSubject, contentType, selectedItem);
+            const existingItem = items?.find(n => n.id === selectedItem);
+            if (!existingItem) throw new Error(`Selected ${singularContentType} not found.`);
 
-            const updatedBlocks = [...(existingNote.blocks || []), ...finalBlocks];
-            await updateDoc(noteRef, {
+            const updatedBlocks = [...(existingItem.blocks || []), ...finalBlocks];
+            await updateDoc(itemRef, {
                 blocks: updatedBlocks,
                 lastUpdated: serverTimestamp(),
             });
         }
         
-        toast({ title: 'Success!', description: 'Skill tree has been saved to your notes.' });
+        toast({ title: 'Success!', description: `Skill tree has been saved to your ${contentType}.` });
         onOpenChange(false);
 
     } catch (error: any) {
@@ -178,24 +182,38 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
     }
   };
   
-  const isSaveDisabled = isSaving || (targetType === 'new' && (!selectedSubject || !newNoteTitle)) || (targetType === 'existing' && (!selectedSubject || !selectedNote));
+  const isSaveDisabled = isSaving || (targetType === 'new' && (!selectedSubject || !newItemTitle)) || (targetType === 'existing' && (!selectedSubject || !selectedItem));
+  const typeName = contentType === 'notes' ? 'Note' : 'Resource';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="glass-pane">
         <DialogHeader>
-          <DialogTitle className="font-headline">Save Skill Tree to Notes</DialogTitle>
-          <DialogDescription>Save the generated skill tree for "{topic}" as an image in a new or existing note.</DialogDescription>
+          <DialogTitle className="font-headline">Save Skill Tree</DialogTitle>
+          <DialogDescription>Save the generated skill tree for "{topic}" as a new or in an existing item.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button variant={targetType === 'new' ? 'secondary' : 'ghost'} onClick={() => setTargetType('new')} className="w-full">
-                <Plus className="mr-2 h-4 w-4"/> New Note
+                <Plus className="mr-2 h-4 w-4"/> New Item
             </Button>
             <Button variant={targetType === 'existing' ? 'secondary' : 'ghost'} onClick={() => setTargetType('existing')} className="w-full">
-                <Save className="mr-2 h-4 w-4"/> Existing Note
+                <Save className="mr-2 h-4 w-4"/> Existing Item
             </Button>
+          </div>
+          
+           <div className="space-y-2">
+            <Label htmlFor="content-type-select">Content Type</Label>
+            <Select onValueChange={(value: ContentType) => setContentType(value)} value={contentType}>
+              <SelectTrigger id="content-type-select">
+                <SelectValue placeholder="Select a content type" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="notes">Note</SelectItem>
+                  <SelectItem value="resources">Resource</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -214,19 +232,19 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
 
           {targetType === 'new' ? (
             <div className="space-y-2">
-              <Label htmlFor="new-note-title">New Note Title</Label>
-              <Input id="new-note-title" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} placeholder={`e.g., ${topic} Overview`} />
+              <Label htmlFor="new-item-title">New {typeName} Title</Label>
+              <Input id="new-item-title" value={newItemTitle} onChange={(e) => setNewItemTitle(e.target.value)} placeholder={`e.g., ${topic} Overview`} />
             </div>
           ) : (
             <div className="space-y-2">
-              <Label htmlFor="note-select">Note</Label>
-              <Select onValueChange={setSelectedNote} value={selectedNote || ''} disabled={!selectedSubject || isLoadingNotes}>
-                <SelectTrigger id="note-select">
-                  <SelectValue placeholder={!selectedSubject ? 'First, select a subject' : (isLoadingNotes ? 'Loading notes...' : 'Select a note to append to')} />
+              <Label htmlFor="item-select">{typeName}</Label>
+              <Select onValueChange={setSelectedItem} value={selectedItem || ''} disabled={!selectedSubject || isLoadingItems}>
+                <SelectTrigger id="item-select">
+                  <SelectValue placeholder={!selectedSubject ? 'First, select a subject' : (isLoadingItems ? `Loading ${contentType}...` : `Select a ${singularContentType} to append to`)} />
                 </SelectTrigger>
                 <SelectContent>
-                  {notes?.map((note) => (
-                    <SelectItem key={note.id} value={note.id}>{note.title}</SelectItem>
+                  {items?.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -240,7 +258,7 @@ export function SaveSkillTreeDialog({ isOpen, onOpenChange, topic, nodes, edges,
           </DialogClose>
           <Button type="button" variant="glow" onClick={handleSave} disabled={isSaveDisabled}>
             {isSaving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-            Save to Note
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>
