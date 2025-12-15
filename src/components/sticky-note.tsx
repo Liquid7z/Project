@@ -55,10 +55,10 @@ export function StickyNote({ note, onUpdate, onDelete, onBlurNew }: StickyNotePr
   }, [note.title, note.content]);
   
   const noteColorClasses = {
-      yellow: 'bg-yellow-200/80 border-yellow-300/80 text-yellow-900',
-      pink: 'bg-pink-200/80 border-pink-300/80 text-pink-900',
-      blue: 'bg-blue-200/80 border-blue-300/80 text-blue-900',
-      green: 'bg-green-200/80 border-green-300/80 text-green-900',
+      yellow: 'bg-yellow-200/80 border-yellow-300/80 text-neutral-900',
+      pink: 'bg-pink-200/80 border-pink-300/80 text-neutral-900',
+      blue: 'bg-blue-200/80 border-blue-300/80 text-neutral-900',
+      green: 'bg-green-200/80 border-green-300/80 text-neutral-900',
   }
 
   // Adjust textarea height
