@@ -7,12 +7,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileUploader } from '@/components/file-uploader';
-import { generateAssignmentAction, extractTextAction, analyzeStyleAction } from '@/actions/generation';
+import { generateAssignmentAction, extractTextAction } from '@/actions/generation';
 import { LoadingAnimation } from '@/components/loading-animation';
 import Image from 'next/image';
-import { Download, FileText, Type, UploadCloud } from 'lucide-react';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Download, FileText, Type } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type GeneratedPage = {
@@ -24,16 +22,13 @@ export default function GeneratePage() {
     const [isLoading, setIsLoading] = useState(false);
     const [loadingText, setLoadingText] = useState('Processing...');
     const [textContent, setTextContent] = useState('');
-    const [documentPreview, setDocumentPreview] = useState<string | null>(null);
-    const [generatedPages, setGeneratedPages] = useState<GeneratedPage[]>([]);
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [generatedPage, setGeneratedPage] = useState<GeneratedPage | null>(null);
     const { toast } = useToast();
 
     const handleFileUpload = async (file: File) => {
         setIsLoading(true);
         setLoadingText('Extracting text...');
-        setDocumentPreview(null);
-        setGeneratedPages([]);
+        setGeneratedPage(null);
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
@@ -57,11 +52,10 @@ export default function GeneratePage() {
     
     const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setTextContent(e.target.value);
-        setDocumentPreview(null);
-        setGeneratedPages([]);
+        setGeneratedPage(null);
     }
 
-    const handleGenerateClick = () => {
+    const handleGenerateClick = async () => {
         if (!textContent) {
             toast({
                 variant: 'destructive',
@@ -70,162 +64,60 @@ export default function GeneratePage() {
             });
             return;
         };
-        setIsUploadModalOpen(true);
-    };
 
-    const handleHandwritingUpload = async (file: File) => {
-        setIsUploadModalOpen(false);
         setIsLoading(true);
-        
-        // 1. Analyze handwriting
-        setLoadingText('Analyzing your handwriting...');
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            try {
-                const handwritingSampleDataUri = reader.result as string;
-                const analysisResult = await analyzeStyleAction({ handwritingSampleDataUri });
-                const styleModelId = analysisResult.styleModelId;
+        setLoadingText('Generating your assignment...');
 
-                if (!styleModelId) {
-                    throw new Error("Handwriting analysis failed to return a model ID.");
-                }
+        try {
+            // Using a default or placeholder style model ID
+            const styleModelId = 'placeholder-style-model-id';
 
-                // 2. Generate assignment with the new style
-                setLoadingText('Generating your assignment...');
-                const generationResult = await generateAssignmentAction({
-                    content: textContent,
-                    handwritingStyleModelId: styleModelId,
-                });
+            const generationResult = await generateAssignmentAction({
+                content: textContent,
+                handwritingStyleModelId: styleModelId,
+            });
 
-                setGeneratedPages(generationResult.assignmentPages);
-                setDocumentPreview(null); // Clear document preview to show generated pages
-
-            } catch (error) {
-                console.error("Failed to generate assignment:", error);
+            if (generationResult.assignmentPages && generationResult.assignmentPages.length > 0) {
+                setGeneratedPage(generationResult.assignmentPages[0]);
+            } else {
                  toast({
                     variant: "destructive",
                     title: "Generation Failed",
-                    description: "An error occurred during the handwriting generation process."
-                })
-            } finally {
-                setIsLoading(false);
+                    description: "The AI failed to generate an output. Please try again."
+                });
+                setGeneratedPage(null);
             }
-        };
-         reader.onerror = () => {
-            setIsLoading(false);
+
+        } catch (error) {
+            console.error("Failed to generate assignment:", error);
             toast({
                 variant: "destructive",
-                title: "File Read Error",
-                description: "Could not read the uploaded handwriting sample."
-            });
-        };
-    };
-
-    const handleDownloadPdf = async () => {
-        if (generatedPages.length === 0) return;
-
-        setIsLoading(true);
-        setLoadingText('Creating PDF...');
-
-        try {
-            const { default: jsPDF } = await import('jspdf');
-            
-            const doc = new jsPDF();
-            
-            for (let i = 0; i < generatedPages.length; i++) {
-                if (i > 0) {
-                    doc.addPage();
-                }
-                const imgData = generatedPages[i].pageDataUri;
-                
-                const img = document.createElement('img');
-                img.src = imgData;
-
-                await new Promise<void>((resolve, reject) => {
-                    img.onload = () => {
-                        const pdfWidth = doc.internal.pageSize.getWidth();
-                        const pdfHeight = doc.internal.pageSize.getHeight();
-                        const imgWidth = img.width;
-                        const imgHeight = img.height;
-                        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-
-                        const newWidth = imgWidth * ratio;
-                        const newHeight = imgHeight * ratio;
-
-                        const x = (pdfWidth - newWidth) / 2;
-                        const y = (pdfHeight - newHeight) / 2;
-                        
-                        doc.addImage(imgData, 'PNG', x, y, newWidth, newHeight);
-                        resolve();
-                    }
-                     img.onerror = () => {
-                        console.error(`Failed to load image for page ${i+1}`);
-                        toast({
-                            variant: 'destructive',
-                            title: 'PDF Generation Error',
-                            description: `Could not load page ${i+1} for the PDF.`,
-                        });
-                        reject(new Error(`Image load error for page ${i+1}`));
-                    };
-                });
-            }
-            
-            doc.save('assignment.pdf');
-        } catch (error) {
-            console.error("PDF generation failed", error);
-            toast({
-                variant: 'destructive',
-                title: 'PDF Generation Error',
-                description: 'An unexpected error occurred while creating the PDF.',
+                title: "Generation Failed",
+                description: "An error occurred during the handwriting generation process."
             });
         } finally {
             setIsLoading(false);
         }
     };
-    
+
     const renderOutputContent = () => {
-        if (generatedPages.length > 0) {
+        if (generatedPage) {
             return (
-                <Carousel className="w-full max-w-xs sm:max-w-sm">
-                    <CarouselContent>
-                        {generatedPages.map((page, index) => (
-                        <CarouselItem key={index}>
-                            <div className="p-1">
-                                 <div className="w-full aspect-[3/4] relative group">
-                                    <Image
-                                        src={page.pageDataUri}
-                                        alt={`Generated page ${page.pageNumber}`}
-                                        fill
-                                        className="object-contain"
-                                    />
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="secondary" size="icon" asChild>
-                                            <a href={page.pageDataUri} download={`page_${page.pageNumber}.png`}>
-                                                <Download />
-                                            </a>
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    <CarouselPrevious />
-                    <CarouselNext />
-                </Carousel>
-            );
-        }
-        if (documentPreview) {
-            return (
-                 <div className="w-full max-w-xs sm:max-w-sm p-1">
-                    <div className="w-full aspect-[3/4] relative">
+                <div className="w-full max-w-2xl p-1">
+                    <div className="w-full aspect-[3/4] relative group">
                         <Image
-                            src={documentPreview}
-                            alt="Document Preview"
+                            src={generatedPage.pageDataUri}
+                            alt={`Generated page ${generatedPage.pageNumber}`}
                             fill
                             className="object-contain"
                         />
+                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="secondary" size="icon" asChild>
+                                <a href={generatedPage.pageDataUri} download={`page_${generatedPage.pageNumber}.png`}>
+                                    <Download />
+                                </a>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             );
@@ -284,25 +176,16 @@ export default function GeneratePage() {
                     <CardContent className="min-h-[365px] flex items-center justify-center bg-background/30 rounded-md p-0 md:p-6">
                         {renderOutputContent()}
                     </CardContent>
-                     {generatedPages.length > 0 && <CardFooter className="justify-end">
-                        <Button variant="outline" onClick={handleDownloadPdf}>Download All as PDF</Button>
+                     {generatedPage && <CardFooter className="justify-end">
+                        <Button variant="outline" asChild>
+                            <a href={generatedPage.pageDataUri} download={`page_${generatedPage.pageNumber}.png`}>
+                                <Download className="mr-2"/>
+                                Download PNG
+                            </a>
+                        </Button>
                     </CardFooter>}
                 </Card>
             </div>
-            <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-                <DialogContent className="glass-pane">
-                    <DialogHeader>
-                        <DialogTitle className="font-headline flex items-center gap-2"><UploadCloud /> Upload Handwriting Sample</DialogTitle>
-                        <DialogDescription>
-                            To generate the assignment in your style, please upload an image of your handwriting.
-                            A clear, well-lit image on unlined paper works best.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                         <FileUploader onFileUpload={handleHandwritingUpload} />
-                    </div>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }

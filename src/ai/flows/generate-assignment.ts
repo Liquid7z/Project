@@ -38,19 +38,26 @@ const generateAssignmentPrompt = ai.definePrompt({
   name: 'generateAssignmentPrompt',
   input: {schema: GenerateAssignmentInputSchema},
   output: {schema: GenerateAssignmentOutputSchema},
-  prompt: `You are an AI assistant designed to generate realistic handwritten assignments based on a user's unique handwriting style.
+  prompt: `You are an expert educator and note-taker AI. Your task is to transform the user's input content into a single, comprehensive, and visually organized study note page.
 
-The assignment content is: {{{content}}}
+The output must be a single image data URI that looks like a digital, handwritten note on a white page.
 
-You should generate realistic handwriting, including slight variations in letterforms, spacing, and pressure, to mimic natural handwriting.
+The note page should be structured as follows:
 
-The handwriting style model ID to use is: {{{handwritingStyleModelId}}}
+1.  **Title:** Create a clear title for the topic at the top of the page (e.g., "Week 1: Consumption Utility").
+2.  **Key Concepts:** Identify and list 3-5 key questions or concepts from the content on the left-hand side.
+3.  **Detailed Explanations:** On the right-hand side, provide detailed explanations, definitions, and examples for each key concept. Use color and highlights to emphasize important terms.
+4.  **Diagrams/Visuals:** Where appropriate, create simple, clear diagrams, flowcharts, or graphs to visually represent the information. For example, you could create a mind map for "Consumption Utility" or a scatter plot for "Efficiency Frontier."
+5.  **Summary:** At the bottom of the page, write a concise summary paragraph that ties all the key concepts together.
 
-Output the assignment as an array of data URIs, where each data URI represents a page of the handwritten assignment. Make sure that the output is valid JSON and parsable by Javascript.
+The overall style should be clean, easy to read, and visually appealing for studying and revision. It should look like a well-structured page from a student's digital notebook.
 
-Each page should contain around 250-300 words.
+Use the handwriting style model ID provided: {{{handwritingStyleModelId}}}
 
-Remember to include natural imperfections and variations in the generated handwriting to make it look authentic.
+User Content to transform:
+{{{content}}}
+
+Return a single page in the 'assignmentPages' array. The page number should be 1.
 `,
 });
 
