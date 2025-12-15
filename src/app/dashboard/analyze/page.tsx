@@ -10,14 +10,30 @@ import { LoadingAnimation } from '@/components/loading-animation';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, Construction } from 'lucide-react';
+import { CheckCircle, Loader } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { WipPage } from '@/components/wip-page';
 
 export default function AnalyzePage() {
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
     const [isLoading, setIsLoading] = useState(false);
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [analysisResult, setAnalysisResult] = useState<string | null>(null);
     
     const handwritingSampleImage = PlaceHolderImages.find(p => p.id === 'handwriting-sample');
+
+    const userProfileRef = useMemoFirebase(() => {
+      if (!user) return null;
+      return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+    const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+    const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
+
+    const isPageLoading = isUserLoading || isProfileLoading || isConfigLoading;
 
     const handleFileUpload = (file: File) => {
         setUploadedFile(file);
@@ -43,6 +59,17 @@ export default function AnalyzePage() {
             }
         };
     };
+
+    if (isPageLoading) {
+        return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
+    }
+
+    const isAdmin = userProfile?.isAdmin === true;
+    const isWip = siteConfig?.analyzeWip === false && !isAdmin;
+
+    if (isWip) {
+        return <WipPage />;
+    }
 
     return (
         <div className="grid gap-6">

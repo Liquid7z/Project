@@ -53,6 +53,12 @@ export default function NotesDashboardPage() {
 
     const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
 
+    const userProfileRef = useMemoFirebase(() => {
+      if (!user) return null;
+      return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
     const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
     const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
 
@@ -137,8 +143,17 @@ export default function NotesDashboardPage() {
       }
     };
     
-    const isLoading = isUserLoading || areSubjectsLoading || isConfigLoading;
-    const isSkillTreeWip = siteConfig?.skillTreeWip === false;
+    const isLoading = isUserLoading || areSubjectsLoading || isConfigLoading || isProfileLoading;
+    const isSkillTreeWip = siteConfig?.skillTreeWip === false && userProfile?.isAdmin !== true;
+    const isNotesWip = siteConfig?.notesWip === false && userProfile?.isAdmin !== true;
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
+    }
+
+    if (isNotesWip) {
+        return <WipPage />;
+    }
 
     return (
         <div className="space-y-6">
@@ -249,8 +264,7 @@ export default function NotesDashboardPage() {
                     </div>
                 </TabsContent>
                  <TabsContent value="skill-tree" className="mt-6">
-                    {isSkillTreeWip && <WipPage />}
-                    {!isSkillTreeWip && <SkillTreeView />}
+                    {isSkillTreeWip ? <WipPage /> : <SkillTreeView />}
                  </TabsContent>
             </Tabs>
             
@@ -307,5 +321,3 @@ export default function NotesDashboardPage() {
         </div>
     );
 }
-
-    

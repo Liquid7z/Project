@@ -10,8 +10,12 @@ import { FileUploader } from '@/components/file-uploader';
 import { generateAssignmentAction, extractTextAction } from '@/actions/generation';
 import { LoadingAnimation } from '@/components/loading-animation';
 import Image from 'next/image';
-import { Download, FileText, Type } from 'lucide-react';
+import { Download, FileText, Type, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { WipPage } from '@/components/wip-page';
+
 
 type GeneratedPage = {
     pageNumber: number;
@@ -19,11 +23,24 @@ type GeneratedPage = {
 };
 
 export default function GeneratePage() {
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
     const [isLoading, setIsLoading] = useState(false);
     const [loadingText, setLoadingText] = useState('Processing...');
     const [textContent, setTextContent] = useState('');
     const [generatedPage, setGeneratedPage] = useState<GeneratedPage | null>(null);
     const { toast } = useToast();
+
+    const userProfileRef = useMemoFirebase(() => {
+      if (!user) return null;
+      return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+    const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+    const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
+
+    const isPageLoading = isUserLoading || isProfileLoading || isConfigLoading;
 
     const handleFileUpload = async (file: File) => {
         setIsLoading(true);
@@ -128,6 +145,17 @@ export default function GeneratePage() {
                 <p className="mt-4">Output will be displayed here once generated.</p>
             </div>
         )
+    }
+
+    if (isPageLoading) {
+        return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
+    }
+
+    const isAdmin = userProfile?.isAdmin === true;
+    const isWip = siteConfig?.generateWip === false && !isAdmin;
+
+    if (isWip) {
+        return <WipPage />;
     }
 
     return (

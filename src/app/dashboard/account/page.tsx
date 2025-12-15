@@ -3,11 +3,13 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { sendEmailVerification } from 'firebase/auth';
+import { sendEmailVerification, signOut } from 'firebase/auth';
 import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { doc } from 'firebase/firestore';
+import { WipPage } from '@/components/wip-page';
 
 const freePlanFeatures = [
     '3 handwriting generations per month',
@@ -26,18 +28,38 @@ const premiumPlanFeatures = [
 export default function AccountPage() {
     const { user, isUserLoading } = useUser();
     const auth = useAuth();
+    const firestore = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
 
-    if (isUserLoading) {
+    const userProfileRef = useMemoFirebase(() => {
+      if (!user) return null;
+      return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+    const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+    const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
+
+    const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
+
+    if (isLoading) {
         return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
     }
 
     if (!user) {
+        // This case should be handled by the layout, but as a fallback
         router.push('/login');
         return null;
     }
-    
+
+    const isAdmin = userProfile?.isAdmin === true;
+    const isWip = siteConfig?.accountWip === false && !isAdmin;
+
+    if (isWip) {
+        return <WipPage />;
+    }
+
     // This would come from user data in a real app
     const currentUserPlan = 'Free';
 

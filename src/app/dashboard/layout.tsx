@@ -104,16 +104,6 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   if (siteConfig?.siteWideMaintenance && !isAdmin) {
     return <WipPage />;
   }
-
-  // Per-page maintenance check for non-dashboard pages
-  const currentNavItem = navItems.find(item => item.href !== '/dashboard' && pathname.startsWith(item.href));
-  if (currentNavItem && siteConfig?.[currentNavItem.configFlag] === false && !isAdmin) {
-      return (
-          <div className="flex h-screen w-full items-center justify-center p-4">
-              <WipPage />
-          </div>
-      );
-  }
   
   const currentNavItems = isAdmin ? [...navItems, ...adminNavItems] : navItems;
   
