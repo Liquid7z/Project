@@ -11,7 +11,7 @@ import { ArrowLeft, CreditCard, Calendar, Lock, Check, Loader, Send } from 'luci
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, updateDoc } from 'firebase/firestore';
 import { Separator } from '@/components/ui/separator';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
@@ -26,10 +26,10 @@ const premiumPlanFeatures = [
 ];
 
 const GPayButton = () => (
-    <button className="w-full bg-black text-white h-10 rounded-md flex items-center justify-center">
+    <div className="w-full bg-black text-white h-10 rounded-md flex items-center justify-center">
         <span className="text-2xl font-bold">G</span>
         <span className="ml-1">Pay</span>
-    </button>
+    </div>
 )
 
 export default function UpgradePage() {
@@ -91,7 +91,7 @@ export default function UpgradePage() {
             });
 
             if (userProfileRef) {
-                await setDoc(userProfileRef, { paymentStatus: 'pending' }, { merge: true });
+                await updateDoc(userProfileRef, { paymentStatus: 'pending' });
             }
 
             toast({
