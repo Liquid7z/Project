@@ -15,15 +15,15 @@ import { z } from 'zod';
 const SkillTreeNodeSchema = z.object({
   id: z.string().describe('A unique identifier for the node (e.g., "quantum-mechanics").'),
   label: z.string().describe('The display name of the topic (e.g., "Quantum Mechanics").'),
-  type: z.enum(['subject', 'note']).describe('The type of node, either a main subject or a detailed note/sub-topic.'),
+  type: z.enum(['key-concept', 'main-idea', 'detail']).describe("The node's level in the hierarchy: 'key-concept' (the root), 'main-idea' (level 1), or 'detail' (level 2)."),
   isPlaceholder: z.boolean().optional().describe('True if this node is a placeholder and not a real entity yet.'),
 });
 
 // Define Zod schema for an edge connecting two nodes
 const SkillTreeEdgeSchema = z.object({
-  id: z.string().describe('A unique identifier for the edge (e.g., "subject-1->note-2").'),
-  source: z.string().describe('The ID of the source node.'),
-  target: z.string().describe('The ID of the target node.'),
+  id: z.string().describe('A unique identifier for the edge (e.g., "concept->idea-1").'),
+  source: z.string().describe('The ID of the source (parent) node.'),
+  target: z.string().describe('The ID of the target (child) node.'),
 });
 
 // Define Zod schemas for the flow's input and output
@@ -33,7 +33,7 @@ const GenerateSkillTreeInputSchema = z.object({
 export type GenerateSkillTreeInput = z.infer<typeof GenerateSkillTreeInputSchema>;
 
 const GenerateSkillTreeOutputSchema = z.object({
-  nodes: z.array(SkillTreeNodeSchema).describe('A list of all the subjects and sub-topics (notes) in the skill tree.'),
+  nodes: z.array(SkillTreeNodeSchema).describe('A list of all the topics and sub-topics in the skill tree.'),
   edges: z.array(SkillTreeEdgeSchema).describe('A list of all the connections between the nodes.'),
 });
 export type GenerateSkillTreeOutput = z.infer<typeof GenerateSkillTreeOutputSchema>;
@@ -43,27 +43,31 @@ const generateSkillTreePrompt = ai.definePrompt({
   name: 'generateSkillTreePrompt',
   input: { schema: GenerateSkillTreeInputSchema },
   output: { schema: GenerateSkillTreeOutputSchema },
-  prompt: `You are an expert curriculum designer and knowledge organizer. Your task is to generate a structured skill tree for a given topic.
+  prompt: `You are an expert curriculum designer. Your task is to generate a hierarchical skill tree for a given topic.
 
 Topic: "{{topic}}"
 
-1.  Start by identifying 2-4 main pillars or parent subjects for the given topic. These will be your 'subject' nodes.
-2.  For each parent subject, generate 3-5 sub-topics or key concepts. These will be your 'note' nodes.
-3.  Structure the output as a valid JSON object containing 'nodes' and 'edges'.
-4.  Each node must have a unique 'id', a 'label', and a 'type' ('subject' or 'note'). Use slug-case for IDs.
-5.  Each edge must have a unique 'id', a 'source' (the parent subject's ID), and a 'target' (the child note's ID).
-6.  Ensure all generated nodes are connected. There should be no orphaned nodes.
+1.  **Identify the single Key Concept:** Start with one 'key-concept' node representing the main topic.
+2.  **Branch into Main Ideas:** From the key concept, create 2-4 'main-idea' nodes. These are the primary pillars of the topic.
+3.  **Add Supporting Details:** For each 'main-idea', generate 2-3 'detail' nodes. These are specific concepts, facts, or sub-skills.
+4.  **Structure the Output:** Create a valid JSON object with 'nodes' and 'edges'.
+    *   Each node needs a unique 'id' (slug-case), a 'label' (display name), and a 'type' ('key-concept', 'main-idea', or 'detail').
+    *   Each edge connects a parent to a child (e.g., key-concept to main-idea, main-idea to detail).
+5.  **Ensure Full Connectivity:** All nodes must be part of the tree. There should be no orphaned nodes.
 
 Example for the topic "Machine Learning":
 {
   "nodes": [
-    { "id": "supervised-learning", "label": "Supervised Learning", "type": "subject" },
-    { "id": "unsupervised-learning", "label": "Unsupervised Learning", "type": "subject" },
-    { "id": "regression", "label": "Regression", "type": "note" },
-    { "id": "classification", "label": "Classification", "type": "note" },
-    { "id": "clustering", "label": "Clustering", "type": "note" }
+    { "id": "machine-learning", "label": "Machine Learning", "type": "key-concept" },
+    { "id": "supervised-learning", "label": "Supervised Learning", "type": "main-idea" },
+    { "id": "unsupervised-learning", "label": "Unsupervised Learning", "type": "main-idea" },
+    { "id": "regression", "label": "Regression", "type": "detail" },
+    { "id": "classification", "label": "Classification", "type": "detail" },
+    { "id": "clustering", "label": "Clustering", "type": "detail" }
   ],
   "edges": [
+    { "id": "edge-ml-supervised", "source": "machine-learning", "target": "supervised-learning" },
+    { "id": "edge-ml-unsupervised", "source": "machine-learning", "target": "unsupervised-learning" },
     { "id": "edge-supervised-regression", "source": "supervised-learning", "target": "regression" },
     { "id": "edge-supervised-classification", "source": "supervised-learning", "target": "classification" },
     { "id": "edge-unsupervised-clustering", "source": "unsupervised-learning", "target": "clustering" }

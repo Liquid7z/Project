@@ -2,14 +2,14 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Card, CardContent } from './ui/card';
+import { Card } from './ui/card';
 import { Loader, Network, Wand2, Plus } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, collectionGroup, query, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, collectionGroup, query } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { generateSkillTreeFromTopic } from '@/ai/flows/generate-skill-tree';
-import type { GenerateSkillTreeInput, GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
+import type { GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
     Tooltip,
@@ -48,12 +47,15 @@ const simpleHash = (str: string) => {
 interface Node {
     id: string;
     label: string;
-    type: 'subject' | 'note';
+    type: 'subject' | 'note' | 'key-concept' | 'main-idea' | 'detail';
     x: number;
     y: number;
     subjectId?: string;
     isImportant?: boolean;
     isPlaceholder?: boolean;
+    children?: Node[];
+    width?: number;
+    parent?: Node;
 }
 
 interface Edge {
@@ -62,8 +64,65 @@ interface Edge {
     target: string;
 }
 
-const VIEW_WIDTH = 800;
-const VIEW_HEIGHT = 600;
+const VIEW_WIDTH = 1200;
+const VIEW_HEIGHT = 800;
+const NODE_WIDTH = 140;
+const NODE_HEIGHT = 40;
+const HORIZONTAL_SPACING = 40;
+const VERTICAL_SPACING = 80;
+
+
+const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
+    const nodesMap: { [id: string]: Node } = {};
+    aiNodes.forEach(n => {
+        nodesMap[n.id] = { ...n, children: [], x: 0, y: 0 };
+    });
+
+    aiEdges.forEach(edge => {
+        const source = nodesMap[edge.source];
+        const target = nodesMap[edge.target];
+        if (source && target) {
+            source.children?.push(target);
+            target.parent = source;
+        }
+    });
+
+    const keyConcept = Object.values(nodesMap).find(n => n.type === 'key-concept');
+    if (!keyConcept) return { finalNodes: [], finalEdges: aiEdges };
+    
+    // Calculate widths recursively
+    const calculateWidths = (node: Node) => {
+        if (node.children?.length === 0) {
+            node.width = NODE_WIDTH;
+            return;
+        }
+        let childrenWidth = 0;
+        node.children?.forEach(child => {
+            calculateWidths(child);
+            childrenWidth += child.width || 0;
+        });
+        node.width = Math.max(NODE_WIDTH, childrenWidth + (node.children!.length - 1) * HORIZONTAL_SPACING);
+    };
+    calculateWidths(keyConcept);
+
+    // Position nodes recursively
+    const positionNodes = (node: Node, x: number, y: number) => {
+        node.x = x + (node.width || NODE_WIDTH) / 2;
+        node.y = y + NODE_HEIGHT / 2;
+        
+        let currentX = x;
+        node.children?.forEach(child => {
+            positionNodes(child, currentX, y + NODE_HEIGHT + VERTICAL_SPACING);
+            currentX += (child.width || 0) + HORIZONTAL_SPACING;
+        });
+    };
+    
+    const totalWidth = keyConcept.width || NODE_WIDTH;
+    positionNodes(keyConcept, (VIEW_WIDTH - totalWidth) / 2, 50);
+
+    return { finalNodes: Object.values(nodesMap), finalEdges: aiEdges };
+};
+
 
 export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const [nodes, setNodes] = useState<Node[]>([]);
@@ -156,16 +215,10 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         try {
             const result: GenerateSkillTreeOutput = await generateSkillTreeFromTopic({ topic });
             
-            const aiSubjects = result.nodes.filter(n => n.type === 'subject').map(n => ({ ...n, name: n.label, isPlaceholder: true }));
-            const aiNotes = result.nodes.filter(n => n.type === 'note').map(n => {
-                 const edge = result.edges.find(e => e.target === n.id);
-                 return { ...n, title: n.label, subjectId: edge?.source, isPlaceholder: true };
-            });
+            const { finalNodes, finalEdges } = layoutHierarchical(result.nodes, result.edges);
             
-            const { newNodes, newEdges } = layoutNodes(aiSubjects, aiNotes);
-            
-            setNodes(newNodes);
-            setEdges(newEdges);
+            setNodes(finalNodes);
+            setEdges(finalEdges);
 
         } catch (error) {
             console.error("Failed to generate skill tree:", error);
@@ -186,7 +239,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
     const createPlaceholderNode = async (node: Node) => {
         if (!user || !firestore) return;
 
-        if (node.type === 'subject' && node.isPlaceholder) {
+        if ((node.type === 'subject' || node.type === 'key-concept' || node.type === 'main-idea') && node.isPlaceholder) {
             const subjectsCollectionRef = collection(firestore, 'users', user.uid, 'subjects');
             try {
                 await addDoc(subjectsCollectionRef, {
@@ -205,21 +258,39 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
         }
         // Similar logic would be needed for notes, which is more complex as it needs a subject.
         // For now, we only allow creating subjects.
-        else if(node.type === 'note') {
-             toast({ title: "Info", description: "Create the parent subject first before adding notes." });
+        else if(node.type === 'note' || node.type === 'detail') {
+             toast({ title: "Info", description: "Create the parent subject first before adding notes.", variant: 'default' });
         }
     }
 
 
     const handleNodeClick = (node: Node) => {
         if (node.isPlaceholder) {
-            createPlaceholderNode(node);
-        } else if (node.type === 'subject') {
-            router.push(`/dashboard/notes/${node.id.replace('subject-','')}`);
+            // This is handled by the AlertDialog now
+        } else if (node.type === 'subject' || node.type === 'key-concept' || node.type === 'main-idea') {
+            const subjectId = node.id.startsWith('subject-') ? node.id.replace('subject-','') : node.id;
+            router.push(`/dashboard/notes/${subjectId}`);
         } else if (node.type === 'note' && node.subjectId) {
-             router.push(`/dashboard/notes/${node.subjectId}/notes/${node.id.replace('note-','')}`);
+             const noteId = node.id.startsWith('note-') ? node.id.replace('note-','') : node.id;
+             router.push(`/dashboard/notes/${node.subjectId}/notes/${noteId}`);
         }
     }
+    
+    const getNodeStyles = (nodeType: Node['type']) => {
+        switch (nodeType) {
+            case 'key-concept':
+                return 'bg-destructive text-destructive-foreground border-2 border-destructive-foreground/50';
+            case 'main-idea':
+                return 'bg-yellow-400 text-yellow-900 border-2 border-yellow-600';
+            case 'detail':
+                return 'bg-muted text-muted-foreground border border-border';
+            case 'subject':
+                return 'bg-primary text-primary-foreground';
+            case 'note':
+            default:
+                return 'bg-secondary text-secondary-foreground';
+        }
+    };
 
     if (isInitialLoading) {
         return (
@@ -245,7 +316,7 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                     Generate with AI
                 </Button>
             </div>
-            <Card className="h-[600px] w-full glass-pane overflow-auto relative">
+            <Card className="h-[800px] w-full glass-pane overflow-auto relative">
                  {isGenerating && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
                          <Loader className="animate-spin text-primary" />
@@ -306,17 +377,16 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                              <motion.div
                                                 drag
                                                 dragMomentum={false}
-                                                className={cn(`absolute p-2 rounded-md cursor-pointer text-xs`,
-                                                    node.type === 'subject'
-                                                    ? 'bg-primary text-primary-foreground font-bold'
-                                                    : 'bg-secondary text-secondary-foreground',
+                                                className={cn(`absolute p-2 flex items-center justify-center rounded-none cursor-pointer text-xs font-semibold`,
+                                                    getNodeStyles(node.type),
                                                     node.isImportant && 'important-glow',
                                                     node.isPlaceholder && 'border-2 border-dashed border-accent'
                                                 )}
                                                 style={{
-                                                    left: node.x - 50,
-                                                    top: node.y - 15,
-                                                    minWidth: '100px',
+                                                    left: node.x - NODE_WIDTH / 2,
+                                                    top: node.y - NODE_HEIGHT / 2,
+                                                    width: NODE_WIDTH,
+                                                    height: NODE_HEIGHT,
                                                     textAlign: 'center',
                                                 }}
                                                 whileHover={{ scale: 1.1, zIndex: 10 }}
@@ -325,13 +395,13 @@ export function SkillTreeView({ subjects }: { subjects: any[] }) {
                                                 transition={{ duration: 0.3 }}
                                                 onDoubleClick={() => handleNodeClick(node)}
                                             >
-                                                {node.label}
+                                                <span className="truncate">{node.label}</span>
                                                 {node.isPlaceholder && (
-                                                    <AlertDialogTrigger asChild>
-                                                         <button className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-0.5 h-4 w-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                                                            <Plus className="h-3 w-3" />
-                                                        </button>
-                                                    </AlertDialogTrigger>
+                                                     <AlertDialogTrigger asChild>
+                                                          <button className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-0.5 h-4 w-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                                                             <Plus className="h-3 w-3" />
+                                                         </button>
+                                                     </AlertDialogTrigger>
                                                 )}
                                             </motion.div>
                                         </TooltipTrigger>
