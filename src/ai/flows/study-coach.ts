@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI flows for the Study Coach feature.
@@ -63,21 +64,24 @@ const findNotesTool = ai.defineTool(
         // This implementation is a simplified stand-in.
         
         for (const contentType of contentTypes) {
-            const contentQuery = db.collectionGroup(contentType).where('__name__', '>=', `users/${userId}/`).where('__name__', '<', `users/${userId}/\uf8ff`);
+            const contentQuery = db.collectionGroup(contentType);
             const querySnapshot = await contentQuery.get();
 
             querySnapshot.forEach(doc => {
-                const data = doc.data();
-                const combinedText = `${data.title} ${data.blocks?.map((b: any) => b.content || '').join(' ')}`.toLowerCase();
-                if (combinedText.includes(topic.toLowerCase())) {
-                    allContent.push({
-                        id: doc.id,
-                        title: data.title,
-                        subjectId: doc.ref.parent.parent?.id || '',
-                        contentType: contentType,
-                        content: data.blocks?.map((b: any) => b.content || '').join('\n\n') || '',
-                        userId: userId,
-                    });
+                // Manually check if the document belongs to the user
+                if (doc.ref.path.startsWith(`users/${userId}/`)) {
+                    const data = doc.data();
+                    const combinedText = `${data.title} ${data.blocks?.map((b: any) => b.content || '').join(' ')}`.toLowerCase();
+                    if (combinedText.includes(topic.toLowerCase())) {
+                        allContent.push({
+                            id: doc.id,
+                            title: data.title,
+                            subjectId: doc.ref.parent.parent?.id || '',
+                            contentType: contentType,
+                            content: data.blocks?.map((b: any) => b.content || '').join('\n\n') || '',
+                            userId: userId,
+                        });
+                    }
                 }
             });
         }
