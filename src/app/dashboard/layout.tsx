@@ -73,7 +73,8 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
         router.replace('/login');
       } else {
         user.getIdTokenResult().then(idTokenResult => {
-            setIsAdmin(!!idTokenResult.claims.isAdmin);
+            const isAdminClaim = idTokenResult.claims.isAdmin === true;
+            setIsAdmin(isAdminClaim);
         })
       }
     }

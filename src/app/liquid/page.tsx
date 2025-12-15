@@ -108,7 +108,7 @@ export default function AdminDashboard() {
   React.useEffect(() => {
     if (!isUserLoading && user) {
       user.getIdTokenResult().then(idTokenResult => {
-        const isAdminClaim = !!idTokenResult.claims.isAdmin;
+        const isAdminClaim = idTokenResult.claims.isAdmin === true;
         setIsAdmin(isAdminClaim);
         setIsCheckingAdmin(false);
         if (!isAdminClaim) {
