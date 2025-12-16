@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +6,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical, Sparkles, Notebook, FileQuestion, BookCopy, Package, Share2 } from 'lucide-react';
+import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical, Sparkles, Notebook, FileQuestion, Package, Share2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -113,6 +112,10 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
       }
     };
 
+    const handleShareClick = (item: any) => {
+        setSharingItem({ ...item, subjectId });
+    };
+
     const typeName = {
         notes: 'Note',
         examQuestions: 'Questions & Syllabus',
@@ -203,7 +206,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                         <DropdownMenuItem asChild><Link href={`/dashboard/notes/${subjectId}/${type}/${item.id}/edit`}>Edit</Link></DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSharingItem(item); }}>
+                                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleShareClick(item); }}>
                                             <Share2 className="mr-2 h-4 w-4"/> Share
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => toggleItemImportance(item)}>
@@ -375,3 +378,5 @@ export default function SubjectPage() {
         </div>
     );
 }
+
+    
