@@ -89,7 +89,7 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
 
     if (isLoading) {
         return (
-            <div className="max-w-5xl mx-auto space-y-8 pb-12">
+            <div className="space-y-8 pb-12">
                 <div className="h-48 md:h-64 w-full relative rounded-lg overflow-hidden">
                     <Skeleton className="w-full h-full" />
                 </div>
@@ -145,9 +145,9 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-4 pb-12">
+        <div className="space-y-4 pb-12">
             
-            <div className="flex items-center justify-between px-4 sm:px-0 flex-wrap gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                  <Link href={`/dashboard/notes/${subjectId}`}>
                     <Button variant="outline" size="icon">
                         <ArrowLeft className="h-4 w-4" />
@@ -159,7 +159,7 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
                 </Button>
             </div>
             
-            <div className="space-y-6 px-4 sm:px-0">
+            <div className="space-y-6">
                 <Card className={cn("glass-pane overflow-hidden p-6 transition-all", item.isImportant && "important-glow")}>
                     <CardHeader className="!p-0 !pb-4 border-b">
                          <CardTitle className="font-headline text-lg">
