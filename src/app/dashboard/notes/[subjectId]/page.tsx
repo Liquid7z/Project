@@ -70,7 +70,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
         defaultValues: { title: '' },
     });
     
-    const handleCreateItem = async (values: z.infer<typeof itemFormSchema>>) => {
+    const handleCreateItem = async (values: z.infer<typeof itemFormSchema>) => {
         if (!contentCollectionRef) return;
         try {
             const newItemDoc = await addDoc(contentCollectionRef, {
