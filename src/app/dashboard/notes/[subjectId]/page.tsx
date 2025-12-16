@@ -283,10 +283,11 @@ const ContentList = ({ type, subjectId, subjectName }: { type: 'notes' | 'examQu
     );
 };
 
-export default function SubjectPage({ params, searchParams }: { params: { subjectId: string }, searchParams: any }) {
-    const { subjectId } = React.use(params);
-    React.use(searchParams);
-
+export default function SubjectPage({ params: pageParams, searchParams: pageSearchParams }: { params: { subjectId: string }, searchParams: any }) {
+    const params = React.use(pageParams);
+    const searchParams = React.use(pageSearchParams);
+    const { subjectId } = params;
+    
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 

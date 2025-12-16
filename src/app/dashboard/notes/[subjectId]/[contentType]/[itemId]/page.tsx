@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo } from 'react';
@@ -58,9 +59,10 @@ const BlockViewer = ({ block }: { block: Block }) => {
 }
 
 
-export default function ContentPreviewPage({ params, searchParams }: { params: { subjectId: string; contentType: string; itemId: string }, searchParams: any }) {
-    const { subjectId, contentType, itemId } = React.use(params);
-    React.use(searchParams);
+export default function ContentPreviewPage({ params: pageParams, searchParams: pageSearchParams }: { params: { subjectId: string; contentType: string; itemId: string }, searchParams: any }) {
+    const params = React.use(pageParams);
+    const searchParams = React.use(pageSearchParams);
+    const { subjectId, contentType, itemId } = params;
     const router = useRouter();
 
     const { user, isUserLoading } = useUser();

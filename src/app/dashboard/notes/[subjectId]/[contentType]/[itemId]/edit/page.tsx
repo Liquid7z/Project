@@ -4,7 +4,7 @@
 
 import * as React from 'react';
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Loader, AlertTriangle, Image as ImageIcon, Plus, File as FileIcon, Trash2, Sparkles, PencilRuler } from 'lucide-react';
@@ -61,8 +61,10 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
 };
 
 
-export default function ItemEditPage({ params, searchParams }: { params: { subjectId: string, contentType: string, itemId: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
-    const { subjectId, contentType, itemId } = React.use(params);
+export default function ItemEditPage({ params: pageParams, searchParams: pageSearchParams }: { params: { subjectId: string, contentType: string, itemId: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
+    const params = React.use(pageParams);
+    const searchParams = React.use(pageSearchParams);
+    const { subjectId, contentType, itemId } = params;
     const router = useRouter();
 
     const { toast } = useToast();
