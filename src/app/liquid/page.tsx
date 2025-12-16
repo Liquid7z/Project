@@ -725,10 +725,3 @@ export default function LiquidAdminPage() {
         </div>
     );
 }
-
-    
-
-
-
-
-

@@ -28,7 +28,6 @@ import {
   LayoutDashboard,
   Bot,
   Shield,
-  Droplets,
   StickyNote,
   Bell
 } from 'lucide-react';
@@ -60,7 +59,7 @@ const navItems = [
 ];
 
 const adminNavItems = [
-    { href: '/liquid', icon: Droplets, label: 'Liquid' },
+    { href: '/liquid', icon: Shield, label: 'Admin' },
 ];
 
 function GlowModeToggle({ id }: { id: string }) {
@@ -366,8 +365,3 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
-
-    
-
-    
-

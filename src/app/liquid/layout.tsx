@@ -26,7 +26,7 @@ import {
   Sun,
   LayoutDashboard,
   Bot,
-  Droplets,
+  Shield,
   StickyNote
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
@@ -51,7 +51,7 @@ const navItems = [
 ];
 
 const adminNavItems = [
-    { href: '/liquid', icon: Droplets, label: 'Liquid' },
+    { href: '/liquid', icon: Shield, label: 'Admin' },
 ];
 
 function GlowModeToggle({ id }: { id: string }) {
