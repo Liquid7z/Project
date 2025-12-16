@@ -127,7 +127,7 @@ function NotificationsPanel() {
                     )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 glass-pane p-0">
+            <PopoverContent className="w-[90vw] max-w-sm glass-pane p-0">
                  <div className="p-4">
                     <h4 className="font-medium leading-none">Notifications</h4>
                     <p className="text-sm text-muted-foreground">Your recent updates.</p>
@@ -370,3 +370,4 @@ export default function DashboardLayout({
     
 
     
+
