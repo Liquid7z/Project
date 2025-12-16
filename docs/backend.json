@@ -147,7 +147,8 @@
         "featureAiSummaries": { "type": "boolean" },
         "featureOfflineAccess": { "type": "boolean" },
         "featureExport": { "type": "boolean" },
-        "featureGamingThemes": { "type": "boolean" }
+        "featureGamingThemes": { "type": "boolean" },
+        "qrCodeUrl": { "type": "string", "description": "URL for the payment QR code image." }
       }
     },
     "PaymentVerification": {

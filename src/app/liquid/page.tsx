@@ -51,6 +51,7 @@ type PlanConfig = {
     featureOfflineAccess?: boolean;
     featureExport?: boolean;
     featureGamingThemes?: boolean;
+    qrCodeUrl?: string;
 };
 
 
@@ -80,6 +81,7 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
                 featureOfflineAccess: false,
                 featureExport: false,
                 featureGamingThemes: false,
+                qrCodeUrl: '',
             });
         }
     }, [planData]);
@@ -91,6 +93,10 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
         }
     };
     
+    const handleChange = (key: keyof PlanConfig, value: string) => {
+        setConfig(prev => ({ ...prev, [key]: value }));
+    };
+
     const handleToggleChange = (key: keyof PlanConfig, checked: boolean) => {
         setConfig(prev => ({ ...prev, [key]: checked }));
     };
@@ -110,16 +116,22 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
             </CardHeader>
             <CardContent className="space-y-6">
                 {isPremium && (
-                     <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                           <Label htmlFor={`${planId}-price-monthly`}>Monthly Price (Rs)</Label>
-                           <Input id={`${planId}-price-monthly`} type="number" value={config.priceMonthly || ''} onChange={(e) => handleNumericChange('priceMonthly', e.target.value)} />
+                    <>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                            <Label htmlFor={`${planId}-price-monthly`}>Monthly Price (Rs)</Label>
+                            <Input id={`${planId}-price-monthly`} type="number" value={config.priceMonthly || ''} onChange={(e) => handleNumericChange('priceMonthly', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor={`${planId}-price-yearly`}>Yearly Price (Rs)</Label>
+                                <Input id={`${planId}-price-yearly`} type="number" value={config.priceYearly || ''} onChange={(e) => handleNumericChange('priceYearly', e.target.value)} />
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor={`${planId}-price-yearly`}>Yearly Price (Rs)</Label>
-                            <Input id={`${planId}-price-yearly`} type="number" value={config.priceYearly || ''} onChange={(e) => handleNumericChange('priceYearly', e.target.value)} />
+                           <Label htmlFor={`${planId}-qr-code-url`}>QR Code URL</Label>
+                           <Input id={`${planId}-qr-code-url`} type="text" placeholder="https://example.com/qr.png" value={config.qrCodeUrl || ''} onChange={(e) => handleChange('qrCodeUrl', e.target.value)} />
                         </div>
-                     </div>
+                    </>
                 )}
                 
                  <h4 className="font-bold text-accent">Usage Limits</h4>
@@ -222,7 +234,7 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
         if (premiumPlanConfigData) {
             setPremiumPlanConfig(premiumPlanConfigData as PlanConfig);
         } else {
-            setPremiumPlanConfig({ priceMonthly: 9, priceYearly: 99 });
+            setPremiumPlanConfig({ priceMonthly: 9, priceYearly: 99, qrCodeUrl: '' });
         }
     }, [premiumPlanConfigData]);
 

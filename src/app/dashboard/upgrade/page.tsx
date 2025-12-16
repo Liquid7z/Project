@@ -46,6 +46,9 @@ export default function UpgradePage() {
     }, [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
+    const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
+    const { data: premiumPlanConfig } = useDoc(premiumPlanConfigRef);
+
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (showPaymentFlow && timer > 0) {
@@ -63,6 +66,14 @@ export default function UpgradePage() {
     }, [showPaymentFlow, timer, toast]);
 
     const handleStartPayment = () => {
+        if (!premiumPlanConfig?.qrCodeUrl) {
+            toast({
+                variant: 'destructive',
+                title: "Payment Unavailable",
+                description: "The payment QR code is not configured. Please contact support.",
+            });
+            return;
+        }
         setTimer(QR_EXPIRATION_SECONDS); // Reset timer
         setShowPaymentFlow(true);
     };
@@ -173,12 +184,14 @@ export default function UpgradePage() {
                         {showPaymentFlow && (
                            <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
                                <div className="relative">
-                                    <img src="https://storage.googleapis.com/stabl-media/pay.png" alt="QR Code for UPI payment" width={200} height={200} className="rounded-md" />
+                                    {premiumPlanConfig?.qrCodeUrl && (
+                                        <Image src={premiumPlanConfig.qrCodeUrl} alt="QR Code for UPI payment" width={200} height={200} className="rounded-md" />
+                                    )}
                                     <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-mono px-2 py-1 rounded">
                                         Expires in: {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                                     </div>
                                </div>
-                               <p className="font-bold text-accent mt-2">Amount: ₹9</p>
+                               <p className="font-bold text-accent mt-2">Amount: ₹{premiumPlanConfig?.priceMonthly || 9}</p>
                                <div className="w-full space-y-4 pt-4 border-t border-border">
                                     <div className="space-y-2 text-left">
                                         <Label htmlFor="name">Your Name</Label>
@@ -225,7 +238,7 @@ export default function UpgradePage() {
                         </CardHeader>
                         <CardContent>
                              <div className="mb-6">
-                                <p className="text-4xl font-bold font-headline">Rs 9<span className="text-lg font-normal text-muted-foreground">/month</span></p>
+                                <p className="text-4xl font-bold font-headline">Rs {premiumPlanConfig?.priceMonthly || 9}<span className="text-lg font-normal text-muted-foreground">/month</span></p>
                             </div>
                             <ul className="space-y-3 text-sm">
                                 {premiumPlanFeatures.map(feature => (
