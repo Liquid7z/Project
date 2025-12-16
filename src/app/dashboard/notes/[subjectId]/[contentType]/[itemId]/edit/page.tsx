@@ -213,32 +213,25 @@ export default function ItemEditPage() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 pb-12">
-             {heroImage && (
-                <div className="h-64 w-full relative rounded-lg overflow-hidden">
-                    <Image src={heroImage.imageUrl} alt={heroImage.description} fill objectFit="cover" className="opacity-20" data-ai-hint={heroImage.imageHint} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-                </div>
-            )}
+        <div className="max-w-5xl mx-auto space-y-6 pb-24 md:pb-12">
             
-            <div className="flex items-center justify-between -mt-24 relative z-10 px-4 sm:px-8">
-                 <Link href={getBackLink()}>
-                    <Button variant="outline" size="icon" type="button">
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                </Link>
-            </div>
-
-            <div className="space-y-6 px-4 md:px-8 relative">
+            <div className="space-y-6 relative">
                 <Card className={cn("glass-pane overflow-hidden p-4 sm:p-6 transition-all", isImportant && "important-glow")}>
-                    <CardHeader className="!p-0 !pb-4 border-b flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <CardTitle className="font-headline text-lg">
-                            From subject: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
-                        </CardTitle>
-                        <div className="flex items-center space-x-2 self-end sm:self-center">
+                    <CardHeader className="!p-0 !pb-4 border-b flex-row justify-between items-center gap-4">
+                         <div className="flex items-center gap-2">
+                            <Link href={getBackLink()} className="hidden sm:inline-block">
+                               <Button variant="outline" size="icon" type="button">
+                                   <ArrowLeft className="h-4 w-4" />
+                               </Button>
+                            </Link>
+                            <CardTitle className="font-headline text-base sm:text-lg">
+                                From: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
+                            </CardTitle>
+                         </div>
+                        <div className="flex items-center space-x-2">
                            <Label htmlFor="important-note" className="flex items-center gap-2 text-sm font-medium text-accent cursor-pointer">
                                <Sparkles className="h-4 w-4"/>
-                                <span className="hidden sm:inline">Important Item</span>
+                                <span className="hidden sm:inline">Important</span>
                            </Label>
                            <Switch id="important-note" checked={isImportant} onCheckedChange={setIsImportant} />
                         </div>
@@ -273,12 +266,13 @@ export default function ItemEditPage() {
                 </Card>
             </div>
 
-             <div className="fixed right-2 sm:right-8 top-1/2 -translate-y-1/2 z-20">
-                <Card className="glass-pane p-2 flex flex-col gap-2">
+            {/* Floating Toolbar */}
+             <div className="fixed bottom-4 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-auto md:right-8 md:translate-x-0 z-20">
+                <Card className="glass-pane p-2 flex md:flex-col gap-2">
                     <Button variant="glow" size="icon" onClick={handleSave} disabled={isSaving}>
                         {isSaving ? <Loader className="animate-spin" /> : <Save />}
                     </Button>
-                    <Separator />
+                    <Separator orientation='vertical' className="h-6 md:h-auto md:w-full"/>
                     <Button variant="outline" size="icon" onClick={() => addTextBlock()}>
                         <Plus className="h-4 w-4"/>
                     </Button>
