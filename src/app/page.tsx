@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/header';
-import { CheckCircle, FolderKanban, Bot, Network, Feather } from 'lucide-react';
+import { CheckCircle, FolderKanban, Bot, Network } from 'lucide-react';
 import {PlaceHolderImages} from '@/lib/placeholder-images'
 import { Logo } from '@/components/logo';
 
