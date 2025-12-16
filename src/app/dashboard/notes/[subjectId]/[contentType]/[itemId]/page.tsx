@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Edit, Loader, AlertTriangle } from 'lucide-react';
+import { Edit, Loader, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Image from 'next/image';
 import { DocumentPreviewer } from '@/components/document-previewer';
@@ -60,6 +60,7 @@ const BlockViewer = ({ block }: { block: Block }) => {
 
 export default function ContentPreviewPage({ params, searchParams }: { params: { subjectId: string; contentType: string; itemId: string }, searchParams: any }) {
     const { subjectId, contentType, itemId } = React.use(params);
+    React.use(searchParams);
     const router = useRouter();
 
     const { user, isUserLoading } = useUser();
@@ -144,32 +145,33 @@ export default function ContentPreviewPage({ params, searchParams }: { params: {
     return (
         <div className="pb-12">
             
-            <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-                 <Link href={`/dashboard/notes/${subjectId}`}>
-                    <Button variant="outline">
-                        Back
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-4">
+                 <Link href={`/dashboard/notes/${subjectId}`} className="w-full sm:w-auto">
+                    <Button variant="outline" className="w-full">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Subject
                     </Button>
                 </Link>
-                <Button variant="glow" onClick={() => router.push(getEditUrl())}>
+                <Button variant="glow" onClick={() => router.push(getEditUrl())} className="w-full sm:w-auto">
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Item
                 </Button>
             </div>
             
             <div className="space-y-6">
-                <Card className={cn("glass-pane overflow-hidden p-6 transition-all", item.isImportant && "important-glow")}>
+                <Card className={cn("glass-pane overflow-hidden p-4 sm:p-6 transition-all", item.isImportant && "important-glow")}>
                     <CardHeader className="!p-0 !pb-4 border-b">
-                         <CardTitle className="font-headline text-lg">
+                         <CardTitle className="font-headline text-base sm:text-lg">
                             From subject: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
                          </CardTitle>
                     </CardHeader>
                     <CardContent className="!p-0 !pt-6">
-                        <h1 className="text-3xl md:text-4xl font-bold font-headline">{item.title}</h1>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-headline">{item.title}</h1>
                     </CardContent>
                 </Card>
 
                 <Card className="glass-pane">
-                    <CardContent className="p-6">
+                    <CardContent className="p-4 sm:p-6">
                         <div className="space-y-6">
                             {blocks.map((block: Block) => (
                                <BlockViewer key={block.id} block={block} />
