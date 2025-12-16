@@ -161,7 +161,7 @@ export default function GeneratePage() {
     return (
         <>
             {isLoading && <LoadingAnimation text={loadingText} />}
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="glass-pane relative overflow-hidden">
                     <CardHeader>
                         <CardTitle className="font-headline">Input Content</CardTitle>
