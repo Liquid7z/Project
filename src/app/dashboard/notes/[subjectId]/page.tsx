@@ -113,7 +113,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
     };
 
     const handleShareClick = (item: any) => {
-        setSharingItem({ ...item, subjectId });
+        setSharingItem({ ...item, subjectId: subjectId });
     };
 
     const typeName = {
@@ -282,7 +282,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
     );
 };
 
-export default function SubjectPage() {
+export default function SubjectPage({ params, searchParams }: { params: { subjectId: string }, searchParams: any }) {
     const { subjectId } = useParams<{ subjectId: string }>();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();

@@ -58,7 +58,7 @@ const BlockViewer = ({ block }: { block: Block }) => {
 }
 
 
-export default function ContentPreviewPage({ params }: { params: { subjectId: string; contentType: string; itemId: string } }) {
+export default function ContentPreviewPage({ params, searchParams }: { params: { subjectId: string; contentType: string; itemId: string }, searchParams: any }) {
     const { subjectId, contentType, itemId } = React.use(params);
     const router = useRouter();
 

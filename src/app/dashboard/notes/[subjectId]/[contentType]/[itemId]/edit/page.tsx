@@ -61,8 +61,7 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
 };
 
 
-export default function ItemEditPage() {
-    const params = useParams<{ subjectId: string, contentType: string, itemId: string }>();
+export default function ItemEditPage({ params, searchParams }: { params: { subjectId: string, contentType: string, itemId: string }, searchParams: any }) {
     const { subjectId, contentType, itemId } = params;
     const router = useRouter();
 

@@ -33,7 +33,7 @@ function getPreviewContent(blocks: any[]): string {
     return `<p>${snippet}...</p>`;
 }
 
-export default function SharePage({ params }: { params: { shareId: string }}) {
+export default function SharePage({ params, searchParams }: { params: { shareId: string }, searchParams: any }) {
     const { shareId } = React.use(params);
     const router = useRouter();
     const { user, firestore, isUserLoading } = useFirebase();
