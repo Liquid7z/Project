@@ -98,11 +98,11 @@ export default function ContentPreviewPage() {
                         <Skeleton className="w-full h-full" />
                     </div>
                 )}
-                 <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4 md:px-8">
+                 <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4">
                     <Skeleton className="h-10 w-10 rounded-md" />
                     <Skeleton className="h-10 w-32 rounded-md" />
                 </div>
-                 <div className="space-y-6 px-4 md:px-8">
+                 <div className="space-y-6 px-4">
                     <Card className="glass-pane overflow-hidden p-6">
                         <CardHeader className="!p-0 !pb-4 border-b">
                              <CardTitle className="font-headline text-lg">
@@ -158,7 +158,7 @@ export default function ContentPreviewPage() {
                 </div>
             )}
             
-            <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4 md:px-8">
+            <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4">
                  <Link href={`/dashboard/notes/${subjectId}`}>
                     <Button variant="outline" size="icon">
                         <ArrowLeft className="h-4 w-4" />
@@ -170,7 +170,7 @@ export default function ContentPreviewPage() {
                 </Button>
             </div>
             
-            <div className="space-y-6 px-4 md:px-8">
+            <div className="space-y-6 px-4">
                 <Card className={cn("glass-pane overflow-hidden p-6 transition-all", item.isImportant && "important-glow")}>
                     <CardHeader className="!p-0 !pb-4 border-b">
                          <CardTitle className="font-headline text-lg">
