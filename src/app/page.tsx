@@ -41,9 +41,9 @@ const pricingTiers = [
         primary: false,
     },
     {
-        name: 'Premium',
+        name: 'Premium Plan',
         price: 'Rs 9',
-        description: 'Unlock the full power of LiqAI.',
+        description: 'Unlock all features and elevate your productivity.',
         features: [
             'Unlimited handwriting generations',
             'Unlimited style analyses',
