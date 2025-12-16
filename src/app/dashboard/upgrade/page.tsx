@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, CreditCard, Calendar, Lock, Check, Loader, Send } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, Lock, Check, Loader, Send, Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -125,6 +125,86 @@ export default function UpgradePage() {
 
     const isLoading = isUserLoading || isProfileLoading;
 
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader className="animate-spin" />
+            </div>
+        );
+    }
+    
+    const renderPaymentInfo = () => {
+        if (userProfile?.subscriptionStatus === 'active') {
+            return (
+                 <Card className="glass-pane">
+                    <CardHeader className="items-center text-center">
+                        <div className="p-3 bg-accent/20 rounded-full w-fit">
+                            <Crown className="w-8 h-8 text-accent" />
+                        </div>
+                        <CardTitle className="font-headline text-accent">You are a Premium User!</CardTitle>
+                        <CardDescription>You already have access to all premium features.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <p className="text-sm text-center text-muted-foreground">
+                           Your subscription is active. You can manage your subscription details from your account page.
+                        </p>
+                    </CardContent>
+                     <CardFooter>
+                        <Button variant="outline" className="w-full" asChild>
+                            <Link href="/dashboard/account">Go to My Account</Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            )
+        }
+        
+        return (
+             <>
+                <Card className="glass-pane">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Payment Information</CardTitle>
+                        <CardDescription>Complete your payment and submit the details for verification.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                       <div>
+                            <h3 className="text-sm font-semibold text-accent mb-2">Recommended</h3>
+                            <button onClick={() => setShowQr(true)} className="w-full">
+                               <GPayButton />
+                            </button>
+                       </div>
+
+                        {showQr && (
+                           <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
+                               {qrImage && <Image src={qrImage.imageUrl} alt={qrImage.description} width={150} height={150} data-ai-hint={qrImage.imageHint} className="rounded-md" />}
+                               <p className="text-sm text-muted-foreground">Scan this QR code with any UPI app.</p>
+                               <p className="font-mono text-lg font-bold text-accent">{formatTime(qrTime)}</p>
+                               <div className="w-full space-y-4 pt-4 border-t border-border">
+                                    <div className="space-y-2 text-left">
+                                        <Label htmlFor="name">Your Name</Label>
+                                        <Input id="name" placeholder="Enter the name used for payment" value={name} onChange={(e) => setName(e.target.value)} />
+                                    </div>
+                                     <div className="space-y-2 text-left">
+                                        <Label htmlFor="utr">UTR / Transaction ID</Label>
+                                        <Input id="utr" placeholder="Enter the 12-digit transaction ID" value={utr} onChange={(e) => setUtr(e.target.value)} />
+                                    </div>
+                               </div>
+                           </div>
+                        )}
+                    </CardContent>
+                    <CardFooter>
+                        <Button variant="glow" className="w-full" onClick={handleSubmitPaymentDetails} disabled={isSubmitting || !showQr || !name || !utr || userProfile?.paymentStatus === 'pending'}>
+                            {isSubmitting ? <Loader className="animate-spin mr-2"/> : <Send className="mr-2"/>}
+                            {userProfile?.paymentStatus === 'pending' ? 'Verification Pending' : 'I have paid, Upgrade Now'}
+                        </Button>
+                    </CardFooter>
+                </Card>
+                 <p className="text-xs text-muted-foreground mt-4 text-center">
+                    Your upgrade will be processed after payment verification (up to 24 hours).
+                </p>
+            </>
+        )
+    }
+
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-6">
@@ -158,47 +238,7 @@ export default function UpgradePage() {
                     </Card>
                 </div>
                  <div>
-                    <Card className="glass-pane">
-                        <CardHeader>
-                            <CardTitle className="font-headline">Payment Information</CardTitle>
-                            <CardDescription>Complete your payment and submit the details for verification.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                           <div>
-                                <h3 className="text-sm font-semibold text-accent mb-2">Recommended</h3>
-                                <button onClick={() => setShowQr(true)} className="w-full">
-                                   <GPayButton />
-                                </button>
-                           </div>
-
-                            {showQr && (
-                               <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
-                                   {qrImage && <Image src={qrImage.imageUrl} alt={qrImage.description} width={150} height={150} data-ai-hint={qrImage.imageHint} className="rounded-md" />}
-                                   <p className="text-sm text-muted-foreground">Scan this QR code with any UPI app.</p>
-                                   <p className="font-mono text-lg font-bold text-accent">{formatTime(qrTime)}</p>
-                                   <div className="w-full space-y-4 pt-4 border-t border-border">
-                                        <div className="space-y-2 text-left">
-                                            <Label htmlFor="name">Your Name</Label>
-                                            <Input id="name" placeholder="Enter the name used for payment" value={name} onChange={(e) => setName(e.target.value)} />
-                                        </div>
-                                         <div className="space-y-2 text-left">
-                                            <Label htmlFor="utr">UTR / Transaction ID</Label>
-                                            <Input id="utr" placeholder="Enter the 12-digit transaction ID" value={utr} onChange={(e) => setUtr(e.target.value)} />
-                                        </div>
-                                   </div>
-                               </div>
-                            )}
-                        </CardContent>
-                        <CardFooter>
-                            <Button variant="glow" className="w-full" onClick={handleSubmitPaymentDetails} disabled={isSubmitting || !showQr || !name || !utr || userProfile?.paymentStatus === 'pending'}>
-                                {isSubmitting ? <Loader className="animate-spin mr-2"/> : <Send className="mr-2"/>}
-                                {userProfile?.paymentStatus === 'pending' ? 'Verification Pending' : 'I have paid, Upgrade Now'}
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                     <p className="text-xs text-muted-foreground mt-4 text-center">
-                        Your upgrade will be processed after payment verification (up to 24 hours).
-                    </p>
+                    {renderPaymentInfo()}
                 </div>
             </div>
         </div>
