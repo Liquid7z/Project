@@ -763,31 +763,31 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                            <CardContent className="grid sm:grid-cols-2 gap-4">
                                <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-3">
                                    <Label htmlFor="siteWideMaintenance" className="font-semibold text-destructive">Site-wide Maintenance</Label>
-                                   <Switch id="siteWideMaintenance" checked={siteConfig?.siteWideMaintenance || false} onCheckedChange={(c) => handleConfigToggle('siteWideMaintenance', c)} />
+                                   <Switch id="siteWideMaintenance" checked={siteConfig?.siteWideMaintenance || false} onCheckedChange={(checked) => handleConfigToggle('siteWideMaintenance', checked)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="stickyNotesWip" className="flex items-center gap-2"><StickyNote className="w-4 h-4" />Sticky Notes Active</Label>
-                                   <Switch id="stickyNotesWip" checked={siteConfig?.stickyNotesWip !== false} onCheckedChange={(c) => handleConfigToggle('stickyNotesWip', !c)} />
+                                   <Switch id="stickyNotesWip" checked={!siteConfig?.stickyNotesWip || false} onCheckedChange={(checked) => handleConfigToggle('stickyNotesWip', !checked)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="generateWip" className="flex items-center gap-2"><Bot className="w-4 h-4" />Generate Page Active</Label>
-                                   <Switch id="generateWip" checked={siteConfig?.generateWip !== false} onCheckedChange={(c) => handleConfigToggle('generateWip', !c)} />
+                                   <Switch id="generateWip" checked={!siteConfig?.generateWip || false} onCheckedChange={(checked) => handleConfigToggle('generateWip', !checked)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="notesWip" className="flex items-center gap-2"><Notebook className="w-4 h-4" />Notes Page Active</Label>
-                                   <Switch id="notesWip" checked={siteConfig?.notesWip !== false} onCheckedChange={(c) => handleConfigToggle('notesWip', !c)} />
+                                   <Switch id="notesWip" checked={!siteConfig?.notesWip || false} onCheckedChange={(checked) => handleConfigToggle('notesWip', !checked)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="analyzeWip" className="flex items-center gap-2"><ScanLine className="w-4 h-4" />Analyze Page Active</Label>
-                                   <Switch id="analyzeWip" checked={siteConfig?.analyzeWip !== false} onCheckedChange={(c) => handleConfigToggle('analyzeWip', !c)} />
+                                   <Switch id="analyzeWip" checked={!siteConfig?.analyzeWip || false} onCheckedChange={(checked) => handleConfigToggle('analyzeWip', !checked)} />
                                </div>
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="accountWip" className="flex items-center gap-2"><User className="w-4 h-4" />Account Page Active</Label>
-                                   <Switch id="accountWip" checked={siteConfig?.accountWip !== false} onCheckedChange={(c) => handleConfigToggle('accountWip', !c)} />
+                                   <Switch id="accountWip" checked={!siteConfig?.accountWip || false} onCheckedChange={(checked) => handleConfigToggle('accountWip', !checked)} />
                                </div>
                                <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="skillTreeWip" className="flex items-center gap-2"><Network className="w-4 h-4" />Skill Tree Active</Label>
-                                   <Switch id="skillTreeWip" checked={siteConfig?.skillTreeWip !== false} onCheckedChange={(c) => handleConfigToggle('skillTreeWip', !c)} />
+                                   <Switch id="skillTreeWip" checked={!siteConfig?.skillTreeWip || false} onCheckedChange={(checked) => handleConfigToggle('skillTreeWip', !checked)} />
                                </div>
                            </CardContent>
                        </Card>
