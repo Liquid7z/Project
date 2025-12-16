@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Card } from './ui/card';
 import { Loader, Network, Wand2, Plus, Save } from 'lucide-react';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
@@ -60,15 +60,13 @@ interface GenerateSkillTreeOutput {
 }
 
 
-const VIEW_WIDTH = 1200;
-const VIEW_HEIGHT = 800;
 const NODE_WIDTH = 150;
 const NODE_HEIGHT = 40;
 const HORIZONTAL_SPACING = 20;
 const VERTICAL_SPACING = 80;
 
 
-const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
+const layoutHierarchical = (aiNodes: any[], aiEdges: any[], viewWidth: number) => {
     const nodesMap: { [id: string]: Node } = {};
     aiNodes.forEach(n => {
         nodesMap[n.id] = { ...n, children: [], x: 0, y: 0 };
@@ -122,7 +120,7 @@ const layoutHierarchical = (aiNodes: any[], aiEdges: any[]) => {
             });
         }
     };
-    positionX(keyConcept, (VIEW_WIDTH - (keyConcept.width || 0)) / 2);
+    positionX(keyConcept, (viewWidth - (keyConcept.width || 0)) / 2);
 
     return { finalNodes: Object.values(nodesMap), finalEdges: aiEdges };
 };
@@ -139,6 +137,17 @@ export function SkillTreeView() {
     const [explanations, setExplanations] = useState<Record<string, string>>({});
     const [explainingNode, setExplainingNode] = useState<string | null>(null);
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [viewWidth, setViewWidth] = useState(1200);
+    const [viewHeight, setViewHeight] = useState(800);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            setViewWidth(containerRef.current.offsetWidth);
+            setViewHeight(containerRef.current.offsetHeight);
+        }
+    }, []);
 
     const userProfileRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile } = useDoc(userProfileRef);
@@ -175,7 +184,8 @@ export function SkillTreeView() {
         try {
             const result: GenerateSkillTreeOutput = await generateSkillTreeAction({ topic: newTopic });
             
-            const { finalNodes, finalEdges } = layoutHierarchical(result.nodes, result.edges);
+            const layoutWidth = containerRef.current ? containerRef.current.offsetWidth : 1200;
+            const { finalNodes, finalEdges } = layoutHierarchical(result.nodes, result.edges, layoutWidth);
             
             setNodes(finalNodes);
             setEdges(finalEdges);
@@ -324,7 +334,7 @@ export function SkillTreeView() {
                     </Button>
                 )}
             </div>
-            <Card className="h-[800px] w-full glass-pane overflow-auto relative">
+            <Card ref={containerRef} className="h-[800px] w-full glass-pane overflow-auto relative">
                  {isGenerating && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
                          <Loader className="animate-spin text-primary" />
@@ -343,9 +353,9 @@ export function SkillTreeView() {
                          <motion.div
                             className="relative"
                             drag
-                            dragConstraints={{ left: -VIEW_WIDTH / 2, right: VIEW_WIDTH / 2, top: -VIEW_HEIGHT / 2, bottom: VIEW_HEIGHT / 2 }}
+                            dragConstraints={{ left: -viewWidth / 2, right: viewWidth / 2, top: -viewHeight / 2, bottom: viewHeight / 2 }}
                          >
-                            <svg width={VIEW_WIDTH} height={VIEW_HEIGHT} className="absolute inset-0 h-full w-full">
+                            <svg width={viewWidth} height={viewHeight} className="absolute inset-0 h-full w-full">
                                 <defs>
                                     <marker
                                         id="arrow"
