@@ -5,18 +5,15 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, Loader, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowLeft, Edit, Loader, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import React from 'react';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
 
 interface Block {
     id: string;
@@ -65,7 +62,6 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
     const { subjectId, contentType, itemId } = React.use(params);
     const router = useRouter();
 
-    const [scale, setScale] = useState(1);
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
@@ -83,8 +79,6 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
     
     const { data: subject, isLoading: isSubjectLoading } = useDoc(subjectRef);
     
-    const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
-
     const isLoading = isUserLoading || isItemLoading || isSubjectLoading;
     
     const blocks = item?.blocks || [];
@@ -96,11 +90,9 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
     if (isLoading) {
         return (
             <div className="max-w-5xl mx-auto space-y-8 pb-12">
-                 {heroImage && (
-                    <div className="h-48 md:h-64 w-full relative rounded-lg overflow-hidden">
-                        <Skeleton className="w-full h-full" />
-                    </div>
-                )}
+                <div className="h-48 md:h-64 w-full relative rounded-lg overflow-hidden">
+                    <Skeleton className="w-full h-full" />
+                </div>
                  <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4">
                     <Skeleton className="h-10 w-10 rounded-md" />
                     <Skeleton className="h-10 w-32 rounded-md" />
@@ -161,19 +153,6 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                 </Link>
-                 <div className="flex items-center gap-2 p-2 rounded-md glass-pane">
-                    <ZoomOut className="h-4 w-4" />
-                    <Slider
-                        value={[scale]}
-                        onValueChange={(value) => setScale(value[0])}
-                        min={0.5}
-                        max={1.5}
-                        step={0.1}
-                        className="w-24 md:w-32"
-                        aria-label="Zoom slider"
-                    />
-                    <ZoomIn className="h-4 w-4" />
-                 </div>
                 <Button variant="glow" onClick={() => router.push(getEditUrl())}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Item
@@ -193,18 +172,16 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
                 </Card>
 
                 <Card className="glass-pane">
-                    <CardContent className="p-6 w-full" style={{overflow: 'visible'}}>
-                        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }} className="transition-transform duration-200">
-                            <div className="space-y-6">
-                                {blocks.map((block: Block) => (
-                                   <BlockViewer key={block.id} block={block} />
-                                ))}
-                                 {blocks.length === 0 && (
-                                   <div className="text-center p-8 text-muted-foreground">
-                                        <p>This item is empty.</p>
-                                   </div>
-                                )}
-                            </div>
+                    <CardContent className="p-6">
+                        <div className="space-y-6">
+                            {blocks.map((block: Block) => (
+                               <BlockViewer key={block.id} block={block} />
+                            ))}
+                             {blocks.length === 0 && (
+                               <div className="text-center p-8 text-muted-foreground">
+                                    <p>This item is empty.</p>
+                               </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -213,5 +190,3 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
         </div>
     );
 }
-
-    
