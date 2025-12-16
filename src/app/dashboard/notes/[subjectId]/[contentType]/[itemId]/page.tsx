@@ -202,7 +202,7 @@ export default function ContentPreviewPage() {
                 </Card>
 
                 <Card className="glass-pane">
-                    <CardContent className="p-6">
+                    <CardContent className="p-6 w-full" style={{overflow: 'hidden'}}>
                         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }} className="transition-transform duration-200">
                             <div className="space-y-6">
                                 {blocks.map((block: Block) => (
