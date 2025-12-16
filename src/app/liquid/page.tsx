@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote, SendHorizontal } from 'lucide-react';
+import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, Network, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote, SendHorizontal, Trash2, History } from 'lucide-react';
 import { formatDistanceToNow, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -198,7 +198,7 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    // Data fetching hooks are now inside the component that is only rendered for admins.
+    // Data fetching hooks
     const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
     const usersQuery = useMemoFirebase(() => query(usersCollectionRef, orderBy('creationTime', 'desc')), [usersCollectionRef]);
     const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
@@ -211,6 +211,10 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
 
     const premiumPlanConfigRef = useMemoFirebase(() => doc(firestore, 'plan_configs', 'premium'), [firestore]);
     const { data: premiumPlanConfigData } = useDoc(premiumPlanConfigRef);
+    
+    const broadcastsRef = useMemoFirebase(() => collection(firestore, 'broadcasts'), [firestore]);
+    const broadcastsQuery = useMemoFirebase(() => query(broadcastsRef, orderBy('createdAt', 'desc')), [broadcastsRef]);
+    const { data: broadcasts, isLoading: areBroadcastsLoading } = useCollection(broadcastsQuery);
 
     const [premiumPlanConfig, setPremiumPlanConfig] = useState<PlanConfig | null>(null);
 
@@ -350,6 +354,17 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
 
         setIsBroadcasting(true);
         try {
+            // 1. Save to broadcasts collection
+            const broadcastRef = doc(collection(firestore, 'broadcasts'));
+            const newBroadcast = {
+                id: broadcastRef.id,
+                message: broadcastMessage,
+                href: broadcastLink || '#',
+                createdAt: serverTimestamp(),
+            };
+            await setDoc(broadcastRef, newBroadcast);
+
+            // 2. Send to all users
             const usersSnapshot = await getDocs(collection(firestore, 'users'));
             if (usersSnapshot.empty) {
                 toast({ title: 'No Users', description: 'There are no users to broadcast to.' });
@@ -361,11 +376,10 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                 const userId = userDoc.id;
                 const notificationRef = doc(collection(firestore, 'users', userId, 'notifications'));
                 batch.set(notificationRef, {
-                    message: broadcastMessage,
+                    ...newBroadcast,
+                    broadcastId: broadcastRef.id, // Link notification to the broadcast
                     type: 'admin-message',
                     isRead: false,
-                    createdAt: serverTimestamp(),
-                    href: broadcastLink || '#',
                 });
             });
 
@@ -382,8 +396,47 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
             setIsBroadcasting(false);
         }
     };
+    
+    const handleDeleteBroadcast = async (broadcast: any) => {
+        setIsBroadcasting(true);
+        try {
+            // 1. Delete from broadcasts collection
+            const broadcastRef = doc(firestore, 'broadcasts', broadcast.id);
+            await deleteDoc(broadcastRef);
 
-    const isLoading = areUsersLoading || isConfigLoading || arePaymentsLoading || isProfileLoading;
+            // 2. Query all users and delete the corresponding notification
+            const usersSnapshot = await getDocs(collection(firestore, 'users'));
+            if (usersSnapshot.empty) {
+                toast({ title: "No Users Found", description: "No user notifications to delete." });
+                return;
+            }
+            
+            const batch = writeBatch(firestore);
+
+            // This is slow but necessary for a full cleanup.
+            for (const userDoc of usersSnapshot.docs) {
+                const notificationsQuery = query(
+                    collection(firestore, 'users', userDoc.id, 'notifications'),
+                    where('broadcastId', '==', broadcast.id)
+                );
+                const notificationsSnapshot = await getDocs(notificationsQuery);
+                notificationsSnapshot.forEach(notificationDoc => {
+                    batch.delete(notificationDoc.ref);
+                });
+            }
+
+            await batch.commit();
+
+            toast({ title: 'Broadcast Deleted', description: 'The message has been removed from all users.' });
+        } catch (error) {
+            console.error('Error deleting broadcast:', error);
+            toast({ variant: 'destructive', title: 'Deletion Failed', description: 'Could not delete the broadcast message.' });
+        } finally {
+            setIsBroadcasting(false);
+        }
+    };
+
+    const isLoading = areUsersLoading || isConfigLoading || arePaymentsLoading || isProfileLoading || areBroadcastsLoading;
 
     if (isLoading) {
         return (
@@ -402,6 +455,7 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                     <TabsList className="inline-flex w-auto">
                         <TabsTrigger value="payments"><Banknote className="w-4 h-4 mr-2"/> Payment Verification</TabsTrigger>
                         <TabsTrigger value="broadcast"><SendHorizontal className="w-4 h-4 mr-2"/> Broadcast</TabsTrigger>
+                        <TabsTrigger value="history"><History className="w-4 h-4 mr-2"/> Broadcast History</TabsTrigger>
                         <TabsTrigger value="plans"><DollarSign className="w-4 h-4 mr-2"/> Plan Management</TabsTrigger>
                         <TabsTrigger value="users"><User className="w-4 h-4 mr-2"/> User Management</TabsTrigger>
                         <TabsTrigger value="site"><Wrench className="w-4 h-4 mr-2"/> Site Settings</TabsTrigger>
@@ -523,6 +577,61 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                          </CardContent>
                      </Card>
                  </TabsContent>
+
+                 <TabsContent value="history" className="mt-6">
+                    <Card className="glass-pane">
+                        <CardHeader>
+                            <CardTitle className="font-headline">Broadcast History</CardTitle>
+                            <CardDescription>View and manage previously sent broadcast messages.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-96">
+                                <div className="space-y-4">
+                                    {broadcasts && broadcasts.length === 0 && (
+                                        <p className="text-center text-muted-foreground p-8">No broadcasts have been sent yet.</p>
+                                    )}
+                                    {broadcasts?.map((b) => (
+                                        <div key={b.id} className="flex items-start justify-between gap-4 p-4 rounded-md bg-background/50">
+                                            <div>
+                                                <p className="font-medium">{b.message}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Sent {b.createdAt ? formatDistanceToNow(b.createdAt.toDate(), { addSuffix: true }) : 'just now'}
+                                                    {b.href && b.href !== '#' && ` | Links to: ${b.href}`}
+                                                </p>
+                                            </div>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="icon" className="shrink-0">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Delete this broadcast?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This will permanently delete the message "{b.message}" from the history AND from all users' notification feeds. This cannot be undone.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            className="bg-destructive hover:bg-destructive/90"
+                                                            onClick={() => handleDeleteBroadcast(b)}
+                                                            disabled={isBroadcasting}
+                                                        >
+                                                            {isBroadcasting ? <Loader className="animate-spin mr-2"/> : null}
+                                                            Delete Everywhere
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 <TabsContent value="plans" className="mt-6 space-y-6">
                    <PlanConfigForm planId="free" planData={freePlanConfig as PlanConfig} onSave={handlePlanConfigSave} />

@@ -165,6 +165,18 @@
             "submittedAt": { "type": "string", "description": "Timestamp when the request was submitted.", "format": "date-time" }
         },
         "required": ["id", "userId", "userName", "utr", "status", "submittedAt"]
+    },
+    "Broadcast": {
+      "title": "Broadcast",
+      "type": "object",
+      "description": "Represents a broadcast message sent to all users.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the broadcast." },
+        "message": { "type": "string", "description": "The content of the broadcast message." },
+        "href": { "type": "string", "description": "A URL to link to when the notification is clicked." },
+        "createdAt": { "type": "string", "description": "Timestamp of creation.", "format": "date-time" }
+      },
+      "required": ["id", "message", "createdAt"]
     }
   },
   "auth": {
@@ -215,6 +227,10 @@
       {
         "path": "/paymentVerifications/{verificationId}",
         "definition": { "entityName": "PaymentVerification", "schema": { "$ref": "#/backend/entities/PaymentVerification" }, "description": "Stores manual payment verification requests from users." }
+      },
+      {
+        "path": "/broadcasts/{broadcastId}",
+        "definition": { "entityName": "Broadcast", "schema": { "$ref": "#/backend/entities/Broadcast" }, "description": "Stores a history of all broadcast messages." }
       }
     ]
   }
