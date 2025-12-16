@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
-import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone, Save, Upload, Edit, CheckCircle, X } from 'lucide-react';
+import { Check, User, CreditCard, Shield, Loader, MailCheck, AlertTriangle, Phone, Save, Upload, Edit, CheckCircle, X, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { differenceInDays, format, parseISO } from 'date-fns';
 
 
 const freePlanFeatures = [
@@ -182,9 +183,18 @@ export default function AccountPage() {
     if (isWip) {
         return <WipPage />;
     }
-
-    // This would come from user data in a real app
+    
     const currentUserPlan = userProfile?.plan || 'Free';
+    const subscriptionStatus = userProfile?.subscriptionStatus;
+    const premiumUntil = userProfile?.premiumUntil;
+    
+    let daysLeft: number | null = null;
+    if (subscriptionStatus === 'active' && premiumUntil) {
+        const expires = parseISO(premiumUntil);
+        const now = new Date();
+        daysLeft = differenceInDays(expires, now);
+    }
+
 
     const handleVerifyEmail = async () => {
         if (!user) return;
@@ -219,6 +229,79 @@ export default function AccountPage() {
             });
         }
     };
+    
+    const renderSubscriptionContent = () => {
+        if (subscriptionStatus === 'active' && currentUserPlan === 'Premium') {
+            return (
+                 <Card className="glass-pane md:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-accent flex items-center gap-2"><Crown /> Current Plan: Premium</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {daysLeft !== null && daysLeft > 0 ? (
+                           <p className="text-lg">Your premium access is active for <span className="font-bold text-glow">{daysLeft} more day{daysLeft === 1 ? '' : 's'}</span>.</p>
+                        ) : daysLeft !== null && daysLeft <= 0 ? (
+                           <p className="text-lg text-destructive">Your premium subscription has expired.</p>
+                        ) : (
+                           <p className="text-lg">Enjoy your premium features!</p>
+                        )}
+                         {premiumUntil && <p className="text-sm text-muted-foreground mt-1">Expires on {format(parseISO(premiumUntil), 'PPP')}</p>}
+                    </CardContent>
+                    <CardFooter>
+                         <Button variant="outline" asChild>
+                            <Link href="/dashboard/upgrade">Manage Subscription</Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            )
+        }
+
+        return (
+            <>
+                 <Card className="bg-background/50">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold">Free Plan</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                            {freePlanFeatures.map(feature => (
+                                <li key={feature} className="flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-primary" />
+                                    {feature}
+                                </li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                    <CardFooter>
+                        <Button variant="outline" className="w-full" disabled={currentUserPlan === 'Free'}>
+                            Current Plan
+                        </Button>
+                    </CardFooter>
+                </Card>
+                 <Card className="border-accent bg-accent/10">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold text-glow">Premium Plan</CardTitle>
+                        <p className="text-3xl font-bold font-headline mt-2">Rs 9<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="space-y-2 text-sm text-foreground">
+                            {premiumPlanFeatures.map(feature => (
+                                <li key={feature} className="flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-accent" />
+                                    {feature}
+                                </li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                    <CardFooter>
+                        <Button variant="glow" className="w-full" asChild>
+                            <Link href="/dashboard/upgrade">Upgrade to Premium</Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </>
+        )
+    }
 
     return (
         <div className="grid gap-6">
@@ -296,47 +379,7 @@ export default function AccountPage() {
                     <CardDescription>You are currently on the {currentUserPlan} plan.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-6">
-                    <Card className="bg-background/50">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-bold">Free Plan</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="space-y-2 text-sm text-muted-foreground">
-                                {freePlanFeatures.map(feature => (
-                                    <li key={feature} className="flex items-center gap-2">
-                                        <Check className="h-4 w-4 text-primary" />
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                        <CardFooter>
-                            <Button variant="outline" className="w-full" disabled={currentUserPlan === 'Free'}>
-                                Current Plan
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                     <Card className="border-accent bg-accent/10">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-bold text-glow">Premium Plan</CardTitle>
-                            <p className="text-3xl font-bold font-headline mt-2">Rs 9<span className="text-sm font-normal text-muted-foreground">/month</span></p>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="space-y-2 text-sm text-foreground">
-                                {premiumPlanFeatures.map(feature => (
-                                    <li key={feature} className="flex items-center gap-2">
-                                        <Check className="h-4 w-4 text-accent" />
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                        <CardFooter>
-                            <Button variant="glow" className="w-full" asChild>
-                                <Link href="/dashboard/upgrade">Upgrade to Premium</Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                    {renderSubscriptionContent()}
                 </CardContent>
             </Card>
 
