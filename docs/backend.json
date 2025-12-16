@@ -66,22 +66,11 @@
      "ExamQuestion": {
       "title": "ExamQuestion",
       "type": "object",
-      "description": "Represents an exam question paper or practice question.",
+      "description": "Represents an exam question paper, practice question, or syllabus item.",
       "properties": {
-        "title": { "type": "string", "description": "The title of the exam question." },
-        "blocks": { "type": "array", "description": "The content blocks of the question.", "items": { "type": "object" } },
-        "isImportant": { "type": "boolean", "description": "Indicates if the exam question is marked as important." }
-      },
-      "required": ["title", "blocks"]
-    },
-    "Syllabus": {
-      "title": "Syllabus",
-      "type": "object",
-      "description": "Represents a syllabus document or content.",
-      "properties": {
-        "title": { "type": "string", "description": "The title of the syllabus item." },
-        "blocks": { "type": "array", "description": "The content blocks of the syllabus.", "items": { "type": "object" } },
-        "isImportant": { "type": "boolean", "description": "Indicates if the syllabus is marked as important." }
+        "title": { "type": "string", "description": "The title of the exam question or syllabus item." },
+        "blocks": { "type": "array", "description": "The content blocks of the item.", "items": { "type": "object" } },
+        "isImportant": { "type": "boolean", "description": "Indicates if the item is marked as important." }
       },
       "required": ["title", "blocks"]
     },
@@ -201,11 +190,7 @@
       },
       {
         "path": "/users/{userId}/subjects/{subjectId}/examQuestions/{questionId}",
-        "definition": { "entityName": "ExamQuestion", "schema": { "$ref": "#/backend/entities/ExamQuestion" }, "description": "Stores exam questions for a subject." }
-      },
-      {
-        "path": "/users/{userId}/subjects/{subjectId}/syllabus/{syllabusId}",
-        "definition": { "entityName": "Syllabus", "schema": { "$ref": "#/backend/entities/Syllabus" }, "description": "Stores syllabus items for a subject." }
+        "definition": { "entityName": "ExamQuestion", "schema": { "$ref": "#/backend/entities/ExamQuestion" }, "description": "Stores exam questions and syllabus items for a subject." }
       },
       {
         "path": "/users/{userId}/subjects/{subjectId}/resources/{resourceId}",

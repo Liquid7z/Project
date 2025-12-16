@@ -48,7 +48,7 @@ const itemFormSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
 });
 
-const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 'syllabus' | 'resources', subjectName?: string }) => {
+const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 'resources', subjectName?: string }) => {
     const params = useParams();
     const router = useRouter();
     const subjectId = params.subjectId as string;
@@ -114,8 +114,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
 
     const typeName = {
         notes: 'Note',
-        examQuestions: 'Exam Question',
-        syllabus: 'Syllabus Item',
+        examQuestions: 'Questions & Syllabus',
         resources: 'Resource'
     }[type];
 
@@ -347,8 +346,7 @@ export default function SubjectPage() {
                 <ScrollArea className="w-full whitespace-nowrap">
                     <TabsList className="inline-flex w-auto">
                         <TabsTrigger value="notes"><Notebook className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Notes</span></TabsTrigger>
-                        <TabsTrigger value="examQuestions"><FileQuestion className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Exam Questions</span></TabsTrigger>
-                        <TabsTrigger value="syllabus"><BookCopy className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Syllabus</span></TabsTrigger>
+                        <TabsTrigger value="examQuestions"><FileQuestion className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Questions & Syllabus</span></TabsTrigger>
                         <TabsTrigger value="resources"><Package className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Resources</span></TabsTrigger>
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
@@ -358,9 +356,6 @@ export default function SubjectPage() {
                 </TabsContent>
                 <TabsContent value="examQuestions" className="mt-6">
                     <ContentList type="examQuestions" subjectName={subject.name} />
-                </TabsContent>
-                <TabsContent value="syllabus" className="mt-6">
-                   <ContentList type="syllabus" subjectName={subject.name} />
                 </TabsContent>
                 <TabsContent value="resources" className="mt-6">
                     <ContentList type="resources" subjectName={subject.name} />

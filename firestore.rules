@@ -84,11 +84,6 @@ service cloud.firestore {
           allow get, list: if isOwner(userId);
         }
 
-        match /syllabus/{syllabusId} {
-          allow create, update, delete: if isOwner(userId);
-          allow get, list: if isOwner(userId);
-        }
-
         match /resources/{resourceId} {
           allow create, update, delete: if isOwner(userId);
           allow get, list: if isOwner(userId);
