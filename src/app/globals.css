@@ -76,6 +76,11 @@
   [data-glow-mode="true"] body {
     background-image: radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 40%), radial-gradient(circle at bottom right, hsl(var(--accent) / 0.1), transparent 40%);
   }
+
+  .prose pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
 }
 
 @layer utilities {
