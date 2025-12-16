@@ -36,7 +36,6 @@ import { WipPage } from '@/components/wip-page';
 
 const subjectFormSchema = z.object({
     name: z.string().min(1, 'Subject name is required.'),
-    description: z.string().optional(),
 });
 
 export default function NotesDashboardPage() {
@@ -66,7 +65,6 @@ export default function NotesDashboardPage() {
         resolver: zodResolver(subjectFormSchema),
         defaultValues: {
             name: '',
-            description: '',
         },
     });
 
@@ -75,7 +73,7 @@ export default function NotesDashboardPage() {
             if (!user) return;
             const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', editingSubject.id);
             try {
-                await updateDoc(subjectDocRef, { ...values, lastUpdated: serverTimestamp() });
+                await updateDoc(subjectDocRef, { ...values, description: editingSubject.description || '', lastUpdated: serverTimestamp() });
                 toast({ title: 'Subject Updated', description: `Subject "${values.name}" has been updated.` });
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Failed to update subject.' });
@@ -86,6 +84,7 @@ export default function NotesDashboardPage() {
             try {
                 await addDoc(subjectsCollectionRef, {
                     ...values,
+                    description: '',
                     noteCount: 0,
                     isImportant: false,
                     createdAt: serverTimestamp(),
@@ -114,13 +113,13 @@ export default function NotesDashboardPage() {
     
     const openEditDialog = (subject: any) => {
         setEditingSubject(subject);
-        form.reset({ name: subject.name, description: subject.description });
+        form.reset({ name: subject.name });
         setIsNewSubjectDialogOpen(true);
     };
     
     const openNewDialog = () => {
         setEditingSubject(null);
-        form.reset({ name: '', description: '' });
+        form.reset({ name: ''});
         setIsNewSubjectDialogOpen(true);
     };
 
@@ -216,7 +215,7 @@ export default function NotesDashboardPage() {
                                     <CardHeader>
                                         <div>
                                             <CardTitle className="font-headline group-hover:text-accent transition-colors">{subject.name}</CardTitle>
-                                            <CardDescription className="line-clamp-2 mt-1">{subject.description || 'No chapter name'}</CardDescription>
+                                            <CardDescription className="line-clamp-2 mt-1">{subject.description || 'No description'}</CardDescription>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="flex-grow" />
@@ -277,7 +276,7 @@ export default function NotesDashboardPage() {
                     <DialogHeader>
                         <DialogTitle className="font-headline">{editingSubject ? 'Edit Subject' : 'Create New Subject'}</DialogTitle>
                         <DialogDescription>
-                           {editingSubject ? `Update the details for "${editingSubject.name}".` : 'Give your new collection of notes a name and an optional description.'}
+                           {editingSubject ? `Update the name for "${editingSubject.name}".` : 'Give your new collection of notes a name.'}
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
@@ -290,19 +289,6 @@ export default function NotesDashboardPage() {
                                         <FormLabel>Subject Name</FormLabel>
                                         <FormControl>
                                             <Input placeholder="e.g., Creative Writing" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Description (Optional)</FormLabel>
-                                        <FormControl>
-                                            <Textarea placeholder="e.g., A collection of short stories and poems." {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
