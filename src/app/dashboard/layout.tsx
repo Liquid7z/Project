@@ -29,7 +29,8 @@ import {
   Bot,
   Shield,
   StickyNote,
-  Bell
+  Bell,
+  Feather
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -347,7 +348,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
               <NotificationsPanel />
            </div>
 
-          <main className="flex-1 p-4 md:p-6 relative">
+          <main className="flex-1 p-2 sm:p-4 md:p-6 relative">
             {children}
           </main>
         </div>
@@ -365,3 +366,5 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
+
+    
