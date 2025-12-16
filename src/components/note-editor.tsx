@@ -5,14 +5,22 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
-import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, Pilcrow, ImageIcon } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, ImageIcon } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
-import React from 'react';
+import React, { useCallback } from 'react';
 
 const TipTapToolbar = ({ editor }: { editor: any }) => {
   if (!editor) {
     return null;
   }
+
+  const addImage = useCallback(() => {
+    const url = window.prompt('URL')
+
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run()
+    }
+  }, [editor])
 
   return (
     <div className="border border-input bg-transparent rounded-md p-1 flex flex-wrap gap-1 mb-4 sticky top-16 z-10 bg-background/80 backdrop-blur-sm">
@@ -33,6 +41,9 @@ const TipTapToolbar = ({ editor }: { editor: any }) => {
       </Toggle>
       <Toggle size="sm" pressed={editor.isActive('orderedList')} onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}>
         <ListOrdered className="h-4 w-4" />
+      </Toggle>
+       <Toggle size="sm" onPressedChange={addImage}>
+        <ImageIcon className="h-4 w-4" />
       </Toggle>
     </div>
   );
