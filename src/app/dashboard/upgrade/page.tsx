@@ -26,47 +26,22 @@ const premiumPlanFeatures = [
     'Priority support',
 ];
 
-const GPayButton = () => (
-    <div className="w-full bg-black text-white h-10 rounded-md flex items-center justify-center">
-        <span className="text-2xl font-bold">G</span>
-        <span className="ml-1">Pay</span>
-    </div>
-)
-
 export default function UpgradePage() {
     const { toast } = useToast();
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
-    const [showQr, setShowQr] = useState(false);
-    const [qrTime, setQrTime] = useState(300); // 5 minutes in seconds
+    const [showPaymentFlow, setShowPaymentFlow] = useState(false);
     const [name, setName] = useState('');
     const [utr, setUtr] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    const qrImage = PlaceHolderImages.find(p => p.id === 'qr-code');
-
     const userProfileRef = useMemoFirebase(() => {
         if (!user) return null;
         return doc(firestore, 'users', user.uid);
     }, [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-
-    useEffect(() => {
-        let timer: NodeJS.Timeout;
-        if (showQr && qrTime > 0) {
-            timer = setTimeout(() => setQrTime(t => t - 1), 1000);
-        } else if (showQr && qrTime === 0) {
-            setShowQr(false);
-            toast({
-                variant: "destructive",
-                title: "QR Code Expired",
-                description: "Please generate a new QR code to complete your payment.",
-            });
-        }
-        return () => clearTimeout(timer);
-    }, [showQr, qrTime, toast]);
 
     const handleSubmitPaymentDetails = async () => {
         if (!user || !name || !utr) {
@@ -116,13 +91,6 @@ export default function UpgradePage() {
         }
     };
 
-
-    const formatTime = (seconds: number) => {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    };
-
     const isLoading = isUserLoading || isProfileLoading;
 
     if (isLoading) {
@@ -168,16 +136,21 @@ export default function UpgradePage() {
                     <CardContent className="space-y-6">
                        <div>
                             <h3 className="text-sm font-semibold text-accent mb-2">Recommended</h3>
-                            <button onClick={() => setShowQr(true)} className="w-full">
-                               <GPayButton />
-                            </button>
+                             {!showPaymentFlow && (
+                                <button onClick={() => setShowPaymentFlow(true)} className="w-full bg-black text-white h-10 rounded-md flex items-center justify-center">
+                                    <span className="text-2xl font-bold">G</span>
+                                    <span className="ml-1">Pay</span>
+                                </button>
+                             )}
                        </div>
 
-                        {showQr && (
+                        {showPaymentFlow && (
                            <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
-                               {qrImage && <Image src={qrImage.imageUrl} alt={qrImage.description} width={150} height={150} data-ai-hint={qrImage.imageHint} className="rounded-md" />}
-                               <p className="text-sm text-muted-foreground">Scan this QR code with any UPI app.</p>
-                               <p className="font-mono text-lg font-bold text-accent">{formatTime(qrTime)}</p>
+                               <img src="https://storage.googleapis.com/stabl-media/pay.png" alt="QR Code for UPI Payment" className="w-48 h-48 rounded-md" />
+                               <div className="text-center">
+                                   <p className="text-sm text-muted-foreground">Scan this QR code with any UPI app.</p>
+                                   <p className="font-bold text-accent">RS: 9</p>
+                               </div>
                                <div className="w-full space-y-4 pt-4 border-t border-border">
                                     <div className="space-y-2 text-left">
                                         <Label htmlFor="name">Your Name</Label>
@@ -192,7 +165,7 @@ export default function UpgradePage() {
                         )}
                     </CardContent>
                     <CardFooter>
-                        <Button variant="glow" className="w-full" onClick={handleSubmitPaymentDetails} disabled={isSubmitting || !showQr || !name || !utr || userProfile?.paymentStatus === 'pending'}>
+                        <Button variant="glow" className="w-full" onClick={handleSubmitPaymentDetails} disabled={isSubmitting || !showPaymentFlow || !name || !utr || userProfile?.paymentStatus === 'pending'}>
                             {isSubmitting ? <Loader className="animate-spin mr-2"/> : <Send className="mr-2"/>}
                             {userProfile?.paymentStatus === 'pending' ? 'Verification Pending' : 'I have paid, Upgrade Now'}
                         </Button>
