@@ -62,11 +62,8 @@ const BlockViewer = ({ block }: { block: Block }) => {
 
 
 export default function ContentPreviewPage() {
-    const params = useParams();
+    const { subjectId, contentType, itemId } = useParams<{ subjectId: string, contentType: string, itemId: string }>();
     const router = useRouter();
-    const subjectId = params.subjectId as string;
-    const contentType = params.contentType as string;
-    const itemId = params.itemId as string;
 
     const [scale, setScale] = useState(1);
     const { user, isUserLoading } = useUser();
@@ -202,7 +199,7 @@ export default function ContentPreviewPage() {
                 </Card>
 
                 <Card className="glass-pane">
-                    <CardContent className="p-6">
+                    <CardContent className="p-6 w-full" style={{overflow: 'clip'}}>
                         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }} className="transition-transform duration-200">
                             <div className="space-y-6">
                                 {blocks.map((block: Block) => (

@@ -49,9 +49,8 @@ const itemFormSchema = z.object({
 });
 
 const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 'resources', subjectName?: string }) => {
-    const params = useParams();
+    const { subjectId } = useParams<{ subjectId: string }>();
     const router = useRouter();
-    const subjectId = params.subjectId as string;
     const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false);
     const { toast } = useToast();
     const { user } = useUser();
@@ -268,8 +267,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
 };
 
 export default function SubjectPage() {
-    const params = useParams();
-    const subjectId = params.subjectId as string;
+    const { subjectId } = useParams<{ subjectId: string }>();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 

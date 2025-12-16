@@ -62,11 +62,8 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
 
 
 export default function ItemEditPage() {
-    const params = useParams();
+    const { subjectId, contentType, itemId } = useParams<{ subjectId: string, contentType: string, itemId: string }>();
     const router = useRouter();
-    const subjectId = params.subjectId as string;
-    const contentType = params.contentType as string;
-    const itemId = params.itemId as string;
 
     const { toast } = useToast();
     const { user } = useUser();
@@ -291,5 +288,3 @@ export default function ItemEditPage() {
         </div>
     );
 }
-
-    
