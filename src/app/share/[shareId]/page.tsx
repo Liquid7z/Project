@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc, serverTimestamp, writeBatch, getDoc } from 'firebase/firestore';
+import { doc, collection, addDoc, serverTimestamp, writeBatch, getDocs, query } from 'firebase/firestore';
 import { Loader, AlertTriangle, Lock, LogIn, UserPlus, Save } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
@@ -33,10 +33,9 @@ function getPreviewContent(blocks: any[]): string {
     return `<p>${snippet}...</p>`;
 }
 
-export default function SharePage() {
-    const params = useParams();
+export default function SharePage({ params }: { params: { shareId: string }}) {
+    const { shareId } = React.use(params);
     const router = useRouter();
-    const shareId = params.shareId as string;
     const { user, firestore, isUserLoading } = useFirebase();
     const { toast } = useToast();
 
@@ -55,7 +54,8 @@ export default function SharePage() {
         try {
             // Find a subject to save to, or create one
             const subjectsCollRef = collection(firestore, 'users', user.uid, 'subjects');
-            const querySnapshot = await getDoc(subjectsCollRef);
+            const q = query(subjectsCollRef);
+            const querySnapshot = await getDocs(q);
 
             let targetSubjectId: string;
 
@@ -118,7 +118,7 @@ export default function SharePage() {
         );
     }
     
-    const content = user ? sharedNote.blocks[0]?.content : getPreviewContent(sharedNote.blocks);
+    const content = user ? (sharedNote.blocks.map(b => b.content).join('') || '') : getPreviewContent(sharedNote.blocks);
 
     return (
         <div className="min-h-screen bg-background">

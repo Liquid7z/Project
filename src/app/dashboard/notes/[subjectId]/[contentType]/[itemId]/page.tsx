@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, Loader, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Edit, Loader, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Image from 'next/image';
 import { DocumentPreviewer } from '@/components/document-previewer';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -90,10 +90,7 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
     if (isLoading) {
         return (
             <div className="space-y-8 pb-12">
-                <div className="h-48 md:h-64 w-full relative rounded-lg overflow-hidden">
-                    <Skeleton className="w-full h-full" />
-                </div>
-                 <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4">
+                <div className="flex items-center justify-between z-10 px-4">
                     <Skeleton className="h-10 w-10 rounded-md" />
                     <Skeleton className="h-10 w-32 rounded-md" />
                 </div>
@@ -145,12 +142,12 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
     }
 
     return (
-        <div className="space-y-4 pb-12">
+        <div className="pb-12">
             
-            <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
                  <Link href={`/dashboard/notes/${subjectId}`}>
-                    <Button variant="outline" size="icon">
-                        <ArrowLeft className="h-4 w-4" />
+                    <Button variant="outline">
+                        Back
                     </Button>
                 </Link>
                 <Button variant="glow" onClick={() => router.push(getEditUrl())}>
