@@ -183,11 +183,7 @@ export default function UpgradePage() {
                         {showPaymentFlow && (
                            <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
                                <div className="relative">
-                                    {premiumPlanConfig?.qrCodeUrl ? (
-                                        <img src={premiumPlanConfig.qrCodeUrl} alt="QR Code for UPI payment" width={200} height={200} className="rounded-md" />
-                                    ) : (
-                                        <div className="w-[200px] h-[200px] flex items-center justify-center bg-muted rounded-md text-sm text-muted-foreground">QR code not available</div>
-                                    )}
+                                    <img src={premiumPlanConfig?.qrCodeUrl || '/psy9.png'} alt="QR Code for UPI payment" width={200} height={200} className="rounded-md bg-white p-2" />
                                </div>
                                 <div className="flex items-center justify-between w-full mt-2">
                                      <p className="font-bold text-accent">Amount: ₹{premiumPlanConfig?.priceMonthly || 9}</p>
@@ -241,7 +237,7 @@ export default function UpgradePage() {
                         </CardHeader>
                         <CardContent>
                              <div className="mb-6">
-                                <p className="text-4xl font-bold font-headline">Rs {premiumPlanConfig?.priceMonthly || 9}<span className="text-lg font-normal text-muted-foreground">/month</span></p>
+                                <p className="text-4xl font-bold font-headline">Rs 9<span className="text-lg font-normal text-muted-foreground">/month</span></p>
                             </div>
                             <ul className="space-y-3 text-sm">
                                 {premiumPlanFeatures.map(feature => (
@@ -263,3 +259,5 @@ export default function UpgradePage() {
     
     
 }
+
+    
