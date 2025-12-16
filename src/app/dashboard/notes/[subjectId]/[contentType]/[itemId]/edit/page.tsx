@@ -62,7 +62,8 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
 
 
 export default function ItemEditPage() {
-    const { subjectId, contentType, itemId } = useParams<{ subjectId: string, contentType: string, itemId: string }>();
+    const params = useParams<{ subjectId: string, contentType: string, itemId: string }>();
+    const { subjectId, contentType, itemId } = params;
     const router = useRouter();
 
     const { toast } = useToast();
@@ -212,38 +213,34 @@ export default function ItemEditPage() {
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-24 md:pb-12">
             
-            <div className="space-y-6 relative">
-                <Card className={cn("glass-pane overflow-hidden p-4 sm:p-6 transition-all", isImportant && "important-glow")}>
-                    <CardHeader className="!p-0 !pb-4 border-b flex-row justify-between items-center gap-4">
-                         <div className="flex items-center gap-2">
-                            <Link href={getBackLink()} className="hidden sm:inline-block">
-                               <Button variant="outline" size="icon" type="button">
-                                   <ArrowLeft className="h-4 w-4" />
-                               </Button>
-                            </Link>
-                            <CardTitle className="font-headline text-base sm:text-lg">
-                                From: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
-                            </CardTitle>
-                         </div>
-                        <div className="flex items-center space-x-2">
-                           <Label htmlFor="important-note" className="flex items-center gap-2 text-sm font-medium text-accent cursor-pointer">
-                               <Sparkles className="h-4 w-4"/>
-                                <span className="hidden sm:inline">Important</span>
-                           </Label>
-                           <Switch id="important-note" checked={isImportant} onCheckedChange={setIsImportant} />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="!p-0 !pt-6">
-                         <Input
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Item Title"
-                            className="text-2xl sm:text-4xl font-bold font-headline h-auto p-2 border-none focus-visible:ring-0 bg-transparent -mx-2"
-                        />
-                    </CardContent>
-                </Card>
+            <div className="flex justify-between items-center gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                    <Link href={getBackLink()}>
+                        <Button variant="outline" size="icon" type="button">
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                    </Link>
+                    <div className="font-medium">
+                        From: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
+                    </div>
+                </div>
+                 <div className="flex items-center space-x-2">
+                   <Label htmlFor="important-note" className="flex items-center gap-2 text-sm font-medium text-accent cursor-pointer">
+                       <Sparkles className="h-4 w-4"/>
+                        <span className="hidden sm:inline">Important</span>
+                   </Label>
+                   <Switch id="important-note" checked={isImportant} onCheckedChange={setIsImportant} />
+                </div>
+            </div>
 
-                <Card className="glass-pane p-2 sm:p-6">
+            <div className="relative space-y-6">
+                <Card className={cn("glass-pane overflow-hidden p-4 sm:p-6", isImportant && "important-glow")}>
+                    <Input
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Item Title"
+                        className="text-2xl sm:text-4xl font-bold font-headline h-auto p-2 border-none focus-visible:ring-0 bg-transparent -mx-2 mb-4"
+                    />
                     <div className="space-y-4">
                         {blocks.map((block) => (
                             <ContentBlock 
