@@ -60,6 +60,13 @@ service cloud.firestore {
     match /broadcasts/{broadcastId} {
       allow list, get, create, delete: if isAdmin();
     }
+    
+    // --- Shared Notes ---
+    match /shared_notes/{shareId} {
+        allow get: if true;
+        allow create: if isSignedIn();
+        allow delete: if isAdmin();
+    }
 
     // --- User Data Collections ---
 

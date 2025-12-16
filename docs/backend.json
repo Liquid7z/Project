@@ -23,7 +23,9 @@
         "lastGenerationDate": { "type": "string", "description": "The date of the last skill tree generation, in ISO 8601 format." },
         "paymentStatus": { "type": "string", "description": "The user's current payment verification status.", "enum": ["none", "pending"] },
         "premiumUntil": { "type": "string", "format": "date-time", "description": "Timestamp indicating when the user's premium access expires." },
-        "subscriptionStatus": { "type": "string", "description": "The status of the user's subscription.", "enum": ["active", "expired", "cancelled"] }
+        "subscriptionStatus": { "type": "string", "description": "The status of the user's subscription.", "enum": ["active", "expired", "cancelled"] },
+        "sharesThisMonth": { "type": "number", "description": "The number of notes shared this month." },
+        "lastShareDate": { "type": "string", "format": "date-time", "description": "The date of the last note share." }
       },
       "required": ["id", "email"]
     },
@@ -178,6 +180,23 @@
         "createdAt": { "type": "string", "description": "Timestamp of creation.", "format": "date-time" }
       },
       "required": ["id", "message", "createdAt"]
+    },
+    "SharedNote": {
+        "title": "SharedNote",
+        "type": "object",
+        "description": "Represents a note that has been shared publicly via a link.",
+        "properties": {
+            "originalOwnerId": { "type": "string", "description": "The UID of the user who originally shared the note." },
+            "originalOwnerName": { "type": "string", "description": "The display name of the user who shared the note." },
+            "originalItemId": { "type": "string", "description": "The ID of the original item (note, resource, etc.)." },
+            "originalItemType": { "type": "string", "description": "The type of the original item (e.g., 'notes')." },
+            "originalSubjectId": { "type": "string", "description": "The ID of the original subject." },
+            "title": { "type": "string", "description": "The title of the shared item." },
+            "blocks": { "type": "array", "description": "The content blocks of the item.", "items": { "type": "object" } },
+            "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the share link was created." },
+            "watermarkRemoved": { "type": "boolean", "description": "True if the 'Shared by' watermark should be hidden." }
+        },
+        "required": ["originalOwnerId", "originalOwnerName", "originalItemId", "title", "blocks", "createdAt"]
     }
   },
   "auth": {
@@ -232,6 +251,10 @@
       {
         "path": "/broadcasts/{broadcastId}",
         "definition": { "entityName": "Broadcast", "schema": { "$ref": "#/backend/entities/Broadcast" }, "description": "Stores a history of all broadcast messages." }
+      },
+      {
+          "path": "/shared_notes/{shareId}",
+          "definition": { "entityName": "SharedNote", "schema": { "$ref": "#/backend/entities/SharedNote" }, "description": "Stores publicly shared notes for previewing." }
       }
     ]
   }

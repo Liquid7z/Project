@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical, Sparkles, Notebook, FileQuestion, BookCopy, Package } from 'lucide-react';
+import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical, Sparkles, Notebook, FileQuestion, BookCopy, Package, Share2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ShareDialog } from '@/components/share-dialog';
 
 
 const itemFormSchema = z.object({
@@ -52,6 +53,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
     const { subjectId } = useParams<{ subjectId: string }>();
     const router = useRouter();
     const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false);
+    const [sharingItem, setSharingItem] = useState<any | null>(null);
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
@@ -68,7 +70,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
         defaultValues: { title: '' },
     });
     
-    const handleCreateItem = async (values: z.infer<typeof itemFormSchema>) => {
+    const handleCreateItem = async (values: z.infer<typeof itemFormSchema>>) => {
         if (!contentCollectionRef) return;
         try {
             const newItemDoc = await addDoc(contentCollectionRef, {
@@ -201,6 +203,9 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                         <DropdownMenuItem asChild><Link href={`/dashboard/notes/${subjectId}/${type}/${item.id}/edit`}>Edit</Link></DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSharingItem(item); }}>
+                                            <Share2 className="mr-2 h-4 w-4"/> Share
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => toggleItemImportance(item)}>
                                             <Sparkles className={cn("mr-2 h-4 w-4", item.isImportant && "text-accent")} />
                                             Mark as Important
@@ -262,6 +267,14 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
                     </Form>
                 </DialogContent>
             </Dialog>
+            {sharingItem && (
+                 <ShareDialog
+                    isOpen={!!sharingItem}
+                    onOpenChange={(isOpen) => !isOpen && setSharingItem(null)}
+                    item={sharingItem}
+                    itemType={type}
+                />
+            )}
         </div>
     );
 };
