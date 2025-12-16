@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type {  useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Edit, Loader, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
@@ -62,8 +61,7 @@ const BlockViewer = ({ block }: { block: Block }) => {
 }
 
 
-export default function ContentPreviewPage({ params }: { params: { subjectId: string; contentType: string; itemId: string } }) {
-    const { subjectId, contentType, itemId } = params;
+export default function ContentPreviewPage({ params: { subjectId, contentType, itemId } }: { params: { subjectId: string; contentType: string; itemId: string } }) {
     const router = useRouter();
 
     const [scale, setScale] = useState(1);
@@ -194,7 +192,7 @@ export default function ContentPreviewPage({ params }: { params: { subjectId: st
                 </Card>
 
                 <Card className="glass-pane">
-                    <CardContent className="p-6 w-full" style={{overflow: 'clip'}}>
+                    <CardContent className="p-6 w-full" style={{overflow: 'visible'}}>
                         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }} className="transition-transform duration-200">
                             <div className="space-y-6">
                                 {blocks.map((block: Block) => (
