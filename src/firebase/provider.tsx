@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -63,9 +64,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   storage,
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
+    user: auth?.currentUser || null, // Immediately set user if available
     decodedClaims: null,
-    isUserLoading: true,
+    isUserLoading: !auth?.currentUser, // If user exists, we aren't "loading"
     userError: null,
   });
 
@@ -75,7 +76,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       return;
     }
 
-    setUserAuthState({ user: null, decodedClaims: null, isUserLoading: true, userError: null });
+    // Set initial loading state only if user is not already available
+    if (!auth.currentUser) {
+        setUserAuthState(prev => ({ ...prev, isUserLoading: true }));
+    }
 
     const unsubscribe = onIdTokenChanged(
       auth,
