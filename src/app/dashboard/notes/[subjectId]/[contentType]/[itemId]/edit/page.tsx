@@ -61,8 +61,8 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
 };
 
 
-export default function ItemEditPage({ params, searchParams }: { params: { subjectId: string, contentType: string, itemId: string }, searchParams: any }) {
-    const { subjectId, contentType, itemId } = params;
+export default function ItemEditPage({ params, searchParams }: { params: { subjectId: string, contentType: string, itemId: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
+    const { subjectId, contentType, itemId } = React.use(params);
     const router = useRouter();
 
     const { toast } = useToast();
