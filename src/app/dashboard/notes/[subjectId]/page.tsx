@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -345,10 +346,10 @@ export default function SubjectPage() {
             <Tabs defaultValue="notes" className="w-full">
                 <ScrollArea className="w-full whitespace-nowrap">
                     <TabsList className="inline-flex w-auto">
-                        <TabsTrigger value="notes"><Notebook className="w-4 h-4 mr-2 sm:mr-2"/>Notes</TabsTrigger>
-                        <TabsTrigger value="examQuestions"><FileQuestion className="w-4 h-4 mr-2 sm:mr-2"/>Exam Questions</TabsTrigger>
-                        <TabsTrigger value="syllabus"><BookCopy className="w-4 h-4 mr-2 sm:mr-2"/>Syllabus</TabsTrigger>
-                        <TabsTrigger value="resources"><Package className="w-4 h-4 mr-2 sm:mr-2"/>Resources</TabsTrigger>
+                        <TabsTrigger value="notes"><Notebook className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Notes</span></TabsTrigger>
+                        <TabsTrigger value="examQuestions"><FileQuestion className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Exam Questions</span></TabsTrigger>
+                        <TabsTrigger value="syllabus"><BookCopy className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Syllabus</span></TabsTrigger>
+                        <TabsTrigger value="resources"><Package className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Resources</span></TabsTrigger>
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
