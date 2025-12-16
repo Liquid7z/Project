@@ -188,11 +188,13 @@ export default function UpgradePage() {
                                     ) : (
                                         <div className="w-[200px] h-[200px] flex items-center justify-center bg-muted rounded-md text-sm text-muted-foreground">QR code not available</div>
                                     )}
-                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-mono px-2 py-1 rounded">
+                               </div>
+                                <div className="flex items-center justify-between w-full mt-2">
+                                     <p className="font-bold text-accent">Amount: ₹{premiumPlanConfig?.priceMonthly || 9}</p>
+                                      <div className="bg-black/70 text-white text-xs font-mono px-2 py-1 rounded">
                                         Expires in: {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                                     </div>
-                               </div>
-                               <p className="font-bold text-accent mt-2">Amount: ₹{premiumPlanConfig?.priceMonthly || 9}</p>
+                                </div>
                                <div className="w-full space-y-4 pt-4 border-t border-border">
                                     <div className="space-y-2 text-left">
                                         <Label htmlFor="name">Your Name</Label>
@@ -260,3 +262,4 @@ export default function UpgradePage() {
     );
     
     
+}
