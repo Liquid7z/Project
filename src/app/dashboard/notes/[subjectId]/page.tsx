@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { FolderOpen, Plus, Loader, AlertTriangle, FileText, ArrowLeft, MoreVertical, Sparkles, Notebook, FileQuestion, Package, Share2 } from 'lucide-react';
@@ -50,8 +50,7 @@ const itemFormSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
 });
 
-const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 'resources', subjectName?: string }) => {
-    const { subjectId } = useParams<{ subjectId: string }>();
+const ContentList = ({ type, subjectId, subjectName }: { type: 'notes' | 'examQuestions' | 'resources', subjectId: string, subjectName?: string }) => {
     const router = useRouter();
     const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false);
     const [sharingItem, setSharingItem] = useState<any | null>(null);
@@ -286,6 +285,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
 
 export default function SubjectPage({ params, searchParams }: { params: { subjectId: string }, searchParams: any }) {
     const { subjectId } = React.use(params);
+    React.use(searchParams);
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
@@ -368,13 +368,13 @@ export default function SubjectPage({ params, searchParams }: { params: { subjec
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
                 <TabsContent value="notes" className="mt-6">
-                    <ContentList type="notes" subjectName={subject.name} />
+                    <ContentList type="notes" subjectId={subjectId} subjectName={subject.name} />
                 </TabsContent>
                 <TabsContent value="examQuestions" className="mt-6">
-                    <ContentList type="examQuestions" subjectName={subject.name} />
+                    <ContentList type="examQuestions" subjectId={subjectId} subjectName={subject.name} />
                 </TabsContent>
                 <TabsContent value="resources" className="mt-6">
-                    <ContentList type="resources" subjectName={subject.name} />
+                    <ContentList type="resources" subjectId={subjectId} subjectName={subject.name} />
                 </TabsContent>
             </Tabs>
         </div>
