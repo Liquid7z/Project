@@ -142,7 +142,7 @@ function NotificationsPanel() {
                                     className={cn("p-4 border-b border-border/50 hover:bg-accent/10 cursor-pointer", !notif.isRead && "bg-primary/10")}
                                     onClick={() => markAsRead(notif.id)}
                                 >
-                                    <p className="text-sm font-medium">{notif.message}</p>
+                                    <p className="text-sm font-medium break-words">{notif.message}</p>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {notif.createdAt?.toDate ? formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true }) : ''}
                                     </p>
