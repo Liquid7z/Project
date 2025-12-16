@@ -31,7 +31,7 @@ const BlockViewer = ({ block }: { block: Block }) => {
         return (
             <div className="w-full overflow-x-auto">
                 <div
-                    className="prose prose-sm md:prose-base dark:prose-invert max-w-none prose-p:text-muted-foreground prose-headings:text-foreground"
+                    className="prose prose-sm md:prose-base dark:prose-invert max-w-none w-full prose-p:text-muted-foreground prose-headings:text-foreground"
                     dangerouslySetInnerHTML={{ __html: block.content || '' }}
                 />
             </div>
