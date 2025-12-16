@@ -2,7 +2,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import type {  useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Edit, Loader, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
@@ -61,8 +62,8 @@ const BlockViewer = ({ block }: { block: Block }) => {
 }
 
 
-export default function ContentPreviewPage() {
-    const { subjectId, contentType, itemId } = useParams<{ subjectId: string, contentType: string, itemId: string }>();
+export default function ContentPreviewPage({ params }: { params: { subjectId: string; contentType: string; itemId: string } }) {
+    const { subjectId, contentType, itemId } = params;
     const router = useRouter();
 
     const [scale, setScale] = useState(1);
@@ -153,15 +154,9 @@ export default function ContentPreviewPage() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 pb-12">
-            {heroImage && (
-                <div className="h-48 md:h-64 w-full relative rounded-lg overflow-hidden">
-                    <Image src={heroImage.imageUrl} alt={heroImage.description} fill objectFit="cover" className="opacity-20" data-ai-hint={heroImage.imageHint} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-                </div>
-            )}
+        <div className="max-w-5xl mx-auto space-y-4 pb-12">
             
-            <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4 flex-wrap gap-4">
+            <div className="flex items-center justify-between px-4 sm:px-0 flex-wrap gap-4">
                  <Link href={`/dashboard/notes/${subjectId}`}>
                     <Button variant="outline" size="icon">
                         <ArrowLeft className="h-4 w-4" />
@@ -186,7 +181,7 @@ export default function ContentPreviewPage() {
                 </Button>
             </div>
             
-            <div className="space-y-6 px-4">
+            <div className="space-y-6 px-4 sm:px-0">
                 <Card className={cn("glass-pane overflow-hidden p-6 transition-all", item.isImportant && "important-glow")}>
                     <CardHeader className="!p-0 !pb-4 border-b">
                          <CardTitle className="font-headline text-lg">
