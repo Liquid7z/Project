@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState } from 'react';
@@ -283,10 +281,10 @@ const ContentList = ({ type, subjectId, subjectName }: { type: 'notes' | 'examQu
     );
 };
 
-export default function SubjectPage({ params: pageParams, searchParams: pageSearchParams }: { params: { subjectId: string }, searchParams: any }) {
-    const params = React.use(pageParams);
-    const searchParams = React.use(pageSearchParams);
-    const { subjectId } = params;
+export default function SubjectPage({ params, searchParams }: { params: { subjectId: string }, searchParams: any }) {
+    const resolvedParams = React.use(params);
+    const resolvedSearchParams = React.use(searchParams);
+    const { subjectId } = resolvedParams;
     
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();

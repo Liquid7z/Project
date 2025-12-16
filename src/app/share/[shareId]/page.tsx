@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -34,10 +32,10 @@ function getPreviewContent(blocks: any[]): string {
     return `<p>${snippet}...</p>`;
 }
 
-export default function SharePage({ params: pageParams, searchParams: pageSearchParams }: { params: { shareId: string }, searchParams: any }) {
-    const params = React.use(pageParams);
-    const searchParams = React.use(pageSearchParams);
-    const { shareId } = params;
+export default function SharePage({ params, searchParams }: { params: { shareId: string }, searchParams: any }) {
+    const resolvedParams = React.use(params);
+    const resolvedSearchParams = React.use(searchParams);
+    const { shareId } = resolvedParams;
     const router = useRouter();
     const { user, firestore, isUserLoading } = useFirebase();
     const { toast } = useToast();

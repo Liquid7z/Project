@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -61,10 +59,10 @@ const ContentBlock = ({ block, removeBlock, updateContent }: { block: Block; rem
 };
 
 
-export default function ItemEditPage({ params: pageParams, searchParams: pageSearchParams }: { params: { subjectId: string, contentType: string, itemId: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
-    const params = React.use(pageParams);
-    const searchParams = React.use(pageSearchParams);
-    const { subjectId, contentType, itemId } = params;
+export default function ItemEditPage({ params, searchParams }: { params: { subjectId: string, contentType: string, itemId: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
+    const resolvedParams = React.use(params);
+    const resolvedSearchParams = React.use(searchParams);
+    const { subjectId, contentType, itemId } = resolvedParams;
     const router = useRouter();
 
     const { toast } = useToast();
