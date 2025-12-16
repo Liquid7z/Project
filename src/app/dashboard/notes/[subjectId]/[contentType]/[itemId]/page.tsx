@@ -94,11 +94,11 @@ export default function ContentPreviewPage() {
         return (
             <div className="max-w-5xl mx-auto space-y-8 pb-12">
                  {heroImage && (
-                    <div className="h-64 w-full relative rounded-lg overflow-hidden">
+                    <div className="h-48 md:h-64 w-full relative rounded-lg overflow-hidden">
                         <Skeleton className="w-full h-full" />
                     </div>
                 )}
-                 <div className="flex items-center justify-between -mt-24 relative z-10 px-8">
+                 <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4 md:px-8">
                     <Skeleton className="h-10 w-10 rounded-md" />
                     <Skeleton className="h-10 w-32 rounded-md" />
                 </div>
@@ -152,13 +152,13 @@ export default function ContentPreviewPage() {
     return (
         <div className="max-w-5xl mx-auto space-y-8 pb-12">
             {heroImage && (
-                <div className="h-64 w-full relative rounded-lg overflow-hidden">
+                <div className="h-48 md:h-64 w-full relative rounded-lg overflow-hidden">
                     <Image src={heroImage.imageUrl} alt={heroImage.description} fill objectFit="cover" className="opacity-20" data-ai-hint={heroImage.imageHint} />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
                 </div>
             )}
             
-            <div className="flex items-center justify-between -mt-24 relative z-10 px-8">
+            <div className="flex items-center justify-between -mt-20 md:-mt-24 relative z-10 px-4 md:px-8">
                  <Link href={`/dashboard/notes/${subjectId}`}>
                     <Button variant="outline" size="icon">
                         <ArrowLeft className="h-4 w-4" />
@@ -178,7 +178,7 @@ export default function ContentPreviewPage() {
                          </CardTitle>
                     </CardHeader>
                     <CardContent className="!p-0 !pt-6">
-                        <h1 className="text-4xl font-bold font-headline">{item.title}</h1>
+                        <h1 className="text-3xl md:text-4xl font-bold font-headline">{item.title}</h1>
                     </CardContent>
                 </Card>
 
