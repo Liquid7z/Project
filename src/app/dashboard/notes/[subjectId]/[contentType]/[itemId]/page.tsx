@@ -29,10 +29,12 @@ interface Block {
 const BlockViewer = ({ block }: { block: Block }) => {
     if (block.type === 'text') {
         return (
-            <div
-                className="prose prose-sm md:prose-base dark:prose-invert max-w-none prose-p:text-muted-foreground prose-headings:text-foreground"
-                dangerouslySetInnerHTML={{ __html: block.content || '' }}
-            />
+            <div className="w-full overflow-x-auto">
+                <div
+                    className="prose prose-sm md:prose-base dark:prose-invert max-w-none prose-p:text-muted-foreground prose-headings:text-foreground"
+                    dangerouslySetInnerHTML={{ __html: block.content || '' }}
+                />
+            </div>
         );
     }
     
