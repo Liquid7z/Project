@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,8 @@ const BlockViewer = ({ block }: { block: Block }) => {
 }
 
 
-export default function ContentPreviewPage({ params: { subjectId, contentType, itemId } }: { params: { subjectId: string; contentType: string; itemId: string } }) {
+export default function ContentPreviewPage({ params }: { params: { subjectId: string; contentType: string; itemId: string } }) {
+    const { subjectId, contentType, itemId } = React.use(params);
     const router = useRouter();
 
     const [scale, setScale] = useState(1);
@@ -212,3 +213,5 @@ export default function ContentPreviewPage({ params: { subjectId, contentType, i
         </div>
     );
 }
+
+    
