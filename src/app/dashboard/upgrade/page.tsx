@@ -184,8 +184,10 @@ export default function UpgradePage() {
                         {showPaymentFlow && (
                            <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
                                <div className="relative">
-                                    {premiumPlanConfig?.qrCodeUrl && (
-                                        <Image src={premiumPlanConfig.qrCodeUrl} alt="QR Code for UPI payment" width={200} height={200} className="rounded-md" />
+                                    {premiumPlanConfig?.qrCodeUrl ? (
+                                        <img src={premiumPlanConfig.qrCodeUrl} alt="QR Code for UPI payment" width={200} height={200} className="rounded-md" />
+                                    ) : (
+                                        <div className="w-[200px] h-[200px] flex items-center justify-center bg-muted rounded-md text-sm text-muted-foreground">QR code not available</div>
                                     )}
                                     <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-mono px-2 py-1 rounded">
                                         Expires in: {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}

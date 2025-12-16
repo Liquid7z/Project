@@ -3,8 +3,9 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, useStorage } from '@/firebase';
 import { collection, query, where, orderBy, doc, updateDoc, writeBatch, setDoc, deleteDoc, onSnapshot, getDocs, serverTimestamp, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,6 +32,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { FileUploader } from '@/components/file-uploader';
+import Image from 'next/image';
 
 
 type PlanConfig = {
@@ -57,6 +60,8 @@ type PlanConfig = {
 
 function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premium', planData: PlanConfig | null, onSave: (planId: string, data: PlanConfig) => void }) {
     const [config, setConfig] = useState<PlanConfig>({});
+    const [isUploading, setIsUploading] = useState(false);
+    const storage = useStorage();
     const { toast } = useToast();
 
     useEffect(() => {
@@ -101,6 +106,27 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
         setConfig(prev => ({ ...prev, [key]: checked }));
     };
 
+    const handleQrUpload = async (file: File) => {
+        if (!storage) {
+            toast({ variant: 'destructive', title: 'Storage not available' });
+            return;
+        }
+        setIsUploading(true);
+        toast({ title: 'Uploading QR Code...' });
+        const qrRef = ref(storage, `config/premium_qr.png`);
+        try {
+            const snapshot = await uploadBytes(qrRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            setConfig(prev => ({ ...prev, qrCodeUrl: downloadURL }));
+            toast({ title: 'Upload Successful', description: 'New QR code is ready. Click save to apply.' });
+        } catch (error) {
+            console.error("QR upload error: ", error);
+            toast({ variant: 'destructive', title: 'Upload Failed' });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleSave = () => {
         onSave(planId, config);
         toast({ title: 'Configuration Saved', description: `The settings for the ${planId} plan have been updated.` });
@@ -128,8 +154,20 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
                             </div>
                         </div>
                         <div className="space-y-2">
-                           <Label htmlFor={`${planId}-qr-code-url`}>QR Code URL</Label>
-                           <Input id={`${planId}-qr-code-url`} type="text" placeholder="https://example.com/qr.png" value={config.qrCodeUrl || ''} onChange={(e) => handleChange('qrCodeUrl', e.target.value)} />
+                           <Label>Payment QR Code</Label>
+                           <div className="grid md:grid-cols-2 gap-4 items-center">
+                                <FileUploader onFileUpload={handleQrUpload} acceptedFiles={['image/png', 'image/jpeg', 'image/webp']}>
+                                    {isUploading ? (
+                                        <div className="w-full min-h-[12rem] flex items-center justify-center"><Loader className="animate-spin" /></div>
+                                    ) : null}
+                                </FileUploader>
+                                {config.qrCodeUrl ? (
+                                    <div className="flex flex-col items-center">
+                                        <Image src={config.qrCodeUrl} alt="Current QR Code" width={150} height={150} className="rounded-md border p-1" />
+                                        <p className="text-xs text-muted-foreground mt-2">Current QR Code</p>
+                                    </div>
+                                ) : <p className="text-sm text-muted-foreground text-center">No QR code set.</p>}
+                           </div>
                         </div>
                     </>
                 )}
