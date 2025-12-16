@@ -7,7 +7,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Loader, AlertTriangle, Image as ImageIcon, Plus, File as FileIcon, Trash2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Save, Loader, AlertTriangle, Image as ImageIcon, Plus, File as FileIcon, Trash2, Sparkles, PencilRuler } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -211,7 +211,7 @@ export default function ItemEditPage() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6 pb-24 md:pb-12">
+        <div className="space-y-4 pb-12">
             
             <div className="flex justify-between items-center gap-4">
                 <div className="flex items-center gap-2 text-sm">
@@ -220,21 +220,29 @@ export default function ItemEditPage() {
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                     </Link>
-                    <div className="font-medium">
-                        From: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
-                    </div>
                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Label htmlFor="important-note" className="flex items-center gap-2 text-sm font-medium text-accent cursor-pointer">
-                       <Sparkles className="h-4 w-4"/>
-                        <span className="hidden sm:inline">Important</span>
-                   </Label>
-                   <Switch id="important-note" checked={isImportant} onCheckedChange={setIsImportant} />
-                </div>
+                 <Button variant="glow" onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? <Loader className="animate-spin" /> : <Save />}
+                    <span className="hidden sm:inline ml-2">Save</span>
+                </Button>
             </div>
 
             <div className="relative space-y-6">
                 <Card className={cn("glass-pane overflow-hidden p-4 sm:p-6", isImportant && "important-glow")}>
+                    
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
+                        <div className="font-medium text-sm">
+                            From: <Link href={`/dashboard/notes/${subjectId}`} className="text-accent hover:underline">{subject?.name || '...'}</Link>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                           <Label htmlFor="important-note" className="flex items-center gap-2 text-sm font-medium text-accent cursor-pointer">
+                               <Sparkles className="h-4 w-4"/>
+                                <span className="hidden sm:inline">Important</span>
+                           </Label>
+                           <Switch id="important-note" checked={isImportant} onCheckedChange={setIsImportant} />
+                        </div>
+                    </div>
+
                     <Input
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
@@ -252,34 +260,31 @@ export default function ItemEditPage() {
                         ))}
                          {blocks.length === 0 && (
                            <div className="text-center p-8 text-muted-foreground">
-                                <p>This item is empty.</p>
-                                <p className="text-sm">Add a text block, image, or document to get started.</p>
+                                <PencilRuler className="mx-auto h-12 w-12 text-muted-foreground/50"/>
+                                <p className="mt-4">This item is empty.</p>
+                                <p className="text-sm">Use the controls below to add content.</p>
                            </div>
                         )}
                     </div>
-                </Card>
-            </div>
+                    
+                    <Separator className="my-6" />
 
-            {/* Floating Toolbar */}
-             <div className="fixed bottom-4 left-1/2 -translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-auto md:right-8 md:translate-x-0 z-20">
-                <Card className="glass-pane p-2 flex md:flex-col gap-2">
-                    <Button variant="glow" size="icon" onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? <Loader className="animate-spin" /> : <Save />}
-                    </Button>
-                    <Separator orientation='vertical' className="h-6 md:h-auto md:w-full"/>
-                    <Button variant="outline" size="icon" onClick={() => addTextBlock()}>
-                        <Plus className="h-4 w-4"/>
-                    </Button>
-                     <FileUploader onFileUpload={handleImageUpload} acceptedFiles={['image/png', 'image/jpeg', 'image/gif']}>
-                       <Button variant="outline" size="icon" className="w-10 h-10">
-                           <ImageIcon className="h-4 w-4"/>
-                       </Button>
-                    </FileUploader>
-                     <FileUploader onFileUpload={handleDocumentUpload} acceptedFiles={['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf']}>
-                       <Button variant="outline" size="icon" className="w-10 h-10">
-                           <FileIcon className="h-4 w-4"/>
-                       </Button>
-                    </FileUploader>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                        <Button variant="outline" size="sm" onClick={() => addTextBlock()}>
+                            <Plus className="h-4 w-4 mr-2"/> Add Text
+                        </Button>
+                         <FileUploader onFileUpload={handleImageUpload} acceptedFiles={['image/png', 'image/jpeg', 'image/gif']}>
+                           <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                               <ImageIcon className="h-4 w-4 mr-2"/> Add Image
+                           </Button>
+                        </FileUploader>
+                         <FileUploader onFileUpload={handleDocumentUpload} acceptedFiles={['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf']}>
+                           <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                               <FileIcon className="h-4 w-4 mr-2"/> Add Document
+                           </Button>
+                        </FileUploader>
+                    </div>
+
                 </Card>
             </div>
         </div>
