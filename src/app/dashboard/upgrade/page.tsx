@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, CreditCard, Calendar, Lock, Check, Loader, Send, Crown, Copy } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, Lock, Check, Loader, Send, Crown, Copy, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -26,6 +26,8 @@ const premiumPlanFeatures = [
     'Priority support',
 ];
 
+const QR_EXPIRATION_SECONDS = 300; // 5 minutes
+
 export default function UpgradePage() {
     const { toast } = useToast();
     const router = useRouter();
@@ -36,19 +38,33 @@ export default function UpgradePage() {
     const [name, setName] = useState('');
     const [utr, setUtr] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+    const [timer, setTimer] = useState(QR_EXPIRATION_SECONDS);
+
     const userProfileRef = useMemoFirebase(() => {
         if (!user) return null;
         return doc(firestore, 'users', user.uid);
     }, [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-    const handleCopyToClipboard = () => {
-        navigator.clipboard.writeText('i.liquid@apl');
-        toast({
-            title: "Copied!",
-            description: "UPI ID has been copied to your clipboard.",
-        });
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (showPaymentFlow && timer > 0) {
+            interval = setInterval(() => {
+                setTimer((prevTimer) => prevTimer - 1);
+            }, 1000);
+        } else if (timer === 0) {
+            setShowPaymentFlow(false); // Hide the flow when timer expires
+            toast({
+                title: "QR Code Expired",
+                description: "Please generate a new QR code to complete your payment.",
+            });
+        }
+        return () => clearInterval(interval);
+    }, [showPaymentFlow, timer, toast]);
+
+    const handleStartPayment = () => {
+        setTimer(QR_EXPIRATION_SECONDS); // Reset timer
+        setShowPaymentFlow(true);
     };
 
     const handleSubmitPaymentDetails = async () => {
@@ -109,6 +125,9 @@ export default function UpgradePage() {
         );
     }
     
+    const minutes = Math.floor(timer / 60);
+    const seconds = timer % 60;
+
     const renderPaymentInfo = () => {
         if (userProfile?.subscriptionStatus === 'active') {
             return (
@@ -145,7 +164,7 @@ export default function UpgradePage() {
                        <div>
                             <h3 className="text-sm font-semibold text-accent mb-2">Recommended</h3>
                              {!showPaymentFlow && (
-                                <button onClick={() => setShowPaymentFlow(true)} className="w-full bg-black text-white h-10 rounded-md flex items-center justify-center font-semibold">
+                                <button onClick={handleStartPayment} className="w-full bg-black text-white h-10 rounded-md flex items-center justify-center font-semibold">
                                     Pay with UPI
                                 </button>
                              )}
@@ -153,16 +172,13 @@ export default function UpgradePage() {
 
                         {showPaymentFlow && (
                            <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50 text-center">
-                               <div className="text-center">
-                                   <p className="text-sm text-muted-foreground">Pay to the following UPI ID:</p>
-                                   <div className="flex items-center justify-center gap-2 mt-2 p-2 rounded-md bg-background">
-                                        <p className="font-mono text-lg text-accent">i.liquid@apl</p>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyToClipboard}>
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
-                                   </div>
-                                   <p className="font-bold text-accent mt-2">Amount: ₹9</p>
+                               <div className="relative">
+                                    <img src="https://storage.googleapis.com/stabl-media/pay.png" alt="QR Code for UPI payment" width={200} height={200} className="rounded-md" />
+                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-mono px-2 py-1 rounded">
+                                        Expires in: {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                                    </div>
                                </div>
+                               <p className="font-bold text-accent mt-2">Amount: ₹9</p>
                                <div className="w-full space-y-4 pt-4 border-t border-border">
                                     <div className="space-y-2 text-left">
                                         <Label htmlFor="name">Your Name</Label>
