@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -42,6 +43,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShareDialog } from '@/components/share-dialog';
+import React from 'react';
 
 
 const itemFormSchema = z.object({
@@ -283,7 +285,7 @@ const ContentList = ({ type, subjectName }: { type: 'notes' | 'examQuestions' | 
 };
 
 export default function SubjectPage({ params, searchParams }: { params: { subjectId: string }, searchParams: any }) {
-    const { subjectId } = useParams<{ subjectId: string }>();
+    const { subjectId } = React.use(params);
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
@@ -378,5 +380,3 @@ export default function SubjectPage({ params, searchParams }: { params: { subjec
         </div>
     );
 }
-
-    
