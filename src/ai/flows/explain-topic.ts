@@ -9,16 +9,16 @@ const MessageSchema = z.object({
   content: z.string(),
 });
 
-type ExplainTopicInput = z.infer<typeof ExplainTopicInputSchema>;
 const ExplainTopicInputSchema = z.object({
   topic: z.string().describe('The topic or question the user wants to discuss.'),
   history: z.array(MessageSchema).optional().describe('The conversation history.'),
 });
+export type ExplainTopicInput = z.infer<typeof ExplainTopicInputSchema>;
 
-type ExplainTopicOutput = z.infer<typeof ExplainTopicOutputSchema>;
 const ExplainTopicOutputSchema = z.object({
   response: z.string().describe('The AI\'s conversational response.'),
 });
+export type ExplainTopicOutput = z.infer<typeof ExplainTopicOutputSchema>;
 
 
 export async function explainTopic(input: ExplainTopicInput): Promise<ExplainTopicOutput> {
@@ -56,7 +56,7 @@ When responding:
         prompt.push({ role: 'user', text: topic });
 
         const llmResponse = await ai.generate({
-            prompt: prompt,
+            prompt: prompt.map(m => ({ role: m.role, text: m.text })),
             model: 'googleai/gemini-2.5-flash',
             config: {
                 temperature: 0.5,
