@@ -160,7 +160,9 @@ export function SkillTreeView() {
         resizeObserver.observe(container);
 
         return () => {
-            resizeObserver.disconnect();
+            if (container) {
+                resizeObserver.unobserve(container);
+            }
         };
     }, []);
 
@@ -337,37 +339,41 @@ export function SkillTreeView() {
     };
 
     return (
-        <div className="space-y-4">
-             <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-grow">
-                    <Input
-                        type="text"
-                        placeholder="Enter a topic to generate a skill tree or start a chat..."
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleGenerateTree(topic)}
-                    />
-                     {renderGenerationCredits()}
-                </div>
-                <Button onClick={() => handleGenerateTree(topic)} disabled={isGenerating || !topic} className="w-full sm:w-auto">
-                    {isGenerating ? <Loader className="animate-spin mr-2" /> : <Wand2 className="mr-2" />}
-                    Generate
-                </Button>
-                {nodes.length > 0 && (
-                    <Button variant="outline" onClick={() => setIsSaveDialogOpen(true)}>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save to Note
+        <Card className="glass-pane overflow-hidden">
+             <div className="p-4 space-y-4">
+                 <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex-grow">
+                        <Input
+                            type="text"
+                            placeholder="Enter a topic to generate a skill tree or start a chat..."
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleGenerateTree(topic)}
+                        />
+                        {renderGenerationCredits()}
+                    </div>
+                    <Button onClick={() => handleGenerateTree(topic)} disabled={isGenerating || !topic} className="w-full sm:w-auto">
+                        {isGenerating ? <Loader className="animate-spin mr-2" /> : <Wand2 className="mr-2" />}
+                        Generate
                     </Button>
-                )}
+                    {nodes.length > 0 && (
+                        <Button variant="outline" onClick={() => setIsSaveDialogOpen(true)}>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save to Note
+                        </Button>
+                    )}
+                </div>
             </div>
 
             <Tabs value={activeView} onValueChange={setActiveView} className="w-full">
-                 <TabsList className={cn("grid w-full grid-cols-2", !topic && "hidden")}>
-                    <TabsTrigger value="tree" disabled={!topic}><Network className="mr-2 h-4 w-4"/>Skill Tree</TabsTrigger>
-                    <TabsTrigger value="chat" disabled={!topic}><MessageCircle className="mr-2 h-4 w-4"/>Chat</TabsTrigger>
-                </TabsList>
-                 <TabsContent value="tree">
-                    <Card ref={containerRef} className="h-[70vh] w-full glass-pane overflow-hidden relative">
+                 <div className="px-4">
+                     <TabsList className={cn("grid w-full grid-cols-2", !topic && "hidden")}>
+                        <TabsTrigger value="tree" disabled={!topic}><Network className="mr-2 h-4 w-4"/>Skill Tree</TabsTrigger>
+                        <TabsTrigger value="chat" disabled={!topic}><MessageCircle className="mr-2 h-4 w-4"/>Chat</TabsTrigger>
+                    </TabsList>
+                 </div>
+                 <TabsContent value="tree" className="mt-0">
+                    <div ref={containerRef} className="h-[70vh] w-full bg-background/50 relative">
                         {isGenerating && (
                             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
                                 <Loader className="animate-spin text-primary" />
@@ -499,9 +505,9 @@ export function SkillTreeView() {
                                 </div>
                             </div>
                         )}
-                    </Card>
+                    </div>
                  </TabsContent>
-                 <TabsContent value="chat">
+                 <TabsContent value="chat" className="mt-0">
                     <ChatView initialTopic={topic} />
                  </TabsContent>
             </Tabs>
@@ -516,6 +522,6 @@ export function SkillTreeView() {
                     explanations={explanations}
                 />
             )}
-        </div>
+        </Card>
     );
 }
