@@ -58,7 +58,7 @@ Rules:
       },
     });
 
-    const output = llmResponse.output();
+    const output = llmResponse.output;
     if (!output) {
       throw new Error('Failed to generate skill tree. The model returned no output.');
     }
