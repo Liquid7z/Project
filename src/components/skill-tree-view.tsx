@@ -16,6 +16,7 @@ import type { Message } from './chat-view';
 import { marked } from 'marked';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SaveNoteDialog } from '@/components/save-note-dialog';
 
 
 // Type definitions for the skill tree
@@ -52,7 +53,6 @@ const nodeStyles = {
     'sub-detail': 'bg-muted/50 text-muted-foreground text-xs border-dashed',
 };
 
-
 const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; edges: Edge[] } => {
     let nodes: Node[] = [];
     let edges: Edge[] = [];
@@ -62,7 +62,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
     const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
     node.width = width;
     node.height = height;
-    
+
     nodes.push(node);
 
     const validChildren = node.children?.filter(Boolean) ?? [];
@@ -90,7 +90,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
             edges = edges.concat(childEdges);
             currentX += childDims.width + xGap;
         });
-        
+
         // After placing all children, set the parent's x position to be centered above them
         const firstChild = nodes.find(n => n.id === validChildren[0].id);
         const lastChild = nodes.find(n => n.id === validChildren[validChildren.length - 1].id);
@@ -106,8 +106,22 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
     }
     node.y = y;
 
-
     return { nodes, edges };
+};
+
+const treeToMarkdown = (node: Node | null, depth = 0): string => {
+    if (!node) return '';
+    let markdown = `${'#'.repeat(depth + 1)} ${node.label}\n\n`;
+    if (node.children) {
+        node.children.forEach(child => {
+            markdown += treeToMarkdown(child, depth + 1);
+        });
+    }
+    return markdown;
+};
+
+const chatToMarkdown = (messages: Message[]): string => {
+    return messages.map(msg => `**${msg.role === 'user' ? 'You' : 'AI'}**:\n\n${msg.content.replace(/<[^>]+>/g, '\n')}`).join('\n\n---\n\n');
 };
 
 
@@ -129,6 +143,8 @@ export function SkillTreeView() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [isSaveNoteDialogOpen, setIsSaveNoteDialogOpen] = useState(false);
+
 
   const pinchStartDistance = useRef<number | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -235,7 +251,7 @@ export function SkillTreeView() {
   };
   
   const handleExplainInChat = async (node: Node) => {
-    const question = `Explain "${node.label}" in the context of ${currentTopic}.`;
+    const question = `Explain "${node.label}" in the context of ${currentTopic}. Keep it concise.`;
     
     setActiveTab('chat');
     
@@ -244,7 +260,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
 
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content.replace(/<[^>]+>/g, '')}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
         const result = await explainTopicAction({ topic: question, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -268,7 +284,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({ role: m.role, content: m.content.replace(/<[^>]+>/g, '') }));
+        const history = newMessages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -323,6 +339,9 @@ export function SkillTreeView() {
     pinchStartDistance.current = null;
   };
 
+  const noteContentToSave = activeTab === 'tree' ? treeToMarkdown(tree) : chatToMarkdown(messages);
+  const noteTitleToSave = activeTab === 'tree' ? `Skill Tree: ${currentTopic}` : `Chat: ${currentTopic}`;
+
 
   return (
     <Card className="w-full h-full flex flex-col glass-pane">
@@ -340,8 +359,8 @@ export function SkillTreeView() {
                         {isLoading ? <Loader className="animate-spin" /> : <ArrowRight />}
                         <span className="ml-2 hidden sm:inline">Generate</span>
                     </Button>
-                    {nodes.length > 0 && (
-                        <Button variant="outline" disabled={isLoading} className="w-full">
+                    {(nodes.length > 0 || messages.length > 0) && (
+                        <Button variant="outline" onClick={() => setIsSaveNoteDialogOpen(true)} disabled={isLoading} className="w-full">
                             <Save className="mr-2"/>
                             <span className="hidden sm:inline">Save to Note</span>
                         </Button>
@@ -423,7 +442,9 @@ export function SkillTreeView() {
                                           );
                                         })}
                                       </svg>
-                                    {nodes.map(node => (
+                                    {nodes.map(node => {
+                                        if(!node) return null;
+                                        return (
                                         <Popover key={node.id} onOpenChange={(isOpen) => isOpen && handleFetchDefinition(node.id)}>
                                             <PopoverTrigger asChild>
                                                 <motion.div
@@ -458,7 +479,7 @@ export function SkillTreeView() {
                                                 </div>
                                             </PopoverContent>
                                         </Popover>
-                                    ))}
+                                    )})}
                                 </div>
                             )}
                         </AnimatePresence>
@@ -487,6 +508,14 @@ export function SkillTreeView() {
                 </TabsContent>
              </Tabs>
         </CardContent>
+        {isSaveNoteDialogOpen && (
+             <SaveNoteDialog
+                isOpen={isSaveNoteDialogOpen}
+                onOpenChange={setIsSaveNoteDialogOpen}
+                initialTitle={noteTitleToSave}
+                noteContent={noteContentToSave}
+            />
+        )}
     </Card>
   );
 }
