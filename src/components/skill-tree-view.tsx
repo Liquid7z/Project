@@ -140,6 +140,10 @@ function deepCopy<T>(obj: T): T {
     return newObj;
 }
 
+function chatToMarkdown(messages: Message[]): string {
+    return messages.map(msg => `**${msg.role === 'user' ? 'You' : 'AI'}:**\n${msg.content.replace(/<[^>]+>/g, '\n')}`).join('\n\n---\n\n');
+}
+
 
 export function SkillTreeView() {
   const [topic, setTopic] = useState('');
@@ -296,7 +300,7 @@ export function SkillTreeView() {
     if (!tree) return '';
 
     const buildMarkdown = (node: Node, depth = 0): string => {
-        if (!selectedIds.has(node.id)) return '';
+        if (!node || !selectedIds.has(node.id)) return '';
 
         let markdown = `${'#'.repeat(depth + 1)} ${node.label}\n`;
         const fullNode = nodes.find(n => n.id === node.id);
@@ -308,7 +312,9 @@ export function SkillTreeView() {
 
         if (node.children) {
             node.children.forEach(child => {
-                markdown += buildMarkdown(child, depth + 1);
+                if (child) {
+                    markdown += buildMarkdown(child, depth + 1);
+                }
             });
         }
         return markdown;
@@ -326,7 +332,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
 
     try {
-        const history = newMessages.slice(0, -1).map(m => ({...m}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
         const result = await explainTopicAction({ topic: question, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -350,7 +356,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({...m}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -607,5 +613,3 @@ export function SkillTreeView() {
     </Card>
   );
 }
-
-    
