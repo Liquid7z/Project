@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Card } from './ui/card';
-import { Loader, Network, Wand2, Plus, Save, ZoomIn, ZoomOut } from 'lucide-react';
+import { Loader, Network, Wand2, Plus, Save, ZoomIn, ZoomOut, MessageCircle } from 'lucide-react';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -31,6 +31,8 @@ import {
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { SaveSkillTreeDialog } from './save-skill-tree-dialog';
 import { isToday } from 'date-fns';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { ChatView } from './chat-view';
 
 
 interface Node {
@@ -142,6 +144,7 @@ export function SkillTreeView() {
     const [viewWidth, setViewWidth] = useState(0);
     const [viewHeight, setViewHeight] = useState(0);
     const [scale, setScale] = useState(1);
+    const [activeView, setActiveView] = useState('tree');
     
     useEffect(() => {
         const container = containerRef.current;
@@ -338,7 +341,7 @@ export function SkillTreeView() {
                 <div className="flex-grow">
                     <Input
                         type="text"
-                        placeholder="Search a topic or ask a question..."
+                        placeholder="Enter a topic to generate a skill tree or start a chat..."
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleGenerateTree(topic)}
@@ -356,139 +359,152 @@ export function SkillTreeView() {
                     </Button>
                 )}
             </div>
-            <Card ref={containerRef} className="h-[70vh] w-full glass-pane overflow-hidden relative">
-                 {isGenerating && (
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
-                         <Loader className="animate-spin text-primary" />
-                         <p className="ml-2">Generating skill tree...</p>
-                    </div>
-                )}
-                 {!isGenerating && nodes.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                        <Network className="w-16 h-16 text-muted-foreground/50" />
-                        <h3 className="mt-4 text-lg font-semibold">The canvas is ready</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Enter a topic above to generate a new skill tree.</p>
-                    </div>
-                 )}
-                 {nodes.length > 0 && (
-                    <div className='relative w-full h-full'>
-                         <motion.div
-                            className="relative"
-                            drag
-                            dragConstraints={{ left: -viewWidth, right: viewWidth, top: -viewHeight, bottom: viewHeight }}
-                            style={{ scale }}
-                         >
-                            <svg width={viewWidth} height={viewHeight} className="absolute inset-0 h-full w-full">
-                                <defs>
-                                    <marker
-                                        id="arrow"
-                                        viewBox="0 0 10 10"
-                                        refX="8"
-                                        refY="5"
-                                        markerWidth="6"
-                                        markerHeight="6"
-                                        orient="auto-start-reverse"
-                                    >
-                                        <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" />
-                                    </marker>
-                                </defs>
-                                {edges.map(edge => {
-                                    const sourceNode = nodes.find(n => n.id === edge.source);
-                                    const targetNode = nodes.find(n => n.id === edge.target);
-                                    if (!sourceNode || !targetNode) return null;
-                                    
-                                    return (
-                                        <motion.line
-                                            key={edge.id}
-                                            x1={sourceNode.x + NODE_WIDTH / 2}
-                                            y1={sourceNode.y + NODE_HEIGHT}
-                                            x2={targetNode.x + NODE_WIDTH / 2}
-                                            y2={targetNode.y}
-                                            stroke="hsl(var(--border))"
-                                            strokeWidth="1.5"
-                                            markerEnd="url(#arrow)"
-                                            initial={{ pathLength: 0, opacity: 0 }}
-                                            animate={{ pathLength: 1, opacity: 1 }}
-                                            transition={{ duration: 0.5, delay: 0.2 }}
-                                        />
-                                    );
-                                })}
-                            </svg>
-                            
-                            {nodes.map(node => (
-                                <AlertDialog key={node.id}>
-                                     <Popover>
-                                        <PopoverTrigger asChild>
-                                            <motion.div
-                                                className={cn(`absolute p-2 flex items-center justify-center rounded-md cursor-pointer text-xs font-semibold`,
-                                                    getNodeStyles(node.type),
-                                                    node.isImportant && 'important-glow',
-                                                    node.isPlaceholder && 'border-2 border-dashed border-accent'
-                                                )}
-                                                style={{
-                                                    left: node.x,
-                                                    top: node.y,
-                                                    width: NODE_WIDTH,
-                                                    height: NODE_HEIGHT,
-                                                    textAlign: 'center',
-                                                }}
-                                                whileHover={{ scale: 1.1, zIndex: 10 }}
-                                                initial={{ opacity: 0, scale: 0.5 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ duration: 0.3 }}
-                                                onDoubleClick={() => handleNodeDoubleClick(node)}
-                                                onClick={() => handleNodeClick(node)}
+
+            <Tabs value={activeView} onValueChange={setActiveView} className="w-full">
+                 <TabsList className={cn("grid w-full grid-cols-2", !topic && "hidden")}>
+                    <TabsTrigger value="tree" disabled={!topic}><Network className="mr-2 h-4 w-4"/>Skill Tree</TabsTrigger>
+                    <TabsTrigger value="chat" disabled={!topic}><MessageCircle className="mr-2 h-4 w-4"/>Chat</TabsTrigger>
+                </TabsList>
+                 <TabsContent value="tree">
+                    <Card ref={containerRef} className="h-[70vh] w-full glass-pane overflow-hidden relative">
+                        {isGenerating && (
+                            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
+                                <Loader className="animate-spin text-primary" />
+                                <p className="ml-2">Generating skill tree...</p>
+                            </div>
+                        )}
+                        {!isGenerating && nodes.length === 0 && (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                                <Network className="w-16 h-16 text-muted-foreground/50" />
+                                <h3 className="mt-4 text-lg font-semibold">The canvas is ready</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">Enter a topic above to generate a new skill tree.</p>
+                            </div>
+                        )}
+                        {nodes.length > 0 && (
+                            <div className='relative w-full h-full'>
+                                <motion.div
+                                    className="relative"
+                                    drag
+                                    dragConstraints={{ left: -viewWidth, right: viewWidth, top: -viewHeight, bottom: viewHeight }}
+                                    style={{ scale }}
+                                >
+                                    <svg width={viewWidth > 0 ? viewWidth * 2 : 2000} height={viewHeight > 0 ? viewHeight * 2 : 2000} className="absolute inset-0 h-full w-full">
+                                        <defs>
+                                            <marker
+                                                id="arrow"
+                                                viewBox="0 0 10 10"
+                                                refX="8"
+                                                refY="5"
+                                                markerWidth="6"
+                                                markerHeight="6"
+                                                orient="auto-start-reverse"
                                             >
-                                                <span className="truncate">{node.label}</span>
-                                                {node.isPlaceholder && (
-                                                    <AlertDialogTrigger asChild>
-                                                        <button className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-0.5 h-4 w-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                                                            <Plus className="h-3 w-3" />
-                                                        </button>
-                                                    </AlertDialogTrigger>
-                                                )}
-                                            </motion.div>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-80 glass-pane" side="bottom" align="center">
-                                            {explainingNode === node.id && <Loader className="animate-spin" />}
-                                            {explanations[node.id] && (
-                                                <div className="space-y-2">
-                                                     <h4 className="font-medium leading-none">{node.label}</h4>
-                                                     <p className="text-sm text-muted-foreground">
-                                                         {explanations[node.id]}
-                                                     </p>
-                                                </div>
-                                            )}
-                                            {!explanations[node.id] && explainingNode !== node.id && (
-                                                 <p className="text-sm text-muted-foreground">Click to get an explanation.</p>
-                                            )}
-                                        </PopoverContent>
-                                    </Popover>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Create New Item?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This will add "{node.label}" to your collection. You can add content to it later.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => createPlaceholderNode(node)}>Create</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            ))}
-                        </motion.div>
-                        <div className="absolute bottom-4 right-4 z-20 flex flex-col gap-2">
-                            <Button variant="outline" size="icon" onClick={() => handleZoom('in')}><ZoomIn/></Button>
-                            <Button variant="outline" size="icon" onClick={() => handleZoom('out')}><ZoomOut/></Button>
-                        </div>
-                        <div className="absolute bottom-2 left-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
-                           Double-click to expand topic. Drag to pan. Click for definition.
-                        </div>
-                    </div>
-                 )}
-            </Card>
+                                                <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" />
+                                            </marker>
+                                        </defs>
+                                        {edges.map(edge => {
+                                            const sourceNode = nodes.find(n => n.id === edge.source);
+                                            const targetNode = nodes.find(n => n.id === edge.target);
+                                            if (!sourceNode || !targetNode) return null;
+                                            
+                                            return (
+                                                <motion.line
+                                                    key={edge.id}
+                                                    x1={sourceNode.x + NODE_WIDTH / 2}
+                                                    y1={sourceNode.y + NODE_HEIGHT}
+                                                    x2={targetNode.x + NODE_WIDTH / 2}
+                                                    y2={targetNode.y}
+                                                    stroke="hsl(var(--border))"
+                                                    strokeWidth="1.5"
+                                                    markerEnd="url(#arrow)"
+                                                    initial={{ pathLength: 0, opacity: 0 }}
+                                                    animate={{ pathLength: 1, opacity: 1 }}
+                                                    transition={{ duration: 0.5, delay: 0.2 }}
+                                                />
+                                            );
+                                        })}
+                                    </svg>
+                                    
+                                    {nodes.map(node => (
+                                        <AlertDialog key={node.id}>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <motion.div
+                                                        className={cn(`absolute p-2 flex items-center justify-center rounded-md cursor-pointer text-xs font-semibold`,
+                                                            getNodeStyles(node.type),
+                                                            node.isImportant && 'important-glow',
+                                                            node.isPlaceholder && 'border-2 border-dashed border-accent'
+                                                        )}
+                                                        style={{
+                                                            left: node.x,
+                                                            top: node.y,
+                                                            width: NODE_WIDTH,
+                                                            height: NODE_HEIGHT,
+                                                            textAlign: 'center',
+                                                        }}
+                                                        whileHover={{ scale: 1.1, zIndex: 10 }}
+                                                        initial={{ opacity: 0, scale: 0.5 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ duration: 0.3 }}
+                                                        onDoubleClick={() => handleNodeDoubleClick(node)}
+                                                        onClick={() => handleNodeClick(node)}
+                                                    >
+                                                        <span className="truncate">{node.label}</span>
+                                                        {node.isPlaceholder && (
+                                                            <AlertDialogTrigger asChild>
+                                                                <button className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full p-0.5 h-4 w-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                                                                    <Plus className="h-3 w-3" />
+                                                                </button>
+                                                            </AlertDialogTrigger>
+                                                        )}
+                                                    </motion.div>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-80 glass-pane" side="bottom" align="center">
+                                                    {explainingNode === node.id && <Loader className="animate-spin" />}
+                                                    {explanations[node.id] && (
+                                                        <div className="space-y-2">
+                                                            <h4 className="font-medium leading-none">{node.label}</h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {explanations[node.id]}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {!explanations[node.id] && explainingNode !== node.id && (
+                                                        <p className="text-sm text-muted-foreground">Click to get an explanation.</p>
+                                                    )}
+                                                </PopoverContent>
+                                            </Popover>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Create New Item?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This will add "{node.label}" to your collection. You can add content to it later.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => createPlaceholderNode(node)}>Create</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    ))}
+                                </motion.div>
+                                <div className="absolute bottom-4 right-4 z-20 flex flex-col gap-2">
+                                    <Button variant="outline" size="icon" onClick={() => handleZoom('in')}><ZoomIn/></Button>
+                                    <Button variant="outline" size="icon" onClick={() => handleZoom('out')}><ZoomOut/></Button>
+                                </div>
+                                <div className="absolute bottom-2 left-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
+                                Double-click to expand topic. Drag to pan. Click for definition.
+                                </div>
+                            </div>
+                        )}
+                    </Card>
+                 </TabsContent>
+                 <TabsContent value="chat">
+                    <ChatView initialTopic={topic} />
+                 </TabsContent>
+            </Tabs>
+            
             {nodes.length > 0 && (
                 <SaveSkillTreeDialog 
                     isOpen={isSaveDialogOpen}
@@ -502,5 +518,3 @@ export function SkillTreeView() {
         </div>
     );
 }
-
-    
