@@ -64,17 +64,20 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
 
   nodes.push(node);
 
-  if (node.children && node.children.length > 0) {
-    const totalChildWidth = node.children.reduce((acc, child) => {
+  const validChildren = node.children?.filter(Boolean) ?? [];
+
+  if (validChildren.length > 0) {
+    const totalChildWidth = validChildren.reduce((acc, child) => {
         const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
         return acc + childDims.width + xGap;
     }, -xGap);
 
     let currentX = x + (width / 2) - (totalChildWidth / 2);
     
-    node.children.forEach((child) => {
+    validChildren.forEach((child) => {
       const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
-      const childX = currentX;
+      const childX = currentX + (totalChildWidth - childDims.width) / (2 * (validChildren.length || 1));
+      
       edges.push({ source: node.id, target: child.id });
       const { nodes: childNodes, edges: childEdges } = calculateLayout(child, childX, y + yGap, depth + 1);
       nodes = nodes.concat(childNodes);
@@ -207,7 +210,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
 
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content.replace(/<[^>]+>/g, '')}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content.replace(/<[^>]+>/g, '')}));
         const result = await explainTopicAction({ topic: question, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -231,7 +234,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
+        const history = newMessages.slice(0, -1).map(m => ({ role: m.role, text: m.content }));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
