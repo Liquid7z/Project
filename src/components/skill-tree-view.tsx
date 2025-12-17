@@ -65,15 +65,21 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
   nodes.push(node);
 
   if (node.children && node.children.length > 0) {
-    const totalChildWidth = node.children.length * xGap - (xGap - (nodeDimensions[node.children[0].type] || nodeDimensions.detail).width);
-    let currentX = x - totalChildWidth / 2 + ((nodeDimensions[node.children[0].type] || nodeDimensions.detail).width) / 2;
+    const totalChildWidth = node.children.reduce((acc, child) => {
+        const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
+        return acc + childDims.width + xGap;
+    }, -xGap);
+
+    let currentX = x - totalChildWidth / 2 + (width / 2);
     
     node.children.forEach((child) => {
+      const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
+      const childX = currentX + childDims.width / 2;
       edges.push({ source: node.id, target: child.id });
-      const { nodes: childNodes, edges: childEdges } = calculateLayout(child, currentX, y + yGap, depth + 1);
+      const { nodes: childNodes, edges: childEdges } = calculateLayout(child, childX, y + yGap, depth + 1);
       nodes = nodes.concat(childNodes);
       edges = edges.concat(childEdges);
-      currentX += xGap;
+      currentX += childDims.width + xGap;
     });
   }
 
@@ -191,7 +197,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
 
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content.replace(/<[^>]+>/g, '')}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content.replace(/<[^>]+>/g, '')}));
         const result = await explainTopicAction({ topic: question, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -215,7 +221,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -332,13 +338,11 @@ export function SkillTreeView() {
                         )}
                         <AnimatePresence>
                             {nodes.length > 0 && (
-                                <motion.div
+                                <div
                                     className="absolute inset-0"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
+                                    style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`, transformOrigin: '0 0' }}
                                 >
-                                     <svg className="absolute inset-0 w-full h-full" style={{ width: viewWidth / scale, height: viewHeight / scale, transform: `translate(${-offset.x/scale}px, ${-offset.y/scale}px)` }}>
+                                     <svg className="absolute top-0 left-0" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
                                         <defs>
                                           <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                                             <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" />
@@ -358,8 +362,11 @@ export function SkillTreeView() {
                                           const c2y = y2 - (y2 - y1) / 2;
 
                                           return (
-                                            <path
+                                            <motion.path
                                               key={`${edge.source}-${edge.target}`}
+                                              initial={{ pathLength: 0, opacity: 0 }}
+                                              animate={{ pathLength: 1, opacity: 1 }}
+                                              transition={{ duration: 0.5, delay: 0.5 }}
                                               d={`M ${x1} ${y1} C ${x1} ${c1y}, ${x2} ${c2y}, ${x2} ${y2}`}
                                               stroke="hsl(var(--border))"
                                               strokeWidth="1"
@@ -387,7 +394,7 @@ export function SkillTreeView() {
                                             <span className="truncate">{node.label}</span>
                                         </motion.div>
                                     ))}
-                                </motion.div>
+                                </div>
                             )}
                         </AnimatePresence>
                         <div className="absolute bottom-4 right-4 flex gap-2 z-10">
@@ -416,3 +423,5 @@ export function SkillTreeView() {
     </Card>
   );
 }
+
+    
