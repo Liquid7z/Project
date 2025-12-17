@@ -231,7 +231,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content}));
+        const history = newMessages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -349,10 +349,10 @@ export function SkillTreeView() {
                         <AnimatePresence>
                             {nodes.length > 0 && (
                                 <div
-                                    className="absolute inset-0"
+                                    className="absolute"
                                     style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`, transformOrigin: '0 0' }}
                                 >
-                                     <svg className="absolute top-0 left-0" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                                      <svg className="absolute top-0 left-0" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
                                         <defs>
                                           <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                                             <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" />
@@ -436,3 +436,4 @@ export function SkillTreeView() {
   );
 }
 
+    
