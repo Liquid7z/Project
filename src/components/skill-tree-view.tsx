@@ -334,7 +334,7 @@ export function SkillTreeView() {
                     </Button>
                 )}
             </div>
-            <Card ref={containerRef} className="h-[800px] w-full glass-pane overflow-auto relative">
+            <Card ref={containerRef} className="h-[70vh] w-full glass-pane overflow-auto relative">
                  {isGenerating && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
                          <Loader className="animate-spin text-primary" />
@@ -475,5 +475,7 @@ export function SkillTreeView() {
         </div>
     );
 }
+
+    
 
     
