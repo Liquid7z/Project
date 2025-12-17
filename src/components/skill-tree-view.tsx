@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Card } from './ui/card';
-import { Loader, Network, Wand2, Plus, Save } from 'lucide-react';
+import { Loader, Network, Wand2, Plus, Save, ZoomIn, ZoomOut } from 'lucide-react';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -141,6 +141,7 @@ export function SkillTreeView() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [viewWidth, setViewWidth] = useState(1200);
     const [viewHeight, setViewHeight] = useState(800);
+    const [scale, setScale] = useState(1);
 
     useEffect(() => {
         if (containerRef.current) {
@@ -310,6 +311,14 @@ export function SkillTreeView() {
         )
     }
 
+    const handleZoom = (direction: 'in' | 'out') => {
+        if (direction === 'in') {
+            setScale(s => Math.min(s + 0.1, 2));
+        } else {
+            setScale(s => Math.max(s - 0.1, 0.3));
+        }
+    };
+
     return (
         <div className="space-y-4">
              <div className="flex flex-col sm:flex-row gap-2">
@@ -334,7 +343,7 @@ export function SkillTreeView() {
                     </Button>
                 )}
             </div>
-            <Card ref={containerRef} className="h-[70vh] w-full glass-pane overflow-auto relative">
+            <Card ref={containerRef} className="h-[70vh] w-full glass-pane overflow-hidden relative">
                  {isGenerating && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-20">
                          <Loader className="animate-spin text-primary" />
@@ -353,7 +362,8 @@ export function SkillTreeView() {
                          <motion.div
                             className="relative"
                             drag
-                            dragConstraints={{ left: -viewWidth / 2, right: viewWidth / 2, top: -viewHeight / 2, bottom: viewHeight / 2 }}
+                            dragConstraints={{ left: -viewWidth, right: viewWidth, top: -viewHeight, bottom: viewHeight }}
+                            style={{ scale }}
                          >
                             <svg width={viewWidth} height={viewHeight} className="absolute inset-0 h-full w-full">
                                 <defs>
@@ -456,7 +466,11 @@ export function SkillTreeView() {
                                 </AlertDialog>
                             ))}
                         </motion.div>
-                        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
+                        <div className="absolute bottom-4 right-4 z-20 flex flex-col gap-2">
+                            <Button variant="outline" size="icon" onClick={() => handleZoom('in')}><ZoomIn/></Button>
+                            <Button variant="outline" size="icon" onClick={() => handleZoom('out')}><ZoomOut/></Button>
+                        </div>
+                        <div className="absolute bottom-2 left-2 text-xs text-muted-foreground p-1 bg-background/50 rounded">
                            Double-click to expand topic. Drag to pan. Click for definition.
                         </div>
                     </div>
@@ -475,7 +489,5 @@ export function SkillTreeView() {
         </div>
     );
 }
-
-    
 
     
