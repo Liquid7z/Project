@@ -38,7 +38,7 @@ const nodeDimensions = {
   pillar: { width: 150, height: 36 },
   concept: { width: 140, height: 32 },
   detail: { width: 130, height: 28 },
-  'sub-detail': { width: 130, height: 28 },
+  'sub-detail': { width: 120, height: 28 },
 };
 
 const nodeStyles = {
@@ -65,9 +65,9 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
   nodes.push(node);
 
   if (node.children && node.children.length > 0) {
-    const totalChildWidth = node.children.length * xGap - (xGap - nodeDimensions.pillar.width);
-    let currentX = x - totalChildWidth / 2 + nodeDimensions.pillar.width / 2;
-
+    const totalChildWidth = node.children.length * xGap - (xGap - (nodeDimensions[node.children[0].type] || nodeDimensions.detail).width);
+    let currentX = x - totalChildWidth / 2 + ((nodeDimensions[node.children[0].type] || nodeDimensions.detail).width) / 2;
+    
     node.children.forEach((child) => {
       edges.push({ source: node.id, target: child.id });
       const { nodes: childNodes, edges: childEdges } = calculateLayout(child, currentX, y + yGap, depth + 1);
@@ -153,7 +153,11 @@ export function SkillTreeView() {
         const treeWidth = maxX - minX;
         const treeHeight = maxY - minY;
 
-        const initialScale = Math.min(viewWidth / (treeWidth + 100), viewHeight / (treeHeight + 100), 1);
+        let initialScale = Math.min(viewWidth / (treeWidth + 100), viewHeight / (treeHeight + 100), 1);
+        if (!isFinite(initialScale) || initialScale <= 0) {
+            initialScale = 1;
+        }
+
         setScale(initialScale);
         
         setOffset({
@@ -211,7 +215,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content.replace(/<[^>]+>/g, '')}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content}));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -405,5 +409,3 @@ export function SkillTreeView() {
     </Card>
   );
 }
-
-    
