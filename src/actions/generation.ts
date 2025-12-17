@@ -5,6 +5,7 @@ import { extractTextFromDocument, ExtractTextFromDocumentInput, ExtractTextFromD
 import { generateAssignment, GenerateAssignmentInput, GenerateAssignmentOutput } from '@/ai/flows/generate-assignment';
 import { generateSkillTree, GenerateSkillTreeInput, GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
 import { explainTopic, ExplainTopicInput, ExplainTopicOutput } from '@/ai/flows/explain-topic';
+import { getShortDefinition, GetShortDefinitionInput, GetShortDefinitionOutput } from '@/ai/flows/get-short-definition';
 
 
 export async function analyzeStyleAction(input: AnalyzeHandwritingStyleInput): Promise<{ styleModelId: string }> {
@@ -29,4 +30,8 @@ export async function generateSkillTreeAction(input: GenerateSkillTreeInput): Pr
 
 export async function explainTopicAction(input: ExplainTopicInput): Promise<ExplainTopicOutput> {
     return await explainTopic(input);
+}
+
+export async function getShortDefinitionAction(input: GetShortDefinitionInput): Promise<GetShortDefinitionOutput> {
+    return await getShortDefinition(input);
 }

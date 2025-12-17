@@ -6,15 +6,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader, Send, ZoomIn, ZoomOut, ArrowRight, Save } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { generateSkillTreeAction, explainTopicAction } from '@/actions/generation';
+import { Loader, Send, ZoomIn, ZoomOut, ArrowRight, Save, BookOpen } from 'lucide-react';
+import { Card, CardContent, CardHeader } from './ui/card';
+import { generateSkillTreeAction, explainTopicAction, getShortDefinitionAction } from '@/actions/generation';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatView } from './chat-view';
 import type { Message } from './chat-view';
 import { marked } from 'marked';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
 // Type definitions for the skill tree
@@ -27,6 +28,7 @@ interface Node {
   y?: number;
   width?: number;
   height?: number;
+  definition?: string;
 }
 
 interface Edge {
@@ -60,15 +62,14 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
     const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
     node.width = width;
     node.height = height;
-    node.x = x;
-    node.y = y;
-
+    
     nodes.push(node);
 
     const validChildren = node.children?.filter(Boolean) ?? [];
 
     if (validChildren.length > 0) {
         const totalChildWidth = validChildren.reduce((acc, child) => {
+            if (!child) return acc;
             const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
             return acc + childDims.width + xGap;
         }, -xGap);
@@ -76,6 +77,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
         let currentX = x + width / 2 - totalChildWidth / 2;
 
         validChildren.forEach((child) => {
+            if (!child) return;
             const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
             edges.push({ source: node.id, target: child.id });
             const { nodes: childNodes, edges: childEdges } = calculateLayout(
@@ -88,7 +90,20 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
             edges = edges.concat(childEdges);
             currentX += childDims.width + xGap;
         });
+        
+        // After placing all children, set the parent's x position to be centered above them
+        const firstChild = nodes.find(n => n.id === validChildren[0].id);
+        const lastChild = nodes.find(n => n.id === validChildren[validChildren.length - 1].id);
+        if(firstChild && lastChild) {
+             const childrenMidpoint = ( (firstChild.x ?? 0) + ((lastChild.x ?? 0) + (lastChild.width ?? 0)) ) / 2;
+             node.x = childrenMidpoint - width / 2;
+        }
+
+    } else {
+        node.x = x;
     }
+    node.y = y;
+
 
     return { nodes, edges };
 };
@@ -202,15 +217,28 @@ export function SkillTreeView() {
     }
   };
 
-  const handleNodeClick = async (node: Node) => {
-    const question = `Explain "${node.label}" in the context of ${currentTopic}. Keep it concise.`;
-    setChatInput(question);
+  const handleFetchDefinition = async (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || node.definition) return; // Already have a definition
+
+    try {
+        const result = await getShortDefinitionAction({ topic: node.label, context: currentTopic });
+        setNodes(prevNodes => prevNodes.map(n => 
+            n.id === nodeId ? { ...n, definition: result.definition } : n
+        ));
+    } catch (error) {
+        console.error('Failed to fetch definition:', error);
+        // Silently fail, or show a small error indicator on the node
+    }
+  };
+  
+  const handleExplainInChat = async (node: Node) => {
+    const question = `Explain "${node.label}" in the context of ${currentTopic}.`;
+    
     setActiveTab('chat');
     
-    // Auto-submit this question to the chat
     const newMessages: Message[] = [...messages, { role: 'user', content: question }];
     setMessages(newMessages);
-    setChatInput('');
     setIsChatLoading(true);
 
     try {
@@ -359,7 +387,7 @@ export function SkillTreeView() {
                                     className="absolute"
                                     style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`, transformOrigin: '0 0' }}
                                 >
-                                      <svg className="absolute top-0 left-0" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                                      <svg className="absolute inset-0 w-full h-full" style={{ width: '100vw', height: '100vh', overflow: 'visible' }}>
                                         <defs>
                                           <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                                             <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" />
@@ -394,22 +422,40 @@ export function SkillTreeView() {
                                         })}
                                       </svg>
                                     {nodes.map(node => (
-                                        <motion.div
-                                            key={node.id}
-                                            initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ delay: 0.1 * (parseInt(node.id.replace(/\./g, '')) % 10) }}
-                                            className={cn('absolute flex items-center justify-center p-2 rounded-md border text-center cursor-pointer', nodeStyles[node.type] || nodeStyles.detail)}
-                                            style={{
-                                                left: node.x,
-                                                top: node.y,
-                                                width: node.width,
-                                                height: node.height,
-                                            }}
-                                            onClick={() => handleNodeClick(node)}
-                                        >
-                                            <span className="truncate">{node.label}</span>
-                                        </motion.div>
+                                        <Popover key={node.id} onOpenChange={(isOpen) => isOpen && handleFetchDefinition(node.id)}>
+                                            <PopoverTrigger asChild>
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.5 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ delay: 0.1 * (parseInt(node.id.replace(/\./g, '')) % 10) }}
+                                                    className={cn('absolute flex items-center justify-center p-2 rounded-md border text-center cursor-pointer', nodeStyles[node.type] || nodeStyles.detail)}
+                                                    style={{
+                                                        left: node.x,
+                                                        top: node.y,
+                                                        width: node.width,
+                                                        height: node.height,
+                                                    }}
+                                                >
+                                                    <span className="truncate">{node.label}</span>
+                                                </motion.div>
+                                            </PopoverTrigger>
+                                            <PopoverContent side="bottom" align="center" className="w-64 glass-pane z-30">
+                                                 <div className="space-y-2">
+                                                    <h4 className="font-semibold leading-none">{node.label}</h4>
+                                                    {node.definition ? (
+                                                        <p className="text-sm text-muted-foreground">{node.definition}</p>
+                                                    ) : (
+                                                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                                            <Loader className="h-4 w-4 animate-spin"/>
+                                                            <span>Fetching definition...</span>
+                                                        </div>
+                                                    )}
+                                                    <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => handleExplainInChat(node)}>
+                                                       <BookOpen className="mr-2"/> Explain in Chat
+                                                    </Button>
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
                                     ))}
                                 </div>
                             )}
