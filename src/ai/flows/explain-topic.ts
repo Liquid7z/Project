@@ -9,13 +9,13 @@ const MessageSchema = z.object({
   content: z.string(),
 });
 
-export type ExplainTopicInput = z.infer<typeof ExplainTopicInputSchema>;
+type ExplainTopicInput = z.infer<typeof ExplainTopicInputSchema>;
 const ExplainTopicInputSchema = z.object({
   topic: z.string().describe('The topic or question the user wants to discuss.'),
   history: z.array(MessageSchema).optional().describe('The conversation history.'),
 });
 
-export type ExplainTopicOutput = z.infer<typeof ExplainTopicOutputSchema>;
+type ExplainTopicOutput = z.infer<typeof ExplainTopicOutputSchema>;
 const ExplainTopicOutputSchema = z.object({
   response: z.string().describe('The AI\'s conversational response.'),
 });
@@ -34,10 +34,10 @@ const explainTopicFlow = ai.defineFlow(
     async (input) => {
         const { topic, history } = input;
         
-        const prompt = [
+        const prompt: Array<{ role: 'system' | 'user' | 'model', text: string }> = [
             {
                 role: 'system',
-                content: `You are an expert educator and versatile AI assistant. Your goal is to provide clear, conversational, and accurate explanations on any topic the user asks about. You can handle a wide range of requests, including writing code, explaining complex concepts in science, history, or engineering, and providing guidance on building projects.
+                text: `You are an expert educator and versatile AI assistant. Your goal is to provide clear, conversational, and accurate explanations on any topic the user asks about. You can handle a wide range of requests, including writing code, explaining complex concepts in science, history, or engineering, and providing guidance on building projects.
 
 When responding:
 - Keep your tone conversational and helpful.
@@ -50,13 +50,13 @@ When responding:
         ];
 
         if(history) {
-            prompt.push(...history.map(h => ({ role: h.role, content: h.content })));
+            prompt.push(...history.map(h => ({ role: h.role, text: h.content })));
         }
 
-        prompt.push({ role: 'user', content: topic });
+        prompt.push({ role: 'user', text: topic });
 
         const llmResponse = await ai.generate({
-            prompt: prompt.map(p => p.content).join('\n\n'), // Simplified for basic models
+            prompt: prompt,
             model: 'googleai/gemini-2.5-flash',
             config: {
                 temperature: 0.5,
