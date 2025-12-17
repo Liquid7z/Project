@@ -70,7 +70,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
         return acc + childDims.width + xGap;
     }, -xGap);
 
-    let currentX = x - totalChildWidth / 2 + (width / 2);
+    let currentX = x + (width / 2) - (totalChildWidth / 2);
     
     node.children.forEach((child) => {
       const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
@@ -107,7 +107,7 @@ export function SkillTreeView() {
   const [chatInput, setChatInput] = useState('');
 
   const pinchStartDistance = useRef<number | null>(null);
-
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -131,6 +131,12 @@ export function SkillTreeView() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, isChatLoading]);
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -159,7 +165,11 @@ export function SkillTreeView() {
         const treeWidth = maxX - minX;
         const treeHeight = maxY - minY;
         
-        let initialScale = Math.min(viewWidth / (treeWidth + 100), viewHeight / (treeHeight + 100));
+        let initialScale = 1;
+        if (viewHeight > 0 && treeHeight > 0 && viewWidth > 0 && treeWidth > 0) {
+            initialScale = Math.min(viewWidth / (treeWidth + 100), viewHeight / (treeHeight + 100));
+        }
+
         if (!isFinite(initialScale) || initialScale <= 0) {
             initialScale = 1;
         }
@@ -197,7 +207,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
 
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content.replace(/<[^>]+>/g, '')}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content.replace(/<[^>]+>/g, '')}));
         const result = await explainTopicAction({ topic: question, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -404,7 +414,9 @@ export function SkillTreeView() {
                    </div>
                 </TabsContent>
                 <TabsContent value="chat" className="flex-grow mt-4 flex flex-col -mx-6 -mb-6">
-                    <ChatView messages={messages} isLoading={isChatLoading}/>
+                    <div ref={chatContainerRef} className="flex-1 overflow-y-auto">
+                        <ChatView messages={messages} isLoading={isChatLoading}/>
+                    </div>
                     <div className="p-4 border-t bg-background">
                          <form onSubmit={handleChatSubmit} className="flex items-center gap-2">
                              <Input 
@@ -423,3 +435,4 @@ export function SkillTreeView() {
     </Card>
   );
 }
+
