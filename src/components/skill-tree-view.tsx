@@ -99,6 +99,8 @@ export function SkillTreeView() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatInput, setChatInput] = useState('');
 
+  const pinchStartDistance = useRef<number | null>(null);
+
   const viewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -143,9 +145,9 @@ export function SkillTreeView() {
         const xs = layoutNodes.map(n => n.x ?? 0);
         const ys = layoutNodes.map(n => n.y ?? 0);
         const minX = Math.min(...xs);
-        const maxX = Math.max(...xs) + nodeDimensions.detail.width;
+        const maxX = Math.max(...xs) + (nodeDimensions.detail.width);
         const minY = Math.min(...ys);
-        const maxY = Math.max(...ys) + nodeDimensions.detail.height;
+        const maxY = Math.max(...ys) + (nodeDimensions.detail.height);
 
         const treeWidth = maxX - minX;
         const treeHeight = maxY - minY;
@@ -232,6 +234,37 @@ export function SkillTreeView() {
     setOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+        setIsDragging(true);
+        setDragStart({ x: e.touches[0].clientX - offset.x, y: e.touches[0].clientY - offset.y });
+    } else if (e.touches.length === 2) {
+        pinchStartDistance.current = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging) {
+        setOffset({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+    } else if (e.touches.length === 2 && pinchStartDistance.current) {
+        const newPinchDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        const scaleChange = newPinchDistance / pinchStartDistance.current;
+        setScale(prevScale => prevScale * scaleChange);
+        pinchStartDistance.current = newPinchDistance;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    pinchStartDistance.current = null;
+  };
+
 
   return (
     <Card className="w-full h-full flex flex-col glass-pane">
@@ -265,7 +298,18 @@ export function SkillTreeView() {
                     <TabsTrigger value="chat">Normal Chat</TabsTrigger>
                 </TabsList>
                 <TabsContent value="tree" className="flex-grow mt-4 -mx-6 -mb-6 rounded-b-lg overflow-hidden">
-                   <div ref={viewRef} className="relative w-full h-full bg-background/30" onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave} onMouseMove={handleMouseMove} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
+                   <div 
+                        ref={viewRef} 
+                        className="relative w-full h-full bg-background/30 touch-none" 
+                        onMouseDown={handleMouseDown} 
+                        onMouseUp={handleMouseUp} 
+                        onMouseLeave={handleMouseLeave} 
+                        onMouseMove={handleMouseMove} 
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    >
                         {(isLoading && nodes.length === 0) && (
                             <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-20">
                                 <div className="text-center">
