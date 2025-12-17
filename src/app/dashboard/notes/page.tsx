@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Folder, Plus, Loader, AlertTriangle, MoreVertical, Sparkles, Network } from 'lucide-react';
+import { Folder, Plus, Loader, AlertTriangle, MoreVertical, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -30,8 +30,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SkillTreeView } from '@/components/skill-tree-view';
 import { WipPage } from '@/components/wip-page';
 
 const subjectFormSchema = z.object({
@@ -143,7 +141,6 @@ export default function NotesDashboardPage() {
     };
     
     const isLoading = isUserLoading || areSubjectsLoading || isConfigLoading || isProfileLoading;
-    const isSkillTreeWip = siteConfig?.skillTreeWip === false && userProfile?.isAdmin !== true;
     const isNotesWip = siteConfig?.notesWip === false && userProfile?.isAdmin !== true;
 
     if (isLoading) {
@@ -166,110 +163,99 @@ export default function NotesDashboardPage() {
                     New Subject
                 </Button>
             </div>
-             <Tabs defaultValue="list-view" className="w-full">
-                <TabsList>
-                    <TabsTrigger value="list-view"><Folder className="w-4 h-4 mr-2"/>List View</TabsTrigger>
-                    <TabsTrigger value="skill-tree"><Network className="w-4 h-4 mr-2"/>Skill Tree</TabsTrigger>
-                </TabsList>
-                <TabsContent value="list-view" className="mt-6">
-                    {isLoading && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[...Array(3)].map((_, i) => (
-                                <Card key={i} className="animate-pulse">
-                                    <CardHeader className="flex-row items-start justify-between">
-                                        <div>
-                                            <div className="h-6 w-3/4 bg-muted rounded mb-2"></div>
-                                            <div className="h-4 w-full bg-muted rounded"></div>
-                                        </div>
-                                        <div className="w-8 h-8 bg-muted rounded"></div>
-                                    </CardHeader>
-                                    <CardFooter className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <div className="h-4 w-1/4 bg-muted rounded"></div>
-                                        <div className="h-4 w-1/3 bg-muted rounded"></div>
-                                    </CardFooter>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
-
-                    {!isLoading && subjectsError && (
-                        <Card className="flex flex-col items-center justify-center p-8 text-center glass-pane">
-                            <AlertTriangle className="w-12 h-12 text-destructive" />
-                            <h3 className="mt-4 text-lg font-semibold">Error Loading Subjects</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">{subjectsError.message}</p>
-                        </Card>
-                    )}
-
-                    {!isLoading && !subjectsError && subjects && subjects.length === 0 && (
-                        <Card className="flex flex-col items-center justify-center p-12 text-center glass-pane border-dashed">
-                            <Folder className="w-16 h-16 text-muted-foreground/50" />
-                            <h3 className="mt-4 text-lg font-semibold">No Subjects Yet</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">Get started by creating your first subject.</p>
-                        </Card>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {!isLoading && !subjectsError && subjects && subjects.map((subject) => (
-                            <Card key={subject.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", subject.isImportant && 'important-glow' )}>
-                                <Link href={`/dashboard/notes/${subject.id}`} className="flex-grow flex flex-col justify-between">
-                                    <CardHeader>
-                                        <div>
-                                            <CardTitle className="font-headline group-hover:text-accent transition-colors">{subject.name}</CardTitle>
-                                            <CardDescription className="line-clamp-2 mt-1">{subject.description || 'No description'}</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="flex-grow" />
-                                </Link>
-                                <CardFooter className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <div className="flex-grow">
-                                        <span>{subject.noteCount || 0} items</span>
-                                        <span className="ml-4">{subject.lastUpdated ? `Updated ${formatDistanceToNow(subject.lastUpdated.toDate(), { addSuffix: true })}` : ''}</span>
-                                    </div>
-                                    <button onClick={(e) => toggleSubjectImportance(subject, e)} className="z-10 p-1 rounded-full text-muted-foreground hover:text-accent transition-colors">
-                                        <Sparkles className={cn("h-5 w-5", subject.isImportant && "text-accent fill-accent/50")} />
-                                    </button>
-                                </CardFooter>
-                                <div className="absolute top-2 right-2">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-50 group-hover:opacity-100">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => openEditDialog(subject)}>Edit</DropdownMenuItem>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Delete</DropdownMenuItem>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            This will permanently delete the subject "{subject.name}" and all notes inside it. This action cannot be undone.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDeleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">Delete Subject</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                    <Folder className="w-16 h-16 text-muted-foreground/5 transition-all duration-300 group-hover:scale-110 group-hover:text-muted-foreground/10" />
-                                </div>
-                            </Card>
-                        ))}
-                    </div>
-                </TabsContent>
-                 <TabsContent value="skill-tree" className="mt-6">
-                    {isSkillTreeWip ? <WipPage /> : <SkillTreeView />}
-                 </TabsContent>
-            </Tabs>
             
+            {isLoading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[...Array(3)].map((_, i) => (
+                        <Card key={i} className="animate-pulse">
+                            <CardHeader className="flex-row items-start justify-between">
+                                <div>
+                                    <div className="h-6 w-3/4 bg-muted rounded mb-2"></div>
+                                    <div className="h-4 w-full bg-muted rounded"></div>
+                                </div>
+                                <div className="w-8 h-8 bg-muted rounded"></div>
+                            </CardHeader>
+                            <CardFooter className="flex items-center justify-between text-xs text-muted-foreground">
+                                <div className="h-4 w-1/4 bg-muted rounded"></div>
+                                <div className="h-4 w-1/3 bg-muted rounded"></div>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {!isLoading && subjectsError && (
+                <Card className="flex flex-col items-center justify-center p-8 text-center glass-pane">
+                    <AlertTriangle className="w-12 h-12 text-destructive" />
+                    <h3 className="mt-4 text-lg font-semibold">Error Loading Subjects</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{subjectsError.message}</p>
+                </Card>
+            )}
+
+            {!isLoading && !subjectsError && subjects && subjects.length === 0 && (
+                <Card className="flex flex-col items-center justify-center p-12 text-center glass-pane border-dashed">
+                    <Folder className="w-16 h-16 text-muted-foreground/50" />
+                    <h3 className="mt-4 text-lg font-semibold">No Subjects Yet</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">Get started by creating your first subject.</p>
+                </Card>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {!isLoading && !subjectsError && subjects && subjects.map((subject) => (
+                    <Card key={subject.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", subject.isImportant && 'important-glow' )}>
+                        <Link href={`/dashboard/notes/${subject.id}`} className="flex-grow flex flex-col justify-between">
+                            <CardHeader>
+                                <div>
+                                    <CardTitle className="font-headline group-hover:text-accent transition-colors">{subject.name}</CardTitle>
+                                    <CardDescription className="line-clamp-2 mt-1">{subject.description || 'No description'}</CardDescription>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-grow" />
+                        </Link>
+                        <CardFooter className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex-grow">
+                                <span>{subject.noteCount || 0} items</span>
+                                <span className="ml-4">{subject.lastUpdated ? `Updated ${formatDistanceToNow(subject.lastUpdated.toDate(), { addSuffix: true })}` : ''}</span>
+                            </div>
+                            <button onClick={(e) => toggleSubjectImportance(subject, e)} className="z-10 p-1 rounded-full text-muted-foreground hover:text-accent transition-colors">
+                                <Sparkles className={cn("h-5 w-5", subject.isImportant && "text-accent fill-accent/50")} />
+                            </button>
+                        </CardFooter>
+                        <div className="absolute top-2 right-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-50 group-hover:opacity-100">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openEditDialog(subject)}>Edit</DropdownMenuItem>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Delete</DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This will permanently delete the subject "{subject.name}" and all notes inside it. This action cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">Delete Subject</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                            <Folder className="w-16 h-16 text-muted-foreground/5 transition-all duration-300 group-hover:scale-110 group-hover:text-muted-foreground/10" />
+                        </div>
+                    </Card>
+                ))}
+            </div>
 
             <Dialog open={isNewSubjectDialogOpen} onOpenChange={setIsNewSubjectDialogOpen}>
                 <DialogContent className="glass-pane">

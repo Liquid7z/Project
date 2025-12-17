@@ -19,8 +19,6 @@
         "plan": { "type": "string", "description": "User's subscription plan.", "enum": ["Free", "Premium", "expired"] },
         "isSuspended": { "type": "boolean", "description": "Indicates if the user account is suspended." },
         "isAdmin": { "type": "boolean", "description": "Indicates if the user has administrative privileges." },
-        "skillTreeGenerations": { "type": "number", "description": "Count of skill tree generations for the current day." },
-        "lastGenerationDate": { "type": "string", "description": "The date of the last skill tree generation, in ISO 8601 format." },
         "paymentStatus": { "type": "string", "description": "The user's current payment verification status.", "enum": ["none", "pending"] },
         "premiumUntil": { "type": "string", "format": "date-time", "description": "Timestamp indicating when the user's premium access expires." },
         "subscriptionStatus": { "type": "string", "description": "The status of the user's subscription.", "enum": ["active", "expired", "cancelled"] },
@@ -125,7 +123,6 @@
         "notesWip": { "type": "boolean", "description": "Puts the Notes page into maintenance." },
         "analyzeWip": { "type": "boolean", "description": "Puts the Analyze page into maintenance." },
         "accountWip": { "type": "boolean", "description": "Puts the Account page into maintenance." },
-        "skillTreeWip": { "type": "boolean", "description": "Puts the Skill Tree feature into maintenance." },
         "premiumStyleAnalysis": { "type": "boolean", "description": "Feature flag for premium style analysis." }
       }
     },
@@ -141,7 +138,6 @@
         "docUploadLimit": { "type": "number", "description": "Total document upload limit." },
         "storageLimitMb": { "type": "number", "description": "Cloud storage limit in MB." },
         "dailyAiUsageLimit": { "type": "number", "description": "Daily AI generation/analysis limit." },
-        "dailySkillTreeLimit": { "type": "number", "description": "Daily skill tree generation limit. -1 for unlimited." },
         "featureAdvancedSkillTree": { "type": "boolean" },
         "featureWhiteboardNotes": { "type": "boolean" },
         "featurePdfPagePreview": { "type": "boolean" },
