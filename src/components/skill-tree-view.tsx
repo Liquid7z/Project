@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/
 import { generateSkillTreeAction, explainTopicAction } from '@/actions/generation';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChatView, Message } from './chat-view';
+import { ChatView } from './chat-view';
+import type { Message } from './chat-view';
 import { marked } from 'marked';
 import { cn } from '@/lib/utils';
 
