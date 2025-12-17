@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader, Send, ZoomIn, ZoomOut, ArrowRight, Save, BookOpen } from 'lucide-react';
+import { Loader, Send, ZoomIn, ZoomOut, ArrowRight, Save, BookOpen, Library } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { generateSkillTreeAction, explainTopicAction, getShortDefinitionAction } from '@/actions/generation';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,8 @@ import { marked } from 'marked';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SaveNoteDialog } from '@/components/save-note-dialog';
+import { Checkbox } from './ui/checkbox';
+import { Label } from './ui/label';
 
 
 // Type definitions for the skill tree
@@ -63,7 +65,6 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
         return { nodes, edges };
     }
     
-    // Ensure children are valid node objects
     const validChildren = node.children?.filter(Boolean) ?? [];
 
     const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
@@ -80,7 +81,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
 
         let currentX = x + width / 2 - totalChildWidth / 2;
 
-        validChildren.forEach((child, index) => {
+        validChildren.forEach((child) => {
             edges.push({ source: node.id, target: child.id });
             const { nodes: childNodes, edges: childEdges } = calculateLayout(
                 child,
@@ -111,20 +112,17 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
     return { nodes, edges };
 };
 
-const treeToMarkdown = (node: Node | null, depth = 0): string => {
-    if (!node) return '';
-    let markdown = `${'#'.repeat(depth + 1)} ${node.label}\n\n`;
+const getAllNodeIds = (node: Node | null): string[] => {
+    if (!node) return [];
+    let ids = [node.id];
     if (node.children) {
         node.children.forEach(child => {
-            markdown += treeToMarkdown(child, depth + 1);
+            ids = ids.concat(getAllNodeIds(child));
         });
     }
-    return markdown;
-};
+    return ids;
+}
 
-const chatToMarkdown = (messages: Message[]): string => {
-    return messages.map(msg => `**${msg.role === 'user' ? 'You' : 'AI'}**:\n\n${msg.content.replace(/<[^>]+>/g, '\n')}`).join('\n\n---\n\n');
-};
 
 function deepCopy<T>(obj: T): T {
     if (obj === null || typeof obj !== 'object') {
@@ -162,6 +160,7 @@ export function SkillTreeView() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isSaveNoteDialogOpen, setIsSaveNoteDialogOpen] = useState(false);
+  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
 
 
   const pinchStartDistance = useRef<number | null>(null);
@@ -207,6 +206,7 @@ export function SkillTreeView() {
     setEdges([]);
     setMessages([]);
     setCurrentTopic(topic);
+    setSelectedNodes(new Set());
     try {
       const result = await generateSkillTreeAction({ topic });
       if (result && result.tree) {
@@ -256,7 +256,7 @@ export function SkillTreeView() {
 
   const handleFetchDefinition = async (nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
-    if (!node || node.definition) return; // Already have a definition
+    if (!node || node.definition) return;
 
     try {
         const result = await getShortDefinitionAction({ topic: node.label, context: currentTopic });
@@ -265,9 +265,56 @@ export function SkillTreeView() {
         ));
     } catch (error) {
         console.error('Failed to fetch definition:', error);
-        // Silently fail, or show a small error indicator on the node
     }
   };
+
+  const handleNodeToggle = (nodeId: string, checked: boolean) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    const allChildIds = getAllNodeIds(node);
+    setSelectedNodes(prevSelected => {
+        const newSelected = new Set(prevSelected);
+        if(checked) {
+            allChildIds.forEach(id => newSelected.add(id));
+        } else {
+            allChildIds.forEach(id => newSelected.delete(id));
+        }
+        return newSelected;
+    });
+  }
+
+  const handleSelectAllToggle = (checked: boolean) => {
+    if (checked) {
+        setSelectedNodes(new Set(nodes.map(n => n.id)));
+    } else {
+        setSelectedNodes(new Set());
+    }
+  }
+
+  const treeToMarkdown = useCallback((selectedIds: Set<string>): string => {
+    if (!tree) return '';
+
+    const buildMarkdown = (node: Node, depth = 0): string => {
+        if (!selectedIds.has(node.id)) return '';
+
+        let markdown = `${'#'.repeat(depth + 1)} ${node.label}\n`;
+        const fullNode = nodes.find(n => n.id === node.id);
+        if(fullNode?.definition) {
+            markdown += `> ${fullNode.definition}\n\n`;
+        } else {
+            markdown += `\n`;
+        }
+
+        if (node.children) {
+            node.children.forEach(child => {
+                markdown += buildMarkdown(child, depth + 1);
+            });
+        }
+        return markdown;
+    };
+    return buildMarkdown(tree);
+  }, [tree, nodes]);
   
   const handleExplainInChat = async (node: Node) => {
     const question = `Explain "${node.label}" in the context of ${currentTopic}. Keep it concise.`;
@@ -286,7 +333,7 @@ export function SkillTreeView() {
     } catch(error) {
         console.error(error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to get an explanation.'});
-        setMessages(newMessages); // Revert to messages before AI response
+        setMessages(newMessages);
     } finally {
         setIsChatLoading(false);
     }
@@ -358,7 +405,7 @@ export function SkillTreeView() {
     pinchStartDistance.current = null;
   };
 
-  const noteContentToSave = activeTab === 'tree' ? treeToMarkdown(tree) : chatToMarkdown(messages);
+  const noteContentToSave = activeTab === 'tree' ? treeToMarkdown(selectedNodes) : chatToMarkdown(messages);
   const noteTitleToSave = activeTab === 'tree' ? `Skill Tree: ${currentTopic}` : `Chat: ${currentTopic}`;
 
 
@@ -379,9 +426,9 @@ export function SkillTreeView() {
                         <span className="ml-2 hidden sm:inline">Generate</span>
                     </Button>
                     {(nodes.length > 0 || messages.length > 0) && (
-                        <Button variant="outline" onClick={() => setIsSaveNoteDialogOpen(true)} disabled={isLoading} className="w-full">
+                        <Button variant="outline" onClick={() => setIsSaveNoteDialogOpen(true)} disabled={isLoading || (activeTab === 'tree' && selectedNodes.size === 0)} className="w-full">
                             <Save className="mr-2"/>
-                            <span className="hidden sm:inline">Save to Note</span>
+                            <span className="hidden sm:inline">Save</span>
                         </Button>
                     )}
                 </div>
@@ -390,8 +437,8 @@ export function SkillTreeView() {
         <CardContent className="flex-grow flex flex-col min-h-0">
              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="tree">Skill Tree</TabsTrigger>
-                    <TabsTrigger value="chat">Normal Chat</TabsTrigger>
+                    <TabsTrigger value="tree" disabled={!tree}><Library className="mr-2"/>Skill Tree</TabsTrigger>
+                    <TabsTrigger value="chat"><BookOpen className="mr-2"/>Normal Chat</TabsTrigger>
                 </TabsList>
                 <TabsContent value="tree" className="flex-grow mt-4 -mx-6 -mb-6 rounded-b-lg overflow-hidden">
                    <div 
@@ -483,15 +530,27 @@ export function SkillTreeView() {
                                             </PopoverTrigger>
                                             <PopoverContent side="bottom" align="center" className="w-64 glass-pane z-30">
                                                  <div className="space-y-2">
-                                                    <h4 className="font-semibold leading-none">{node.label}</h4>
-                                                    {node.definition ? (
-                                                        <p className="text-sm text-muted-foreground">{node.definition}</p>
-                                                    ) : (
-                                                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                                                            <Loader className="h-4 w-4 animate-spin"/>
-                                                            <span>Fetching definition...</span>
+                                                    <div className="flex items-start gap-2">
+                                                         <Checkbox
+                                                            id={`select-${node.id}`}
+                                                            checked={selectedNodes.has(node.id)}
+                                                            onCheckedChange={(checked) => handleNodeToggle(node.id, !!checked)}
+                                                            className="mt-1"
+                                                        />
+                                                        <div className="grid gap-1.5 leading-none">
+                                                            <label htmlFor={`select-${node.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                                {node.label}
+                                                            </label>
+                                                            {node.definition ? (
+                                                                <p className="text-sm text-muted-foreground">{node.definition}</p>
+                                                            ) : (
+                                                                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                                                    <Loader className="h-4 w-4 animate-spin"/>
+                                                                    <span>Fetching definition...</span>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
+                                                    </div>
                                                     <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => handleExplainInChat(node)}>
                                                        <BookOpen className="mr-2"/> Explain in Chat
                                                     </Button>
@@ -502,6 +561,16 @@ export function SkillTreeView() {
                                 </div>
                             )}
                         </AnimatePresence>
+                         <div className="absolute top-4 left-4 z-10 bg-background/50 backdrop-blur-sm p-2 rounded-md">
+                             <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id="select-all" 
+                                    checked={selectedNodes.size > 0 && selectedNodes.size === nodes.length}
+                                    onCheckedChange={(checked) => handleSelectAllToggle(!!checked)}
+                                />
+                                <Label htmlFor="select-all">Select All</Label>
+                            </div>
+                        </div>
                         <div className="absolute bottom-4 right-4 flex gap-2 z-10">
                             <Button variant="outline" size="icon" onClick={() => setScale(s => s * 1.2)}><ZoomIn /></Button>
                             <Button variant="outline" size="icon" onClick={() => setScale(s => s / 1.2)}><ZoomOut /></Button>
@@ -539,3 +608,4 @@ export function SkillTreeView() {
   );
 }
 
+    
