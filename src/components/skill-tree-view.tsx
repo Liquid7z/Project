@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatView, Message } from './chat-view';
 import { marked } from 'marked';
+import { cn } from '@/lib/utils';
+
 
 // Type definitions for the skill tree
 interface Node {
@@ -60,7 +62,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
 
   if (node.children && node.children.length > 0) {
     const totalChildWidth = node.children.length * xGap - (xGap - nodeDimensions.pillar.width);
-    let currentX = x - totalWidth / 2 + nodeDimensions.pillar.width / 2;
+    let currentX = x - totalChildWidth / 2 + nodeDimensions.pillar.width / 2;
 
     node.children.forEach((child) => {
       edges.push({ source: node.id, target: child.id });
@@ -83,7 +85,7 @@ export function SkillTreeView() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [viewWidth, setViewWidth] = useState(0);
-  const [viewHeight, setViewHeight] = useState(800);
+  const [viewHeight, setViewHeight] = useState(0);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -112,6 +114,7 @@ export function SkillTreeView() {
 
     return () => {
       if (viewRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         observer.unobserve(viewRef.current);
       }
     };
