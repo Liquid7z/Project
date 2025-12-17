@@ -299,6 +299,25 @@ export function SkillTreeView() {
   const treeToMarkdown = useCallback((selectedIds: Set<string>): string => {
     if (!tree) return '';
 
+    const isFullTreeSelected = selectedIds.size === nodes.length;
+
+    // If only specific nodes are selected, create a flat list.
+    if (!isFullTreeSelected) {
+        let markdown = '';
+        nodes.forEach(node => {
+            if (selectedIds.has(node.id)) {
+                markdown += `### ${node.label}\n`;
+                if (node.definition) {
+                    markdown += `> ${node.definition}\n\n`;
+                } else {
+                    markdown += `\n`;
+                }
+            }
+        });
+        return markdown;
+    }
+
+    // If all nodes are selected, create a hierarchical structure.
     const buildMarkdown = (node: Node, depth = 0): string => {
         if (!node || !selectedIds.has(node.id)) return '';
 
