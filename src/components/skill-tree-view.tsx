@@ -139,16 +139,29 @@ export function SkillTreeView() {
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const [viewWidth, setViewWidth] = useState(1200);
-    const [viewHeight, setViewHeight] = useState(800);
+    const [viewWidth, setViewWidth] = useState(0);
+    const [viewHeight, setViewHeight] = useState(0);
     const [scale, setScale] = useState(1);
-
+    
     useEffect(() => {
-        if (containerRef.current) {
-            setViewWidth(containerRef.current.offsetWidth);
-            setViewHeight(containerRef.current.offsetHeight);
-        }
+        const container = containerRef.current;
+        if (!container) return;
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const { width, height } = entry.contentRect;
+                setViewWidth(width);
+                setViewHeight(height);
+            }
+        });
+
+        resizeObserver.observe(container);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
     }, []);
+
 
     const userProfileRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile } = useDoc(userProfileRef);
