@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -51,42 +52,45 @@ const nodeStyles = {
 
 
 const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; edges: Edge[] } => {
-  let nodes: Node[] = [];
-  let edges: Edge[] = [];
-  const yGap = 80;
-  const xGap = 180;
+    let nodes: Node[] = [];
+    let edges: Edge[] = [];
+    const yGap = 80;
+    const xGap = 180;
 
-  const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
-  node.width = width;
-  node.height = height;
-  node.x = x;
-  node.y = y;
+    const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
+    node.width = width;
+    node.height = height;
+    node.x = x;
+    node.y = y;
 
-  nodes.push(node);
+    nodes.push(node);
 
-  const validChildren = node.children?.filter(Boolean) ?? [];
+    const validChildren = node.children?.filter(Boolean) ?? [];
 
-  if (validChildren.length > 0) {
-    const totalChildWidth = validChildren.reduce((acc, child) => {
-        const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
-        return acc + childDims.width + xGap;
-    }, -xGap);
+    if (validChildren.length > 0) {
+        const totalChildWidth = validChildren.reduce((acc, child) => {
+            const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
+            return acc + childDims.width + xGap;
+        }, -xGap);
 
-    let currentX = x + (width / 2) - (totalChildWidth / 2);
-    
-    validChildren.forEach((child) => {
-      const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
-      const childX = currentX + (totalChildWidth - childDims.width) / (2 * (validChildren.length || 1));
-      
-      edges.push({ source: node.id, target: child.id });
-      const { nodes: childNodes, edges: childEdges } = calculateLayout(child, childX, y + yGap, depth + 1);
-      nodes = nodes.concat(childNodes);
-      edges = edges.concat(childEdges);
-      currentX += childDims.width + xGap;
-    });
-  }
+        let currentX = x + width / 2 - totalChildWidth / 2;
 
-  return { nodes, edges };
+        validChildren.forEach((child) => {
+            const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
+            edges.push({ source: node.id, target: child.id });
+            const { nodes: childNodes, edges: childEdges } = calculateLayout(
+                child,
+                currentX,
+                y + yGap,
+                depth + 1
+            );
+            nodes = nodes.concat(childNodes);
+            edges = edges.concat(childEdges);
+            currentX += childDims.width + xGap;
+        });
+    }
+
+    return { nodes, edges };
 };
 
 
@@ -210,7 +214,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
 
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content.replace(/<[^>]+>/g, '')}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content.replace(/<[^>]+>/g, '')}));
         const result = await explainTopicAction({ topic: question, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -234,7 +238,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({ role: m.role, text: m.content }));
+        const history = newMessages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -438,5 +442,3 @@ export function SkillTreeView() {
     </Card>
   );
 }
-
-    
