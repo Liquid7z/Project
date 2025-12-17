@@ -1,7 +1,7 @@
 'use server';
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit/zod';
+import {z} from 'zod';
 
 const NodeSchema = z.object({
   id: z.string().describe('A unique identifier for the node (e.g., "1", "1.1", "1.1.1").'),
