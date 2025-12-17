@@ -59,26 +59,27 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
     const yGap = 80;
     const xGap = 180;
 
+    if (!node) {
+        return { nodes, edges };
+    }
+
     const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
     node.width = width;
     node.height = height;
-
+    
     nodes.push(node);
 
     const validChildren = node.children?.filter(Boolean) ?? [];
 
     if (validChildren.length > 0) {
         const totalChildWidth = validChildren.reduce((acc, child) => {
-            if (!child) return acc;
             const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
             return acc + childDims.width + xGap;
         }, -xGap);
 
         let currentX = x + width / 2 - totalChildWidth / 2;
 
-        validChildren.forEach((child) => {
-            if (!child) return;
-            const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
+        validChildren.forEach((child, index) => {
             edges.push({ source: node.id, target: child.id });
             const { nodes: childNodes, edges: childEdges } = calculateLayout(
                 child,
@@ -88,14 +89,14 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
             );
             nodes = nodes.concat(childNodes);
             edges = edges.concat(childEdges);
-            currentX += childDims.width + xGap;
+            currentX += (nodeDimensions[child.type] || nodeDimensions.detail).width + xGap;
         });
 
-        // After placing all children, set the parent's x position to be centered above them
         const firstChild = nodes.find(n => n.id === validChildren[0].id);
         const lastChild = nodes.find(n => n.id === validChildren[validChildren.length - 1].id);
-        if(firstChild && lastChild) {
-             const childrenMidpoint = ( (firstChild.x ?? 0) + ((lastChild.x ?? 0) + (lastChild.width ?? 0)) ) / 2;
+        
+        if(firstChild && lastChild && firstChild.x !== undefined && lastChild.x !== undefined && lastChild.width !== undefined) {
+             const childrenMidpoint = (firstChild.x + (lastChild.x + lastChild.width) ) / 2;
              node.x = childrenMidpoint - width / 2;
         } else {
            node.x = x;
@@ -123,6 +124,22 @@ const treeToMarkdown = (node: Node | null, depth = 0): string => {
 const chatToMarkdown = (messages: Message[]): string => {
     return messages.map(msg => `**${msg.role === 'user' ? 'You' : 'AI'}**:\n\n${msg.content.replace(/<[^>]+>/g, '\n')}`).join('\n\n---\n\n');
 };
+
+function deepCopy<T>(obj: T): T {
+    if (obj === null || typeof obj !== 'object') {
+        return obj;
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(item => deepCopy(item)) as any;
+    }
+    const newObj = {} as T;
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            newObj[key] = deepCopy(obj[key]);
+        }
+    }
+    return newObj;
+}
 
 
 export function SkillTreeView() {
@@ -192,8 +209,9 @@ export function SkillTreeView() {
     try {
       const result = await generateSkillTreeAction({ topic });
       if (result && result.tree) {
-        setTree(result.tree);
-        const { nodes: layoutNodes, edges: layoutEdges } = calculateLayout(result.tree);
+        const treeCopy = deepCopy(result.tree);
+        setTree(treeCopy);
+        const { nodes: layoutNodes, edges: layoutEdges } = calculateLayout(treeCopy);
         
         const xs = layoutNodes.map(n => n.x ?? 0);
         const ys = layoutNodes.map(n => n.y ?? 0);
@@ -417,12 +435,12 @@ export function SkillTreeView() {
                                         {edges.map(edge => {
                                           const sourceNode = nodes.find(n => n.id === edge.source);
                                           const targetNode = nodes.find(n => n.id === edge.target);
-                                          if (!sourceNode || !targetNode) return null;
+                                          if (!sourceNode || !targetNode || sourceNode.x === undefined || sourceNode.y === undefined || targetNode.x === undefined || targetNode.y === undefined) return null;
                                           
-                                          const x1 = (sourceNode.x ?? 0) + (sourceNode.width ?? 0) / 2;
-                                          const y1 = (sourceNode.y ?? 0) + (sourceNode.height ?? 0);
-                                          const x2 = (targetNode.x ?? 0) + (targetNode.width ?? 0) / 2;
-                                          const y2 = (targetNode.y ?? 0);
+                                          const x1 = sourceNode.x + (sourceNode.width ?? 0) / 2;
+                                          const y1 = sourceNode.y + (sourceNode.height ?? 0);
+                                          const x2 = targetNode.x + (targetNode.width ?? 0) / 2;
+                                          const y2 = targetNode.y;
                                           
                                           const c1y = y1 + (y2 - y1) / 2;
                                           const c2y = y2 - (y2 - y1) / 2;
@@ -443,7 +461,7 @@ export function SkillTreeView() {
                                         })}
                                       </svg>
                                     {nodes.map(node => {
-                                        if(!node) return null;
+                                        if(!node || node.x === undefined || node.y === undefined) return null;
                                         return (
                                         <Popover key={node.id} onOpenChange={(isOpen) => isOpen && handleFetchDefinition(node.id)}>
                                             <PopoverTrigger asChild>
@@ -519,3 +537,4 @@ export function SkillTreeView() {
     </Card>
   );
 }
+
