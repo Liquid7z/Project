@@ -31,16 +31,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { WipPage } from '@/components/wip-page';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SkillTreeView } from '@/components/skill-tree-view';
 
 const subjectFormSchema = z.object({
     name: z.string().min(1, 'Subject name is required.'),
 });
 
-export default function NotesDashboardPage() {
+function SubjectsView() {
     const [isNewSubjectDialogOpen, setIsNewSubjectDialogOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<any | null>(null);
     const { toast } = useToast();
-    const { user, isUserLoading } = useUser();
+    const { user } = useUser();
     const firestore = useFirestore();
 
     const subjectsCollectionRef = useMemoFirebase(() => {
@@ -50,24 +52,13 @@ export default function NotesDashboardPage() {
 
     const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
 
-    const userProfileRef = useMemoFirebase(() => {
-      if (!user) return null;
-      return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-
-    const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
-    const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
-
     const form = useForm<z.infer<typeof subjectFormSchema>>({
         resolver: zodResolver(subjectFormSchema),
-        defaultValues: {
-            name: '',
-        },
+        defaultValues: { name: '' },
     });
 
     const handleCreateOrUpdateSubject = async (values: z.infer<typeof subjectFormSchema>) => {
-        if (editingSubject) { // Update existing subject
+        if (editingSubject) {
             if (!user) return;
             const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', editingSubject.id);
             try {
@@ -77,7 +68,7 @@ export default function NotesDashboardPage() {
                 toast({ variant: 'destructive', title: 'Error', description: 'Failed to update subject.' });
                 console.error("Error updating subject: ", error);
             }
-        } else { // Create new subject
+        } else {
             if (!subjectsCollectionRef) return;
             try {
                 await addDoc(subjectsCollectionRef, {
@@ -96,7 +87,7 @@ export default function NotesDashboardPage() {
         }
         closeDialog();
     };
-
+    
     const handleDeleteSubject = async (subjectId: string) => {
         if (!user) return;
         const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', subjectId);
@@ -139,17 +130,6 @@ export default function NotesDashboardPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to update subject importance.' });
       }
     };
-    
-    const isLoading = isUserLoading || areSubjectsLoading || isConfigLoading || isProfileLoading;
-    const isNotesWip = siteConfig?.notesWip === false && userProfile?.isAdmin !== true;
-
-    if (isLoading) {
-        return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
-    }
-
-    if (isNotesWip) {
-        return <WipPage />;
-    }
 
     return (
         <div className="space-y-6">
@@ -163,8 +143,7 @@ export default function NotesDashboardPage() {
                     New Subject
                 </Button>
             </div>
-            
-            {isLoading && (
+            {areSubjectsLoading && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[...Array(3)].map((_, i) => (
                         <Card key={i} className="animate-pulse">
@@ -183,25 +162,22 @@ export default function NotesDashboardPage() {
                     ))}
                 </div>
             )}
-
-            {!isLoading && subjectsError && (
+            {!areSubjectsLoading && subjectsError && (
                 <Card className="flex flex-col items-center justify-center p-8 text-center glass-pane">
                     <AlertTriangle className="w-12 h-12 text-destructive" />
                     <h3 className="mt-4 text-lg font-semibold">Error Loading Subjects</h3>
                     <p className="mt-1 text-sm text-muted-foreground">{subjectsError.message}</p>
                 </Card>
             )}
-
-            {!isLoading && !subjectsError && subjects && subjects.length === 0 && (
+            {!areSubjectsLoading && !subjectsError && subjects && subjects.length === 0 && (
                 <Card className="flex flex-col items-center justify-center p-12 text-center glass-pane border-dashed">
                     <Folder className="w-16 h-16 text-muted-foreground/50" />
                     <h3 className="mt-4 text-lg font-semibold">No Subjects Yet</h3>
                     <p className="mt-1 text-sm text-muted-foreground">Get started by creating your first subject.</p>
                 </Card>
             )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {!isLoading && !subjectsError && subjects && subjects.map((subject) => (
+                {!areSubjectsLoading && !subjectsError && subjects && subjects.map((subject) => (
                     <Card key={subject.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", subject.isImportant && 'important-glow' )}>
                         <Link href={`/dashboard/notes/${subject.id}`} className="flex-grow flex flex-col justify-between">
                             <CardHeader>
@@ -256,7 +232,6 @@ export default function NotesDashboardPage() {
                     </Card>
                 ))}
             </div>
-
             <Dialog open={isNewSubjectDialogOpen} onOpenChange={setIsNewSubjectDialogOpen}>
                 <DialogContent className="glass-pane">
                     <DialogHeader>
@@ -294,5 +269,45 @@ export default function NotesDashboardPage() {
                 </DialogContent>
             </Dialog>
         </div>
+    );
+}
+
+export default function NotesDashboardPage() {
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    const userProfileRef = useMemoFirebase(() => {
+      if (!user) return null;
+      return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+    const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
+    const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
+
+    const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
+    const isNotesWip = siteConfig?.notesWip === false && userProfile?.isAdmin !== true;
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
+    }
+
+    if (isNotesWip) {
+        return <WipPage />;
+    }
+
+    return (
+        <Tabs defaultValue="subjects" className="h-full flex flex-col">
+            <TabsList>
+                <TabsTrigger value="subjects">Subjects</TabsTrigger>
+                <TabsTrigger value="skill-tree">Skill Tree</TabsTrigger>
+            </TabsList>
+            <TabsContent value="subjects" className="mt-6">
+                <SubjectsView />
+            </TabsContent>
+            <TabsContent value="skill-tree" className="mt-6 flex-grow">
+                <SkillTreeView />
+            </TabsContent>
+        </Tabs>
     );
 }

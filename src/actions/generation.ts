@@ -3,6 +3,8 @@
 import { analyzeHandwritingStyle, AnalyzeHandwritingStyleInput } from '@/ai/flows/analyze-handwriting-style';
 import { extractTextFromDocument, ExtractTextFromDocumentInput, ExtractTextFromDocumentOutput } from '@/ai/flows/extract-text-from-document';
 import { generateAssignment, GenerateAssignmentInput, GenerateAssignmentOutput } from '@/ai/flows/generate-assignment';
+import { generateSkillTree, GenerateSkillTreeInput, GenerateSkillTreeOutput } from '@/ai/flows/generate-skill-tree';
+import { explainTopic, ExplainTopicInput, ExplainTopicOutput } from '@/ai/flows/explain-topic';
 
 
 export async function analyzeStyleAction(input: AnalyzeHandwritingStyleInput): Promise<{ styleModelId: string }> {
@@ -19,4 +21,12 @@ export async function generateAssignmentAction(input: GenerateAssignmentInput): 
   // Note: The actual AI model for handwriting generation might be a placeholder.
   // Depending on the setup, it may return a simulated image like the previous mock.
   return await generateAssignment(input);
+}
+
+export async function generateSkillTreeAction(input: GenerateSkillTreeInput): Promise<GenerateSkillTreeOutput> {
+    return await generateSkillTree(input);
+}
+
+export async function explainTopicAction(input: ExplainTopicInput): Promise<ExplainTopicOutput> {
+    return await explainTopic(input);
 }

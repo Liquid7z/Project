@@ -23,7 +23,9 @@
         "premiumUntil": { "type": "string", "format": "date-time", "description": "Timestamp indicating when the user's premium access expires." },
         "subscriptionStatus": { "type": "string", "description": "The status of the user's subscription.", "enum": ["active", "expired", "cancelled"] },
         "sharesThisMonth": { "type": "number", "description": "The number of notes shared this month." },
-        "lastShareDate": { "type": "string", "format": "date-time", "description": "The date of the last note share." }
+        "lastShareDate": { "type": "string", "format": "date-time", "description": "The date of the last note share." },
+        "skillTreeGenerations": { "type": "number", "description": "The number of skill trees generated this month." },
+        "lastGenerationDate": { "type": "string", "format": "date-time", "description": "The date of the last skill tree generation." }
       },
       "required": ["id", "email"]
     },
@@ -123,6 +125,7 @@
         "notesWip": { "type": "boolean", "description": "Puts the Notes page into maintenance." },
         "analyzeWip": { "type": "boolean", "description": "Puts the Analyze page into maintenance." },
         "accountWip": { "type": "boolean", "description": "Puts the Account page into maintenance." },
+        "skillTreeWip": { "type": "boolean", "description": "Puts the Skill Tree feature into maintenance." },
         "premiumStyleAnalysis": { "type": "boolean", "description": "Feature flag for premium style analysis." }
       }
     },
@@ -138,6 +141,7 @@
         "docUploadLimit": { "type": "number", "description": "Total document upload limit." },
         "storageLimitMb": { "type": "number", "description": "Cloud storage limit in MB." },
         "dailyAiUsageLimit": { "type": "number", "description": "Daily AI generation/analysis limit." },
+        "skillTreeGenerations": { "type": "number", "description": "Number of skill tree generations allowed per month." },
         "featureAdvancedSkillTree": { "type": "boolean" },
         "featureWhiteboardNotes": { "type": "boolean" },
         "featurePdfPagePreview": { "type": "boolean" },

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote, SendHorizontal, Trash2, History } from 'lucide-react';
+import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote, SendHorizontal, Trash2, History, BrainCircuit } from 'lucide-react';
 import { formatDistanceToNow, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -45,6 +45,7 @@ type PlanConfig = {
     docUploadLimit?: number;
     storageLimitMb?: number;
     dailyAiUsageLimit?: number;
+    skillTreeGenerations?: number;
     featureAdvancedSkillTree?: boolean;
     featureWhiteboardNotes?: boolean;
     featurePdfPagePreview?: boolean;
@@ -76,6 +77,7 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
                 docUploadLimit: 0,
                 storageLimitMb: 0,
                 dailyAiUsageLimit: 0,
+                skillTreeGenerations: 0,
                 featureAdvancedSkillTree: false,
                 featureWhiteboardNotes: false,
                 featurePdfPagePreview: false,
@@ -191,6 +193,10 @@ function PlanConfigForm({ planId, planData, onSave }: { planId: 'free' | 'premiu
                      <div className="space-y-2">
                          <Label htmlFor={`${planId}-ai-limit`}>Daily AI Usage</Label>
                          <Input id={`${planId}-ai-limit`} type="number" value={config.dailyAiUsageLimit ?? ''} onChange={(e) => handleNumericChange('dailyAiUsageLimit', e.target.value)} />
+                     </div>
+                     <div className="space-y-2">
+                         <Label htmlFor={`${planId}-skill-tree-limit`}>Skill Tree Generations</Label>
+                         <Input id={`${planId}-skill-tree-limit`} type="number" value={config.skillTreeGenerations ?? ''} onChange={(e) => handleNumericChange('skillTreeGenerations', e.target.value)} />
                      </div>
                  </div>
 
@@ -778,6 +784,10 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                                 <div className="flex items-center justify-between p-3">
                                    <Label htmlFor="accountWip" className="flex items-center gap-2"><User className="w-4 h-4" />Account Page Active</Label>
                                    <Switch id="accountWip" checked={!siteConfig?.accountWip || false} onCheckedChange={(checked) => handleConfigToggle('accountWip', !checked)} />
+                               </div>
+                               <div className="flex items-center justify-between p-3">
+                                   <Label htmlFor="skillTreeWip" className="flex items-center gap-2"><BrainCircuit className="w-4 h-4" />Skill Tree Active</Label>
+                                   <Switch id="skillTreeWip" checked={!siteConfig?.skillTreeWip || false} onCheckedChange={(checked) => handleConfigToggle('skillTreeWip', !checked)} />
                                </div>
                            </CardContent>
                        </Card>

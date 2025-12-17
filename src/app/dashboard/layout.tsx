@@ -30,7 +30,8 @@ import {
   Shield,
   StickyNote,
   Bell,
-  Feather
+  Feather,
+  BrainCircuit
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -366,5 +367,3 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
-
-    
