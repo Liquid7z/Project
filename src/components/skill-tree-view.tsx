@@ -97,6 +97,8 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
         if(firstChild && lastChild) {
              const childrenMidpoint = ( (firstChild.x ?? 0) + ((lastChild.x ?? 0) + (lastChild.width ?? 0)) ) / 2;
              node.x = childrenMidpoint - width / 2;
+        } else {
+           node.x = x;
         }
 
     } else {
