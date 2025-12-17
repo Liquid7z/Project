@@ -9,16 +9,16 @@ const MessageSchema = z.object({
   content: z.string(),
 });
 
+export type ExplainTopicInput = z.infer<typeof ExplainTopicInputSchema>;
 const ExplainTopicInputSchema = z.object({
   topic: z.string().describe('The topic or question the user wants to discuss.'),
   history: z.array(MessageSchema).optional().describe('The conversation history.'),
 });
-export type ExplainTopicInput = z.infer<typeof ExplainTopicInputSchema>;
 
+export type ExplainTopicOutput = z.infer<typeof ExplainTopicOutputSchema>;
 const ExplainTopicOutputSchema = z.object({
   response: z.string().describe('The AI\'s conversational response.'),
 });
-export type ExplainTopicOutput = z.infer<typeof ExplainTopicOutputSchema>;
 
 
 export async function explainTopic(input: ExplainTopicInput): Promise<ExplainTopicOutput> {
