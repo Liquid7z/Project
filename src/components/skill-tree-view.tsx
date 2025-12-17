@@ -170,8 +170,28 @@ export function SkillTreeView() {
   };
 
   const handleNodeClick = async (node: Node) => {
-    setChatInput(`Explain "${node.label}" in more detail.`);
+    const question = `Explain "${node.label}" in the context of ${currentTopic}. Keep it concise.`;
+    setChatInput(question);
     setActiveTab('chat');
+    
+    // Auto-submit this question to the chat
+    const newMessages: Message[] = [...messages, { role: 'user', content: question }];
+    setMessages(newMessages);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+        const history = newMessages.slice(0, -1);
+        const result = await explainTopicAction({ topic: question, history });
+        const formattedResponse = await marked.parse(result.response);
+        setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
+    } catch(error) {
+        console.error(error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to get an explanation.'});
+        setMessages(newMessages); // Revert to messages before AI response
+    } finally {
+        setIsChatLoading(false);
+    }
   };
   
   const handleChatSubmit = async (e?: React.FormEvent) => {
