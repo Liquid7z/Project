@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -18,7 +19,7 @@ import { cn } from '@/lib/utils';
 interface Node {
   id: string;
   label: string;
-  type: 'root' | 'pillar' | 'concept' | 'detail';
+  type: 'root' | 'pillar' | 'concept' | 'detail' | 'sub-detail';
   children?: Node[];
   x?: number;
   y?: number;
@@ -36,6 +37,7 @@ const nodeDimensions = {
   pillar: { width: 150, height: 36 },
   concept: { width: 140, height: 32 },
   detail: { width: 130, height: 28 },
+  'sub-detail': { width: 130, height: 28 },
 };
 
 const nodeStyles = {
@@ -43,6 +45,7 @@ const nodeStyles = {
     pillar: 'bg-accent text-accent-foreground font-semibold text-sm',
     concept: 'bg-secondary text-secondary-foreground text-xs',
     detail: 'bg-muted text-muted-foreground text-xs border-dashed',
+    'sub-detail': 'bg-muted/50 text-muted-foreground text-xs border-dashed',
 };
 
 
@@ -357,3 +360,5 @@ export function SkillTreeView() {
     </Card>
   );
 }
+
+  
