@@ -15,7 +15,7 @@ import { z } from 'zod';
 const SkillTreeNodeSchema = z.object({
   id: z.string().describe('A unique identifier for the node (e.g., "quantum-mechanics").'),
   label: z.string().describe('The display name of the topic (e.g., "Quantum Mechanics").'),
-  type: z.enum(['key-concept', 'main-idea', 'detail']).describe("The node's level in the hierarchy: 'key-concept' (the root), 'main-idea' (level 1), or 'detail' (level 2)."),
+  type: z.enum(['key-concept', 'main-idea', 'detail', 'sub-detail']).describe("The node's level in the hierarchy: 'key-concept' (root), 'main-idea' (L1), 'detail' (L2), or 'sub-detail' (L3)."),
   isPlaceholder: z.boolean().optional().describe('True if this node is a placeholder and not a real entity yet.'),
 });
 
@@ -43,38 +43,45 @@ const generateSkillTreePrompt = ai.definePrompt({
   name: 'generateSkillTreePrompt',
   input: { schema: GenerateSkillTreeInputSchema },
   output: { schema: GenerateSkillTreeOutputSchema },
-  prompt: `You are an expert curriculum designer. Your task is to generate a hierarchical skill tree for a given topic.
+  prompt: `You are an expert curriculum designer tasked with creating a detailed, hierarchical skill tree for a given topic.
 
 Topic: "{{topic}}"
 
-1.  **Identify the single Key Concept:** Start with one 'key-concept' node representing the main topic.
-2.  **Branch into Main Ideas:** From the key concept, create 2-4 'main-idea' nodes. These are the primary pillars of the topic.
-3.  **Add Supporting Details:** For each 'main-idea', generate 2-3 'detail' nodes. These are specific concepts, facts, or sub-skills.
-4.  **Structure the Output:** Create a valid JSON object with 'nodes' and 'edges'.
-    *   Each node needs a unique 'id' (slug-case), a 'label' (display name), and a 'type' ('key-concept', 'main-idea', or 'detail').
-    *   Each edge connects a parent to a child (e.g., key-concept to main-idea, main-idea to detail).
-5.  **Ensure Full Connectivity:** All nodes must be part of the tree. There should be no orphaned nodes.
+Generate a four-level skill tree with the following structure:
 
-Example for the topic "Machine Learning":
+1.  **Level 0 (key-concept):** The single root node representing the main topic.
+2.  **Level 1 (main-idea):** 2-3 key pillars or major sub-divisions that branch directly from the root topic.
+3.  **Level 2 (detail):** 2-4 core concepts that branch from each 'main-idea'. These should be the essential components of the parent idea.
+4.  **Level 3 (sub-detail):** 2-4 specific facts, examples, or sub-skills that branch from each 'detail'. These are the most granular points.
+
+**Instructions:**
+*   Create a valid JSON object with 'nodes' and 'edges'.
+*   Each node must have a unique 'id' (slug-case), a 'label' (display name), and a 'type' ('key-concept', 'main-idea', 'detail', or 'sub-detail').
+*   Each edge must connect a parent to a child, ensuring a strict four-level hierarchy.
+*   Ensure all nodes are connected. There should be no orphaned nodes.
+
+Example for the topic "Cooking":
 {
   "nodes": [
-    { "id": "machine-learning", "label": "Machine Learning", "type": "key-concept" },
-    { "id": "supervised-learning", "label": "Supervised Learning", "type": "main-idea" },
-    { "id": "unsupervised-learning", "label": "Unsupervised Learning", "type": "main-idea" },
-    { "id": "regression", "label": "Regression", "type": "detail" },
-    { "id": "classification", "label": "Classification", "type": "detail" },
-    { "id": "clustering", "label": "Clustering", "type": "detail" }
+    { "id": "cooking", "label": "Cooking", "type": "key-concept" },
+    { "id": "knife-skills", "label": "Knife Skills", "type": "main-idea" },
+    { "id": "heat-management", "label": "Heat Management", "type": "main-idea" },
+    { "id": "dicing", "label": "Dicing", "type": "detail" },
+    { "id": "julienne", "label": "Julienne", "type": "detail" },
+    { "id": "uniform-cuts", "label": "Uniform Cuts", "type": "sub-detail" },
+    { "id": "blade-safety", "label": "Blade Safety", "type": "sub-detail" }
   ],
   "edges": [
-    { "id": "edge-ml-supervised", "source": "machine-learning", "target": "supervised-learning" },
-    { "id": "edge-ml-unsupervised", "source": "machine-learning", "target": "unsupervised-learning" },
-    { "id": "edge-supervised-regression", "source": "supervised-learning", "target": "regression" },
-    { "id": "edge-supervised-classification", "source": "supervised-learning", "target": "classification" },
-    { "id": "edge-unsupervised-clustering", "source": "unsupervised-learning", "target": "clustering" }
+    { "id": "e-cook-knife", "source": "cooking", "target": "knife-skills" },
+    { "id": "e-cook-heat", "source": "cooking", "target": "heat-management" },
+    { "id": "e-knife-dicing", "source": "knife-skills", "target": "dicing" },
+    { "id": "e-knife-julienne", "source": "knife-skills", "target": "julienne" },
+    { "id": "e-dicing-uniform", "source": "dicing", "target": "uniform-cuts" },
+    { "id": "e-dicing-safety", "source": "dicing", "target": "blade-safety" }
   ]
 }
 
-Now, generate the skill tree for the topic: "{{topic}}".
+Now, generate the complete skill tree for the topic: "{{topic}}".
 `,
 });
 

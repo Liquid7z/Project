@@ -38,7 +38,7 @@ import { ChatView } from './chat-view';
 interface Node {
     id: string;
     label: string;
-    type: 'subject' | 'note' | 'key-concept' | 'main-idea' | 'detail';
+    type: 'subject' | 'note' | 'key-concept' | 'main-idea' | 'detail' | 'sub-detail';
     x: number;
     y: number;
     subjectId?: string;
@@ -299,6 +299,8 @@ export function SkillTreeView() {
                 return 'bg-accent text-accent-foreground border-accent-foreground/50';
             case 'detail':
                 return 'bg-secondary text-secondary-foreground border-border';
+            case 'sub-detail':
+                 return 'bg-muted text-muted-foreground border-border';
             case 'subject':
                 return 'bg-primary text-primary-foreground';
             case 'note':
