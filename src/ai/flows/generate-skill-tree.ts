@@ -1,3 +1,4 @@
+
 'use server';
 
 import {ai} from '@/ai/genkit';
@@ -10,12 +11,12 @@ const NodeSchema = z.object({
   children: z.array(z.lazy(() => NodeSchema)).optional().describe('Child nodes representing sub-topics.'),
 });
 
-export const GenerateSkillTreeInputSchema = z.object({
+const GenerateSkillTreeInputSchema = z.object({
   topic: z.string().describe('The central topic for which to generate a skill tree.'),
 });
 export type GenerateSkillTreeInput = z.infer<typeof GenerateSkillTreeInputSchema>;
 
-export const GenerateSkillTreeOutputSchema = z.object({
+const GenerateSkillTreeOutputSchema = z.object({
   tree: NodeSchema.describe('The root node of the generated skill tree.'),
 });
 export type GenerateSkillTreeOutput = z.infer<typeof GenerateSkillTreeOutputSchema>;
