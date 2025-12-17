@@ -74,7 +74,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
     
     node.children.forEach((child) => {
       const childDims = nodeDimensions[child.type] || nodeDimensions.detail;
-      const childX = currentX + childDims.width / 2;
+      const childX = currentX;
       edges.push({ source: node.id, target: child.id });
       const { nodes: childNodes, edges: childEdges } = calculateLayout(child, childX, y + yGap, depth + 1);
       nodes = nodes.concat(childNodes);
@@ -158,7 +158,7 @@ export function SkillTreeView() {
 
         const treeWidth = maxX - minX;
         const treeHeight = maxY - minY;
-
+        
         let initialScale = Math.min(viewWidth / (treeWidth + 100), viewHeight / (treeHeight + 100));
         if (!isFinite(initialScale) || initialScale <= 0) {
             initialScale = 1;
@@ -197,7 +197,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
 
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content.replace(/<[^>]+>/g, '')}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content.replace(/<[^>]+>/g, '')}));
         const result = await explainTopicAction({ topic: question, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -221,7 +221,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, text: m.content}));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -423,5 +423,3 @@ export function SkillTreeView() {
     </Card>
   );
 }
-
-    
