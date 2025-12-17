@@ -153,7 +153,7 @@ export function SkillTreeView() {
         const treeWidth = maxX - minX;
         const treeHeight = maxY - minY;
 
-        let initialScale = Math.min(viewWidth / (treeWidth + 100), viewHeight / (treeHeight + 100), 1);
+        let initialScale = Math.min(viewWidth / (treeWidth + 100), viewHeight / (treeHeight + 100));
         if (!isFinite(initialScale) || initialScale <= 0) {
             initialScale = 1;
         }
@@ -348,15 +348,22 @@ export function SkillTreeView() {
                                           const sourceNode = nodes.find(n => n.id === edge.source);
                                           const targetNode = nodes.find(n => n.id === edge.target);
                                           if (!sourceNode || !targetNode) return null;
+                                          
+                                          const x1 = (sourceNode.x ?? 0) + (sourceNode.width ?? 0) / 2;
+                                          const y1 = (sourceNode.y ?? 0) + (sourceNode.height ?? 0);
+                                          const x2 = (targetNode.x ?? 0) + (targetNode.width ?? 0) / 2;
+                                          const y2 = (targetNode.y ?? 0);
+                                          
+                                          const c1y = y1 + (y2 - y1) / 2;
+                                          const c2y = y2 - (y2 - y1) / 2;
+
                                           return (
-                                            <line
+                                            <path
                                               key={`${edge.source}-${edge.target}`}
-                                              x1={(sourceNode.x ?? 0) + (sourceNode.width ?? 0) / 2}
-                                              y1={(sourceNode.y ?? 0) + (sourceNode.height ?? 0)}
-                                              x2={(targetNode.x ?? 0) + (targetNode.width ?? 0) / 2}
-                                              y2={(targetNode.y ?? 0)}
+                                              d={`M ${x1} ${y1} C ${x1} ${c1y}, ${x2} ${c2y}, ${x2} ${y2}`}
                                               stroke="hsl(var(--border))"
                                               strokeWidth="1"
+                                              fill="none"
                                               markerEnd="url(#arrow)"
                                             />
                                           );
@@ -409,3 +416,4 @@ export function SkillTreeView() {
     </Card>
   );
 }
+
