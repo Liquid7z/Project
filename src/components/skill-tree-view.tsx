@@ -55,7 +55,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
   const yGap = 80;
   const xGap = 180;
 
-  const { width, height } = nodeDimensions[node.type];
+  const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
   node.width = width;
   node.height = height;
   node.x = x;
@@ -184,7 +184,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
 
     try {
-        const history = newMessages.slice(0, -1);
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content.replace(/<[^>]+>/g, '')}));
         const result = await explainTopicAction({ topic: question, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -208,7 +208,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1);
+        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content.replace(/<[^>]+>/g, '')}));
         const result = await explainTopicAction({ topic: input, history });
         const formattedResponse = await marked.parse(result.response);
         setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
@@ -319,7 +319,7 @@ export function SkillTreeView() {
                                             initial={{ opacity: 0, scale: 0.5 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             transition={{ delay: 0.1 * (parseInt(node.id.replace(/\./g, '')) % 10) }}
-                                            className={cn('absolute flex items-center justify-center p-2 rounded-md border text-center cursor-pointer', nodeStyles[node.type])}
+                                            className={cn('absolute flex items-center justify-center p-2 rounded-md border text-center cursor-pointer', nodeStyles[node.type] || nodeStyles.detail)}
                                             style={{
                                                 left: node.x,
                                                 top: node.y,
@@ -361,4 +361,4 @@ export function SkillTreeView() {
   );
 }
 
-  
+    
