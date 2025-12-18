@@ -64,57 +64,69 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
     const allNodes: Node[] = [];
     const edges: Edge[] = [];
-    const xSpacing = 250;
-    const ySpacing = 120;
+    const xSpacing = 220; // Horizontal spacing between nodes
+    const ySpacing = 100; // Vertical spacing between levels
 
-    const calculateSubtreeWidth = (node: Node): number => {
-        if (!node || !node.children || node.children.filter(Boolean).length === 0) {
-            return (nodeDimensions[node.type] || nodeDimensions.detail).width;
+    // Helper to calculate the total height of a subtree
+    const calculateSubtreeHeight = (node: Node | null): number => {
+        if (!node) return 0;
+        const validChildren = (node.children || []).filter(Boolean);
+        if (validChildren.length === 0) {
+            return (nodeDimensions[node.type] || nodeDimensions.detail).height;
         }
-        return node.children.filter(Boolean).reduce((acc, child) => acc + calculateSubtreeWidth(child) + xSpacing, -xSpacing);
+        // Sum of children's subtree heights + spacing between them
+        return validChildren.reduce((acc, child) => acc + calculateSubtreeHeight(child), 0) + (validChildren.length - 1) * (ySpacing / 2);
     };
 
-    function traverse(node: Node | null, depth: number, xOffset: number, yOffset: number) {
+    function traverse(node: Node | null, depth: number, parentY: number) {
         if (!node) return;
 
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
         node.height = height;
-        
-        const subtreeWidth = calculateSubtreeWidth(node);
-        node.x = xOffset + (subtreeWidth - width) / 2;
-        node.y = yOffset;
-        
-        allNodes.push(node);
 
+        node.x = depth * xSpacing;
+        
         const validChildren = (node.children || []).filter(Boolean);
         if (validChildren.length > 0) {
-            let currentXOffset = xOffset;
+            const totalSubtreeHeight = calculateSubtreeHeight(node);
+            node.y = parentY;
+            
+            // Start placing children from the top of the allocated vertical space
+            let currentYOffset = parentY - (totalSubtreeHeight / 2);
+
             validChildren.forEach(child => {
-                const childSubtreeWidth = calculateSubtreeWidth(child);
-                traverse(child, depth + 1, currentXOffset, yOffset + ySpacing);
+                const childSubtreeHeight = calculateSubtreeHeight(child);
+                const childY = currentYOffset + (childSubtreeHeight / 2);
+                
+                traverse(child, depth + 1, childY);
                 
                 const parentPos = node;
                 const childPos = child;
 
-                const startX = parentPos.x! + parentPos.width! / 2;
-                const startY = parentPos.y! + parentPos.height!;
-                const endX = childPos.x! + childPos.width! / 2;
-                const endY = childPos.y!;
-                const midY = startY + (endY - startY) / 2;
+                const startX = parentPos.x! + parentPos.width!;
+                const startY = parentPos.y! + parentPos.height! / 2;
+                const endX = childPos.x!;
+                const endY = childPos.y! + childPos.height! / 2;
                 
+                const midX = startX + (endX - startX) / 2;
+
                 edges.push({
                     source: node.id,
                     target: child.id,
-                    path: `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`,
+                    path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`,
                 });
-                
-                currentXOffset += childSubtreeWidth + xSpacing;
+
+                currentYOffset += childSubtreeHeight + (ySpacing / 2);
             });
+        } else {
+             node.y = parentY;
         }
+
+        allNodes.push(node);
     }
 
-    traverse(rootNode, 0, 0, 0);
+    traverse(rootNode, 0, 0);
 
     return { nodes: allNodes, edges };
 };
@@ -144,8 +156,8 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
 
       if (newNodes.length > 0) {
         const rootNode = newNodes.find(n => n.type === 'root');
-        const initialX = rootNode ? rootNode.x! - 400 : -200;
-        const initialY = rootNode ? rootNode.y! - 100 : -400;
+        const initialX = rootNode ? rootNode.x! - 200 : -200;
+        const initialY = rootNode ? rootNode.y! - 400 : -400;
         setViewBox(prev => ({ ...prev, x: initialX, y: initialY }));
       }
     }
@@ -167,7 +179,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         toast({
           variant: 'destructive',
           title: 'Failed to generate skill tree',
-          description: 'The AI model did not return a valid tree structure. Please try again.',
+          description: 'The AI model did not return a valid tree structure. Please try again or rephrase your topic.',
         });
       }
     } catch (error) {

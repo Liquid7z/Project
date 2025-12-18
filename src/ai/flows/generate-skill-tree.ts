@@ -17,7 +17,7 @@ const GenerateSkillTreeInputSchema = z.object({
 export type GenerateSkillTreeInput = z.infer<typeof GenerateSkillTreeInputSchema>;
 
 const GenerateSkillTreeOutputSchema = z.object({
-  tree: NodeSchema.describe('The root node of the generated skill tree.'),
+  tree: NodeSchema.nullable().describe('The root node of the generated skill tree, or null if generation fails.'),
 });
 export type GenerateSkillTreeOutput = z.infer<typeof GenerateSkillTreeOutputSchema>;
 
@@ -48,22 +48,29 @@ Rules:
 - Generate a rich, well-structured tree. For a topic like "React.js", you should have multiple pillars like "Core Concepts", "Hooks", "State Management", and "Ecosystem".
 `;
 
-    const llmResponse = await ai.generate({
-      prompt,
-      model: 'googleai/gemini-2.5-flash',
-      config: {
-        temperature: 0.3,
-      },
-      output: {
-        schema: GenerateSkillTreeOutputSchema,
-      },
-    });
+    try {
+        const llmResponse = await ai.generate({
+          prompt,
+          model: 'googleai/gemini-2.5-flash',
+          config: {
+            temperature: 0.3,
+          },
+          output: {
+            schema: GenerateSkillTreeOutputSchema,
+          },
+        });
 
-    const output = llmResponse.output;
-    if (!output) {
-      throw new Error('Failed to generate skill tree. The model returned no output.');
+        const output = llmResponse.output;
+        if (!output) {
+          console.error('AI model returned no output for skill tree generation.');
+          return { tree: null };
+        }
+
+        return output;
+    } catch (error) {
+        console.error('Error during skill tree generation or parsing:', error);
+        // Return a null tree to indicate failure without crashing the server action.
+        return { tree: null };
     }
-
-    return output;
   }
 );
