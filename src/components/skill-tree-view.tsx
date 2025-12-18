@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatView } from './chat-view';
 import type { Message } from './chat-view';
-import { marked } from 'marked';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SaveNoteDialog } from '@/components/save-note-dialog';
@@ -113,18 +112,6 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
 };
 
 
-const getAllNodeIds = (node: Node | null): string[] => {
-    if (!node) return [];
-    let ids = [node.id];
-    if (node.children) {
-        node.children.forEach(child => {
-            if (child) { // Check if child is not null
-                ids = ids.concat(getAllNodeIds(child));
-            }
-        });
-    }
-    return ids;
-}
 
 
 function deepCopy<T>(obj: T): T {
@@ -279,19 +266,6 @@ export function SkillTreeView() {
     });
   };
   
-  const findNode = (node: Node, id: string): Node | null => {
-    if (node.id === id) return node;
-    if (node.children) {
-        for (const child of node.children) {
-            if (child) {
-                const found = findNode(child, id);
-                if (found) return found;
-            }
-        }
-    }
-    return null;
-  }
-
   const handleSelectAllToggle = (checked: boolean) => {
     if (checked) {
         setSelectedNodes(new Set(nodes.map(n => n.id)));
@@ -357,8 +331,7 @@ export function SkillTreeView() {
     try {
         const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
         const result = await explainTopicAction({ topic: question, history });
-        const formattedResponse = await marked.parse(result.response);
-        setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
+        setMessages(prev => [...prev, { role: 'model', content: result.response }]);
     } catch(error) {
         console.error(error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to get an explanation.'});
@@ -381,8 +354,7 @@ export function SkillTreeView() {
     try {
         const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
         const result = await explainTopicAction({ topic: input, history });
-        const formattedResponse = await marked.parse(result.response);
-        setMessages(prev => [...prev, { role: 'model', content: formattedResponse }]);
+        setMessages(prev => [...prev, { role: 'model', content: result.response }]);
     } catch(error) {
         console.error(error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to get a response from the AI.'});

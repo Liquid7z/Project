@@ -3,6 +3,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
+import {marked} from 'marked';
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -32,7 +33,7 @@ const explainTopicFlow = ai.defineFlow(
         outputSchema: ExplainTopicOutputSchema,
     },
     async (input) => {
-        const { topic, history } = input;
+        const { topic, history = [] } = input;
         
         const systemPrompt = `You are an expert educator and versatile AI assistant. Your goal is to provide clear, conversational, and accurate explanations on any topic the user asks about. You can handle a wide range of requests, including writing code, explaining complex concepts in science, history, or engineering, and providing guidance on building projects.
 
@@ -47,15 +48,17 @@ When responding:
         const llmResponse = await ai.generate({
             model: 'googleai/gemini-2.5-flash',
             system: systemPrompt,
-            history: history,
+            history: history.map(msg => ({ role: msg.role, content: msg.content })),
             prompt: topic,
             config: {
                 temperature: 0.5,
             },
         });
         
+        const formattedResponse = await marked.parse(llmResponse.text);
+
         return {
-            response: llmResponse.text,
+            response: formattedResponse,
         };
     }
 );
