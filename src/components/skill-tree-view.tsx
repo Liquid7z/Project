@@ -200,8 +200,8 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         setActiveNodeId(nodeId);
         
         const activeNode = findNodeById(tree, nodeId);
-        if (activeNode && activeNode.children) {
-            const childIds = new Set(activeNode.children.map(child => child.id));
+        if (activeNode && Array.isArray(activeNode.children)) {
+            const childIds = new Set(activeNode.children.filter(Boolean).map(child => child.id));
             setActiveChildIds(childIds);
         } else {
             setActiveChildIds(new Set());
@@ -211,7 +211,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     const findNodeById = (node: Node | null, id: string): Node | null => {
         if (!node) return null;
         if (node.id === id) return node;
-        if (node.children) {
+        if (Array.isArray(node.children)) {
             for (const child of node.children) {
                 const found = findNodeById(child, id);
                 if (found) return found;
