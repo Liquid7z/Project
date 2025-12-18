@@ -1,9 +1,8 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader, Send, Save, BookOpen, CheckCircle, MessageSquare } from 'lucide-react';
@@ -93,8 +92,7 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         yOffset += ySpacing;
 
         if (node.children && node.children.length > 0) {
-            // Filter out any null children before mapping
-            node.children.filter(child => child).forEach(child => traverse(child, depth + 1, node));
+             node.children.filter(Boolean).forEach(child => traverse(child, depth + 1, node));
         }
     }
 
