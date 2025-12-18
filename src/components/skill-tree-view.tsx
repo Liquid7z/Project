@@ -82,7 +82,7 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
              const endX = node.x! + node.width! / 2;
              const endY = node.y!;
              
-             const path = `M ${startX},${startY} L ${startX},${startY + (endY - startY)/2} L ${endX},${startY + (endY - startY)/2} L ${endX},${endY}`;
+             const path = `M ${startX},${startY} C ${startX},${startY + (endY - startY)/2} ${endX},${startY + (endY - startY)/2} ${endX},${endY}`;
 
              edges.push({
                  source: parent.id,
@@ -95,7 +95,7 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         const initialYOffset = yOffset;
 
         if (childrenCount > 0) {
-            node.children?.forEach((child, index) => {
+             node.children!.filter(child => child !== null).forEach((child, index) => {
                  if (index > 0) {
                     yOffset += ySpacing;
                  }
@@ -290,9 +290,9 @@ export function SkillTreeView() {
                                 key={`${edge.source}-${edge.target}`}
                                 d={edge.path}
                                 fill="none"
-                                stroke={activeNodeId === edge.source ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
-                                strokeWidth={activeNodeId === edge.source ? 2 : 1}
-                                className={cn("transition-all", activeNodeId === edge.source && "stroke-accent animate-pulse")}
+                                stroke={activeNodeId === edge.source || activeNodeId === edge.target ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
+                                strokeWidth={activeNodeId === edge.source || activeNodeId === edge.target ? 2 : 1}
+                                className={cn("transition-all", (activeNodeId === edge.source || activeNodeId === edge.target) && "stroke-accent animate-pulse")}
                             />
                        ))}
                        {nodes.map(node => (
@@ -371,13 +371,23 @@ function NormalChat() {
 
     const handleSendMessage = async () => {
         if (!input.trim()) return;
-        const newMessages: Message[] = [...messages, { role: 'user', content: input }];
+        const userMessage: Message = { role: 'user', content: input };
+        const newMessages: Message[] = [...messages, userMessage];
         setMessages(newMessages);
         setInput('');
         setIsLoading(true);
-
+    
         try {
-            const result = await explainTopicAction({ topic: input, history: messages });
+            // Ensure history alternates between user and model
+            const history = newMessages.slice(0, -1).reduce((acc, msg, i) => {
+                // If it's the first message, or different from the last role, add it
+                if (i === 0 || msg.role !== acc[acc.length - 1]?.role) {
+                    acc.push(msg);
+                }
+                return acc;
+            }, [] as Message[]);
+    
+            const result = await explainTopicAction({ topic: input, history: history });
             setMessages([...newMessages, { role: 'model', content: result.response }]);
         } catch (error) {
             console.error(error);
@@ -386,6 +396,9 @@ function NormalChat() {
                 title: 'An error occurred',
                 description: 'Could not get a response from the AI.',
             });
+            // Restore user input on failure
+            setInput(input);
+            setMessages(messages);
         } finally {
             setIsLoading(false);
         }
