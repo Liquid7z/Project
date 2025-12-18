@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -66,64 +67,54 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     const xSpacing = 250;
     const ySpacing = 120;
 
-    const calculateSubtreeHeight = (node: Node | null): number => {
-        if (!node) return 0;
-        const { height } = nodeDimensions[node.type] || nodeDimensions.detail;
-        if (!node.children || node.children.filter(Boolean).length === 0) {
-            return height + ySpacing;
+    const calculateSubtreeWidth = (node: Node): number => {
+        if (!node || !node.children || node.children.filter(Boolean).length === 0) {
+            return (nodeDimensions[node.type] || nodeDimensions.detail).width;
         }
-        return node.children.filter(Boolean).reduce((acc, child) => acc + calculateSubtreeHeight(child), 0);
+        return node.children.filter(Boolean).reduce((acc, child) => acc + calculateSubtreeWidth(child) + xSpacing, -xSpacing);
     };
 
-    function traverse(node: Node | null, depth: number, parentX: number | null, parentY: number) {
+    function traverse(node: Node | null, depth: number, xOffset: number, yOffset: number) {
         if (!node) return;
 
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
         node.height = height;
-        node.x = depth * xSpacing;
-        node.y = parentY;
-
+        
+        const subtreeWidth = calculateSubtreeWidth(node);
+        node.x = xOffset + (subtreeWidth - width) / 2;
+        node.y = yOffset;
+        
         allNodes.push(node);
 
         const validChildren = (node.children || []).filter(Boolean);
         if (validChildren.length > 0) {
-            const totalSubtreeHeight = validChildren.reduce((acc, child) => acc + calculateSubtreeHeight(child), 0);
-            const firstChildDimensions = nodeDimensions[validChildren[0].type] || nodeDimensions.detail;
-            let currentYOffset = parentY - (totalSubtreeHeight / 2) + (calculateSubtreeHeight(validChildren[0]) / 2) - (firstChildDimensions.height / 2);
-
+            let currentXOffset = xOffset;
             validChildren.forEach(child => {
-                const childSubtreeHeight = calculateSubtreeHeight(child);
-                traverse(child, depth + 1, node.x, currentYOffset);
-                currentYOffset += childSubtreeHeight;
+                const childSubtreeWidth = calculateSubtreeWidth(child);
+                traverse(child, depth + 1, currentXOffset, yOffset + ySpacing);
+                
+                const parentPos = node;
+                const childPos = child;
+
+                const startX = parentPos.x! + parentPos.width! / 2;
+                const startY = parentPos.y! + parentPos.height!;
+                const endX = childPos.x! + childPos.width! / 2;
+                const endY = childPos.y!;
+                const midY = startY + (endY - startY) / 2;
+                
+                edges.push({
+                    source: node.id,
+                    target: child.id,
+                    path: `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`,
+                });
+                
+                currentXOffset += childSubtreeWidth + xSpacing;
             });
         }
     }
 
-    traverse(rootNode, 0, null, 0);
-
-    // Create edges now that all nodes are positioned
-    allNodes.forEach(node => {
-        if (node.children) {
-            node.children.filter(Boolean).forEach(child => {
-                const parentPos = allNodes.find(n => n.id === node.id);
-                const childPos = allNodes.find(n => n.id === child.id);
-                if (parentPos && childPos) {
-                    const startX = parentPos.x! + parentPos.width! / 2;
-                    const startY = parentPos.y! + parentPos.height!;
-                    const endX = childPos.x! + childPos.width! / 2;
-                    const endY = childPos.y!;
-                    const midY = startY + (endY - startY) / 2;
-                    
-                    edges.push({
-                        source: node.id,
-                        target: child.id,
-                        path: `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`,
-                    });
-                }
-            });
-        }
-    });
+    traverse(rootNode, 0, 0, 0);
 
     return { nodes: allNodes, edges };
 };
@@ -153,8 +144,8 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
 
       if (newNodes.length > 0) {
         const rootNode = newNodes.find(n => n.type === 'root');
-        const initialX = rootNode ? rootNode.x! - 200 : -200;
-        const initialY = rootNode ? rootNode.y! - 400 : -400;
+        const initialX = rootNode ? rootNode.x! - 400 : -200;
+        const initialY = rootNode ? rootNode.y! - 100 : -400;
         setViewBox(prev => ({ ...prev, x: initialX, y: initialY }));
       }
     }
