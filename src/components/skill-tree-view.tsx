@@ -52,88 +52,88 @@ const nodeColors = {
 };
 
 const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] } => {
-  if (!rootNode) return { nodes: [], edges: [] };
+    if (!rootNode) return { nodes: [], edges: [] };
 
-  const allNodes: Node[] = [];
-  const edges: Edge[] = [];
-  const xSpacing = 220;
-  const ySpacing = 80;
-  
-  const positionedNodes = new Map<string, Node>();
+    const allNodes: Node[] = [];
+    const edges: Edge[] = [];
+    const xSpacing = 220;
+    const ySpacing = 80;
 
-  function traverse(node: Node, depth: number, parent: Node | null) {
-    if (!node) return;
-    
-    const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
-    node.width = width;
-    node.height = height;
-    
-    node.x = depth * xSpacing;
-    
-    // We will set y later
-    allNodes.push(node);
-    
-    if (parent) {
-      edges.push({ source: parent.id, target: node.id, path: '' });
+    const positionedNodes = new Map<string, Node>();
+
+    function traverse(node: Node, depth: number, parent: Node | null) {
+        if (!node) return;
+
+        const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
+        node.width = width;
+        node.height = height;
+
+        node.x = depth * xSpacing;
+        
+        allNodes.push(node);
+        
+        if (parent) {
+            edges.push({ source: parent.id, target: node.id, path: '' });
+        }
+        
+        if (node.children) {
+            node.children.filter(Boolean).forEach(child => traverse(child, depth + 1, node));
+        }
     }
-    
-    if (node.children) {
-        node.children.filter(Boolean).forEach(child => traverse(child, depth + 1, node));
+
+    traverse(rootNode, 0, null);
+
+    const levels: Node[][] = [];
+    allNodes.forEach(node => {
+        const depth = Math.floor(node.x! / xSpacing);
+        if (!levels[depth]) {
+            levels[depth] = [];
+        }
+        levels[depth].push(node);
+    });
+
+    let currentY = 0;
+    for (let i = levels.length - 1; i >= 0; i--) {
+        levels[i].forEach(node => {
+            if (!node.children || node.children.length === 0) {
+                node.y = currentY;
+                currentY += ySpacing;
+            } else {
+                const childNodes = node.children.filter(Boolean).map(child => allNodes.find(n => n.id === child.id)).filter(Boolean) as Node[];
+                if (childNodes.length > 0) {
+                    const firstChildY = childNodes[0].y;
+                    const lastChildY = childNodes[childNodes.length - 1].y;
+                    node.y = firstChildY! + (lastChildY! - firstChildY!) / 2;
+                }
+            }
+            positionedNodes.set(node.id, node);
+        });
     }
-  }
 
-  traverse(rootNode, 0, null);
+    const allY = allNodes.map(n => n.y!).filter(y => y !== undefined);
+    if(allY.length > 0) {
+        const minY = Math.min(...allY);
+        const maxY = Math.max(...allY);
+        const treeHeight = maxY - minY;
+        const yOffset = -minY - treeHeight / 2;
+        allNodes.forEach(n => { if (n.y !== undefined) n.y += yOffset; });
+    }
 
-  // Position nodes vertically
-  const levels: Node[][] = [];
-  allNodes.forEach(node => {
-      const depth = Math.floor(node.x! / xSpacing);
-      if (!levels[depth]) {
-          levels[depth] = [];
-      }
-      levels[depth].push(node);
-  });
+    edges.forEach(edge => {
+        const parent = positionedNodes.get(edge.source);
+        const child = positionedNodes.get(edge.target);
+        if (parent && child && parent.x !== undefined && parent.y !== undefined && child.x !== undefined && child.y !== undefined) {
+            const startX = parent.x! + parent.width! / 2;
+            const startY = parent.y! + parent.height!;
+            const endX = child.x! + child.width! / 2;
+            const endY = child.y!;
+            const midY = startY + (endY - startY) / 2;
 
-  let currentY = 0;
-  for (let i = levels.length - 1; i >= 0; i--) {
-      levels[i].forEach(node => {
-          if (!node.children || node.children.length === 0) {
-              node.y = currentY;
-              currentY += ySpacing;
-          } else {
-              const childNodes = node.children.filter(Boolean).map(child => allNodes.find(n => n.id === child.id)).filter(Boolean) as Node[];
-              if(childNodes.length > 0) {
-                 const firstChildY = childNodes[0].y;
-                 const lastChildY = childNodes[childNodes.length - 1].y;
-                 node.y = firstChildY! + (lastChildY! - firstChildY!) / 2;
-              }
-          }
-          positionedNodes.set(node.id, node);
-      });
-  }
+            edge.path = `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`;
+        }
+    });
 
-  // Center the entire tree vertically
-  const allY = allNodes.map(n => n.y!);
-  const minY = Math.min(...allY);
-  const maxY = Math.max(...allY);
-  const treeHeight = maxY - minY;
-  const yOffset = -minY - treeHeight / 2;
-  allNodes.forEach(n => { n.y! += yOffset; });
-
-  // Generate edge paths now that nodes are positioned
-  edges.forEach(edge => {
-      const parent = positionedNodes.get(edge.source)!;
-      const child = positionedNodes.get(edge.target)!;
-      const startX = parent.x! + parent.width!;
-      const startY = parent.y! + parent.height! / 2;
-      const endX = child.x!;
-      const endY = child.y! + child.height! / 2;
-      const midX = startX + (endX - startX) / 2;
-      
-      edge.path = `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`;
-  });
-
-  return { nodes: allNodes, edges };
+    return { nodes: allNodes, edges };
 };
 
 
@@ -373,11 +373,11 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                      onMouseLeave={handleMouseLeave}
                  >
                     <defs>
-                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
                             <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="SourceGraphic" />
                             </feMerge>
                         </filter>
                     </defs>
@@ -400,12 +400,13 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                                      initial={{ opacity: 0, scale: 0.8 }}
                                      animate={{ opacity: 1, scale: 1 }}
                                      className={cn(
-                                         'flex flex-col justify-center items-center p-2 rounded-md h-full w-full transition-all',
+                                         'flex flex-col justify-center items-center p-2 rounded-md h-full w-full transition-all text-center',
                                          nodeColors[node.type],
                                          activeNodeId === node.id && 'shadow-lg shadow-accent/50'
                                      )}
                                  >
-                                     <p className="font-bold text-center text-sm leading-tight">{node.label}</p>
+                                    <p className="font-bold text-sm leading-tight">{node.label}</p>
+                                    <p className="text-xs text-muted-foreground capitalize">{node.type}</p>
                                  </motion.div>
                                </foreignObject>
                             </PopoverTrigger>
