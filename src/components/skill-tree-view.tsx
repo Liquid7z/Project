@@ -58,6 +58,7 @@ const activeNodeColors = {
     'sub-detail': 'bg-muted/60 border-muted-foreground/80 shadow-[0_0_8px_hsl(var(--muted-foreground)/80)]',
 };
 
+
 const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] } => {
     if (!rootNode) return { nodes: [], edges: [] };
 
@@ -127,7 +128,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
     secondPass(rootNode, 0, 0);
 
-    return { nodes: allNodes, edges };
+    return { nodes: allNodes, edges: edges };
 };
 
 
@@ -144,6 +145,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
   
   const svgRef = useRef<SVGSVGElement>(null);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+  const [activeChildIds, setActiveChildIds] = useState<Set<string>>(new Set());
   
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSaveNoteDialogOpen, setIsSaveNoteDialogOpen] = useState(false);
@@ -196,6 +198,26 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
         e.stopPropagation();
         setActiveNodeId(nodeId);
+        
+        const activeNode = findNodeById(tree, nodeId);
+        if (activeNode && activeNode.children) {
+            const childIds = new Set(activeNode.children.map(child => child.id));
+            setActiveChildIds(childIds);
+        } else {
+            setActiveChildIds(new Set());
+        }
+    };
+
+    const findNodeById = (node: Node | null, id: string): Node | null => {
+        if (!node) return null;
+        if (node.id === id) return node;
+        if (node.children) {
+            for (const child of node.children) {
+                const found = findNodeById(child, id);
+                if (found) return found;
+            }
+        }
+        return null;
     };
     
     const handleNodeToggle = (nodeId: string, isChecked: boolean) => {
@@ -380,77 +402,83 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                         </filter>
                     </defs>
                     <g>
-                       {edges.map(edge => (
-                           <path
-                                key={`${edge.source}-${edge.target}`}
-                                d={edge.path}
-                                fill="none"
-                                stroke={activeNodeId === edge.source ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
-                                strokeWidth={2}
-                                className={cn("transition-all", activeNodeId === edge.source && "glow-edge")}
-                            />
-                       ))}
+                       {edges.map(edge => {
+                           const isSourceActive = activeNodeId === edge.source;
+                           return (
+                               <path
+                                    key={`${edge.source}-${edge.target}`}
+                                    d={edge.path}
+                                    fill="none"
+                                    stroke={isSourceActive ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
+                                    strokeWidth={2}
+                                    className={cn("transition-all", isSourceActive && "glow-edge")}
+                                />
+                           );
+                       })}
                     </g>
                     <g>
-                       {nodes.map(node => (
-                           <Popover key={node.id}>
-                            <PopoverTrigger asChild>
-                               <foreignObject x={node.x} y={node.y} width={node.width} height={node.height} className="overflow-visible cursor-pointer" onClick={(e) => handleNodeClick(e, node.id)}>
-                                 <motion.div
-                                     initial={{ opacity: 0, scale: 0.8 }}
-                                     animate={{ opacity: 1, scale: 1 }}
-                                     className={cn(
-                                         'flex flex-col justify-center items-center p-2 rounded-md h-full w-full transition-all text-center',
-                                         activeNodeId === node.id ? activeNodeColors[node.type] : nodeColors[node.type]
-                                     )}
-                                 >
-                                    <p className="font-bold text-sm leading-tight">{node.label}</p>
-                                    <p className="text-xs capitalize opacity-70">{node.type}</p>
-                                 </motion.div>
-                               </foreignObject>
-                            </PopoverTrigger>
-                             <PopoverContent className="w-80 glass-pane">
-                                 <div className="space-y-4">
-                                     <div className="space-y-1">
-                                        <h4 className="font-medium leading-none">{node.label}</h4>
-                                        <p className="text-sm text-muted-foreground">{node.definition || 'Click "Get Definition" for a quick summary.'}</p>
+                       {nodes.map(node => {
+                            const isNodeActive = activeNodeId === node.id || activeChildIds.has(node.id);
+                            return (
+                               <Popover key={node.id}>
+                                <PopoverTrigger asChild>
+                                   <foreignObject x={node.x} y={node.y} width={node.width} height={node.height} className="overflow-visible cursor-pointer" onClick={(e) => handleNodeClick(e, node.id)}>
+                                     <motion.div
+                                         initial={{ opacity: 0, scale: 0.8 }}
+                                         animate={{ opacity: 1, scale: 1 }}
+                                         className={cn(
+                                             'flex flex-col justify-center items-center p-2 rounded-md h-full w-full transition-all text-center',
+                                             isNodeActive ? activeNodeColors[node.type] : nodeColors[node.type]
+                                         )}
+                                     >
+                                        <p className="font-bold text-sm leading-tight">{node.label}</p>
+                                        <p className="text-xs capitalize opacity-70">{node.type}</p>
+                                     </motion.div>
+                                   </foreignObject>
+                                </PopoverTrigger>
+                                 <PopoverContent className="w-80 glass-pane">
+                                     <div className="space-y-4">
+                                         <div className="space-y-1">
+                                            <h4 className="font-medium leading-none">{node.label}</h4>
+                                            <p className="text-sm text-muted-foreground">{node.definition || 'Click "Get Definition" for a quick summary.'}</p>
+                                         </div>
+                                         <div className="flex items-center justify-between gap-2">
+                                            <Button 
+                                                variant="outline" size="sm" 
+                                                onClick={async () => {
+                                                    if (node.definition) return;
+                                                    toast({ title: "Getting definition..." });
+                                                    const res = await getShortDefinitionAction({ topic: node.label, context: tree.label });
+                                                    setLayout(prev => ({
+                                                        ...prev,
+                                                        nodes: prev.nodes.map(n => n.id === node.id ? { ...n, definition: res.definition } : n)
+                                                    }));
+                                                }}
+                                                disabled={!!node.definition}
+                                            >
+                                               {node.definition ? <CheckCircle className="mr-2 text-green-500" /> : <BookOpen className="mr-2"/> }
+                                               {node.definition ? 'Defined' : 'Get Definition' }
+                                            </Button>
+                                             <Button variant="secondary" size="sm" onClick={() => onExplainInChat(node.label)}>
+                                                 <MessageSquare className="mr-2" />
+                                                 Explain in Chat
+                                             </Button>
+                                         </div>
+                                          <div className="flex items-center space-x-2 pt-4 border-t">
+                                             <Checkbox
+                                                 id={`check-${node.id}`}
+                                                 checked={selectedIds.has(node.id)}
+                                                 onCheckedChange={(checked) => handleNodeToggle(node.id, !!checked)}
+                                             />
+                                             <Label htmlFor={`check-${node.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                Select for export
+                                             </Label>
+                                         </div>
                                      </div>
-                                     <div className="flex items-center justify-between gap-2">
-                                        <Button 
-                                            variant="outline" size="sm" 
-                                            onClick={async () => {
-                                                if (node.definition) return;
-                                                toast({ title: "Getting definition..." });
-                                                const res = await getShortDefinitionAction({ topic: node.label, context: tree.label });
-                                                setLayout(prev => ({
-                                                    ...prev,
-                                                    nodes: prev.nodes.map(n => n.id === node.id ? { ...n, definition: res.definition } : n)
-                                                }));
-                                            }}
-                                            disabled={!!node.definition}
-                                        >
-                                           {node.definition ? <CheckCircle className="mr-2 text-green-500" /> : <BookOpen className="mr-2"/> }
-                                           {node.definition ? 'Defined' : 'Get Definition' }
-                                        </Button>
-                                         <Button variant="secondary" size="sm" onClick={() => onExplainInChat(node.label)}>
-                                             <MessageSquare className="mr-2" />
-                                             Explain in Chat
-                                         </Button>
-                                     </div>
-                                      <div className="flex items-center space-x-2 pt-4 border-t">
-                                         <Checkbox
-                                             id={`check-${node.id}`}
-                                             checked={selectedIds.has(node.id)}
-                                             onCheckedChange={(checked) => handleNodeToggle(node.id, !!checked)}
-                                         />
-                                         <Label htmlFor={`check-${node.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            Select for export
-                                         </Label>
-                                     </div>
-                                 </div>
-                             </PopoverContent>
-                           </Popover>
-                       ))}
+                                 </PopoverContent>
+                               </Popover>
+                           )
+                       })}
                     </g>
                 </svg>
             </>
