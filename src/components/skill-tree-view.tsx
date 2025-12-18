@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -62,17 +63,15 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
     const allNodes: Node[] = [];
     const edges: Edge[] = [];
-    const xSpacing = 220; // Horizontal spacing between nodes
-    const ySpacing = 100; // Vertical spacing between levels
+    const xSpacing = 220;
+    const ySpacing = 100;
 
-    // Helper to calculate the total height of a subtree
     const calculateSubtreeHeight = (node: Node | null): number => {
         if (!node) return 0;
         const validChildren = (node.children || []).filter(Boolean);
         if (validChildren.length === 0) {
             return (nodeDimensions[node.type] || nodeDimensions.detail).height;
         }
-        // Sum of children's subtree heights + spacing between them
         return validChildren.reduce((acc, child) => acc + calculateSubtreeHeight(child), 0) + (validChildren.length - 1) * (ySpacing / 2);
     };
 
@@ -82,16 +81,14 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
         node.height = height;
-
         node.x = depth * xSpacing;
         
         const validChildren = (node.children || []).filter(Boolean);
         if (validChildren.length > 0) {
-            const totalSubtreeHeight = calculateSubtreeHeight(node);
+            const totalSubtreeHeight = validChildren.reduce((acc, child) => acc + calculateSubtreeHeight(child), 0);
             node.y = parentY;
             
-            // Start placing children from the top of the allocated vertical space
-            let currentYOffset = parentY - (totalSubtreeHeight / 2);
+            let currentYOffset = parentY - (totalSubtreeHeight / 2) + (calculateSubtreeHeight(validChildren[0]) / 2) - ((nodeDimensions[validChildren[0].type] || nodeDimensions.detail).height / 2);
 
             validChildren.forEach(child => {
                 const childSubtreeHeight = calculateSubtreeHeight(child);
@@ -102,18 +99,20 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
                 const parentPos = node;
                 const childPos = child;
 
-                const startX = parentPos.x! + parentPos.width!;
-                const startY = parentPos.y! + parentPos.height! / 2;
-                const endX = childPos.x!;
-                const endY = childPos.y! + childPos.height! / 2;
-                
-                const midX = startX + (endX - startX) / 2;
+                if (parentPos.x !== undefined && parentPos.y !== undefined && childPos.x !== undefined && childPos.y !== undefined) {
+                    const startX = parentPos.x! + parentPos.width!;
+                    const startY = parentPos.y! + parentPos.height! / 2;
+                    const endX = childPos.x!;
+                    const endY = childPos.y! + childPos.height! / 2;
+                    
+                    const midX = startX + (endX - startX) / 2;
 
-                edges.push({
-                    source: node.id,
-                    target: child.id,
-                    path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`,
-                });
+                    edges.push({
+                        source: node.id,
+                        target: child.id,
+                        path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`,
+                    });
+                }
 
                 currentYOffset += childSubtreeHeight + (ySpacing / 2);
             });
@@ -126,7 +125,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
     traverse(rootNode, 0, 0);
 
-    return { nodes: allNodes, edges };
+    return { nodes: allNodes, edges: [] };
 };
 
 
@@ -465,3 +464,5 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
+
+    
