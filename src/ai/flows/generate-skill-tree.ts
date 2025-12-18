@@ -7,7 +7,7 @@ import {z} from 'zod';
 const NodeSchema = z.object({
   id: z.string().describe('A unique identifier for the node (e.g., "1", "1.1", "1.1.1").'),
   label: z.string().describe('A concise title for the skill or concept (max 5 words).'),
-  type: z.enum(['root', 'pillar', 'concept', 'detail']).describe('The hierarchical level of the node.'),
+  type: z.enum(['root', 'pillar', 'concept', 'detail', 'sub-detail']).describe('The hierarchical level of the node.'),
   children: z.array(z.lazy(() => NodeSchema)).optional().describe('Child nodes representing sub-topics.'),
 });
 
@@ -39,9 +39,10 @@ The structure must be a JSON object with a root node. The hierarchy should be at
 - Level 1 (pillar): The major sub-divisions or foundational pillars of the topic.
 - Level 2 (concept): The core concepts or key areas within each pillar.
 - Level 3 (detail): Specific details, examples, or sub-skills for each concept.
+- Level 4 (sub-detail): Even more granular points if necessary.
 
 Rules:
-- Each node must have a unique 'id', a short 'label' (max 5 words), and a 'type' ('root', 'pillar', 'concept', or 'detail').
+- Each node must have a unique 'id', a short 'label' (max 5 words), and a 'type' ('root', 'pillar', 'concept', 'detail', or 'sub-detail').
 - The 'children' array should contain the nodes for the next level down.
 - Ensure all labels are concise and clear for a visual diagram.
 - Generate a rich, well-structured tree. For a topic like "React.js", you should have multiple pillars like "Core Concepts", "Hooks", "State Management", and "Ecosystem".
