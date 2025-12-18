@@ -146,6 +146,7 @@ export function SkillTreeView() {
   const [chatInput, setChatInput] = useState('');
   const [isSaveNoteDialogOpen, setIsSaveNoteDialogOpen] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
 
 
   const pinchStartDistance = useRef<number | null>(null);
@@ -192,6 +193,7 @@ export function SkillTreeView() {
     setMessages([]);
     setCurrentTopic(topic);
     setSelectedNodes(new Set());
+    setActiveNodeId(null);
     try {
       const result = await generateSkillTreeAction({ topic });
       if (result && result.tree) {
@@ -255,13 +257,13 @@ export function SkillTreeView() {
 
   const handleNodeToggle = (nodeId: string, checked: boolean) => {
     setSelectedNodes(prevSelected => {
-        const newSelected = new Set(prevSelected);
-        if (checked) {
-            newSelected.add(nodeId);
-        } else {
-            newSelected.delete(nodeId);
-        }
-        return newSelected;
+      const newSelected = new Set(prevSelected);
+      if (checked) {
+        newSelected.add(nodeId);
+      } else {
+        newSelected.delete(nodeId);
+      }
+      return newSelected;
     });
   };
   
@@ -349,7 +351,7 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-      const history = newMessages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
+      const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
       const result = await explainTopicAction({ topic: input, history });
       setMessages(prev => [...prev, { role: 'model', content: result.response }]);
     } catch(error) {
@@ -477,6 +479,13 @@ export function SkillTreeView() {
                                           <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                                             <path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" />
                                           </marker>
+                                          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                                            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                                            <feMerge>
+                                              <feMergeNode in="coloredBlur" />
+                                              <feMergeNode in="SourceGraphic" />
+                                            </feMerge>
+                                          </filter>
                                         </defs>
                                         {edges.map(edge => {
                                           const sourceNode = nodes.find(n => n.id === edge.source);
@@ -490,6 +499,8 @@ export function SkillTreeView() {
                                           
                                           const c1y = y1 + (y2 - y1) / 2;
                                           const c2y = y2 - (y2 - y1) / 2;
+                                          
+                                          const isGlowing = activeNodeId === edge.source;
 
                                           return (
                                             <motion.path
@@ -498,10 +509,11 @@ export function SkillTreeView() {
                                               animate={{ pathLength: 1, opacity: 1 }}
                                               transition={{ duration: 0.5, delay: 0.5 }}
                                               d={`M ${x1} ${y1} C ${x1} ${c1y}, ${x2} ${c2y}, ${x2} ${y2}`}
-                                              stroke="hsl(var(--border))"
-                                              strokeWidth="1"
+                                              stroke={isGlowing ? "hsl(var(--accent))" : "hsl(var(--border))"}
+                                              strokeWidth={isGlowing ? 2 : 1}
                                               fill="none"
                                               markerEnd="url(#arrow)"
+                                              className={cn(isGlowing && "glow-edge")}
                                             />
                                           );
                                         })}
@@ -522,6 +534,7 @@ export function SkillTreeView() {
                                                         width: node.width,
                                                         height: node.height,
                                                     }}
+                                                    onClick={() => setActiveNodeId(node.id)}
                                                 >
                                                     <span className="truncate">{node.label}</span>
                                                 </motion.div>
