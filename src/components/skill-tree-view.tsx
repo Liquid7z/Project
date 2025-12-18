@@ -65,7 +65,6 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     const edges: Edge[] = [];
     const xSpacing = 250;
     const ySpacing = 120;
-    const positionedNodes = new Map<string, Node>();
 
     const calculateSubtreeHeight = (node: Node | null): number => {
         if (!node) return 0;
@@ -86,7 +85,6 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         node.y = parentY;
 
         allNodes.push(node);
-        positionedNodes.set(node.id, node);
 
         const validChildren = (node.children || []).filter(Boolean);
         if (validChildren.length > 0) {
@@ -108,8 +106,8 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     allNodes.forEach(node => {
         if (node.children) {
             node.children.filter(Boolean).forEach(child => {
-                const parentPos = positionedNodes.get(node.id);
-                const childPos = positionedNodes.get(child.id);
+                const parentPos = allNodes.find(n => n.id === node.id);
+                const childPos = allNodes.find(n => n.id === child.id);
                 if (parentPos && childPos) {
                     const startX = parentPos.x! + parentPos.width! / 2;
                     const startY = parentPos.y! + parentPos.height!;
@@ -127,7 +125,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         }
     });
 
-    return { nodes: allNodes, edges: [] }; // Return empty edges and let useEffect handle it
+    return { nodes: allNodes, edges };
 };
 
 
@@ -150,31 +148,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
 
   useEffect(() => {
     if (tree) {
-      const { nodes: newNodes } = calculateLayout(tree);
-      
-      const newEdges: Edge[] = [];
-       newNodes.forEach(node => {
-        if (node.children) {
-            node.children.filter(Boolean).forEach(child => {
-                const parentPos = newNodes.find(n => n.id === node.id);
-                const childPos = newNodes.find(n => n.id === child.id);
-                if (parentPos && childPos) {
-                    const startX = parentPos.x! + parentPos.width! / 2;
-                    const startY = parentPos.y! + parentPos.height!;
-                    const endX = childPos.x! + childPos.width! / 2;
-                    const endY = childPos.y!;
-                    const midY = startY + (endY - startY) / 2;
-                    
-                    newEdges.push({
-                        source: node.id,
-                        target: child.id,
-                        path: `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`,
-                    });
-                }
-            });
-        }
-    });
-
+      const { nodes: newNodes, edges: newEdges } = calculateLayout(tree);
       setLayout({ nodes: newNodes, edges: newEdges });
 
       if (newNodes.length > 0) {
@@ -414,6 +388,8 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                                 className={cn("transition-all", activeNodeId === edge.source && "glow-edge")}
                             />
                        ))}
+                    </g>
+                    <g>
                        {nodes.map(node => (
                            <Popover key={node.id}>
                             <PopoverTrigger asChild>
