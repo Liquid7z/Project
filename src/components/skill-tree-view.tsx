@@ -64,68 +64,70 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     const allNodes: Node[] = [];
     const edges: Edge[] = [];
     const xSpacing = 220;
-    const ySpacing = 100;
+    const ySpacing = 60; // Vertical gap between nodes
 
-    const calculateSubtreeHeight = (node: Node | null): number => {
+    // 1. First pass: set dimensions and compute subtree heights for each node
+    function firstPass(node: Node | null): number {
         if (!node) return 0;
+        const dims = nodeDimensions[node.type] || nodeDimensions.detail;
+        node.width = dims.width;
+        node.height = dims.height;
+
         const validChildren = (node.children || []).filter(Boolean);
         if (validChildren.length === 0) {
-            return (nodeDimensions[node.type] || nodeDimensions.detail).height;
+            return node.height;
         }
-        return validChildren.reduce((acc, child) => acc + calculateSubtreeHeight(child), 0) + (validChildren.length - 1) * (ySpacing / 2);
-    };
-
-    function traverse(node: Node | null, depth: number, parentY: number) {
-        if (!node) return;
-
-        const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
-        node.width = width;
-        node.height = height;
-        node.x = depth * xSpacing;
         
-        const validChildren = (node.children || []).filter(Boolean);
-        if (validChildren.length > 0) {
-            const totalSubtreeHeight = validChildren.reduce((acc, child) => acc + calculateSubtreeHeight(child), 0);
-            node.y = parentY;
-            
-            let currentYOffset = parentY - (totalSubtreeHeight / 2) + (calculateSubtreeHeight(validChildren[0]) / 2) - ((nodeDimensions[validChildren[0].type] || nodeDimensions.detail).height / 2);
+        const childrenHeight = validChildren.reduce((acc, child) => acc + firstPass(child), 0);
+        const totalHeight = childrenHeight + (validChildren.length - 1) * ySpacing;
+        
+        // Store subtree height on the node for the next pass
+        (node as any).subtreeHeight = totalHeight;
+        
+        return totalHeight;
+    }
+    
+    firstPass(rootNode);
 
-            validChildren.forEach(child => {
-                const childSubtreeHeight = calculateSubtreeHeight(child);
-                const childY = currentYOffset + (childSubtreeHeight / 2);
-                
-                traverse(child, depth + 1, childY);
-                
-                const parentPos = node;
-                const childPos = child;
-
-                if (parentPos.x !== undefined && parentPos.y !== undefined && childPos.x !== undefined && childPos.y !== undefined) {
-                    const startX = parentPos.x! + parentPos.width!;
-                    const startY = parentPos.y! + parentPos.height! / 2;
-                    const endX = childPos.x!;
-                    const endY = childPos.y! + childPos.height! / 2;
-                    
-                    const midX = startX + (endX - startX) / 2;
-
-                    edges.push({
-                        source: node.id,
-                        target: child.id,
-                        path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`,
-                    });
-                }
-
-                currentYOffset += childSubtreeHeight + (ySpacing / 2);
-            });
-        } else {
-             node.y = parentY;
-        }
-
+    // 2. Second pass: calculate x, y positions
+    function secondPass(node: Node | null, depth: number, y: number) {
+        if (!node) return;
+        
+        node.x = depth * xSpacing;
+        node.y = y;
         allNodes.push(node);
+
+        const validChildren = (node.children || []).filter(Boolean);
+        if (validChildren.length === 0) return;
+
+        const totalSubtreeHeight = (node as any).subtreeHeight;
+        let currentY = y - totalSubtreeHeight / 2 + (validChildren[0] as any).subtreeHeight / 2;
+
+        validChildren.forEach(child => {
+            const childSubtreeHeight = (child as any).subtreeHeight || child.height!;
+            secondPass(child, depth + 1, currentY);
+
+            // Create edge
+            const startX = node.x! + node.width!;
+            const startY = node.y! + node.height! / 2;
+            const endX = child.x!;
+            const endY = child.y! + child.height! / 2;
+            
+            const midX = startX + (endX - startX) / 2;
+
+            edges.push({
+                source: node.id,
+                target: child.id,
+                path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`,
+            });
+
+            currentY += childSubtreeHeight + ySpacing;
+        });
     }
 
-    traverse(rootNode, 0, 0);
+    secondPass(rootNode, 0, 0);
 
-    return { nodes: allNodes, edges: [] };
+    return { nodes: allNodes, edges };
 };
 
 
@@ -464,5 +466,3 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
-
-    
