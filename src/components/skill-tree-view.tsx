@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -19,7 +20,7 @@ import { Label } from './ui/label';
 interface Node {
   id: string;
   label: string;
-  type: 'root' | 'pillar' | 'concept' | 'detail';
+  type: 'root' | 'pillar' | 'concept' | 'detail' | 'sub-detail';
   children?: Node[];
   x?: number;
   y?: number;
@@ -39,6 +40,7 @@ const nodeDimensions = {
   pillar: { width: 160, height: 52 },
   concept: { width: 150, height: 48 },
   detail: { width: 140, height: 44 },
+  'sub-detail': { width: 130, height: 40 },
 };
 
 const nodeColors = {
@@ -46,79 +48,92 @@ const nodeColors = {
     pillar: 'bg-accent/20 border-accent text-accent-foreground',
     concept: 'bg-secondary border-border text-foreground',
     detail: 'bg-muted/50 border-border text-muted-foreground',
+    'sub-detail': 'bg-muted/30 border-border/50 text-muted-foreground',
 };
 
+const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] } => {
+  if (!rootNode) return { nodes: [], edges: [] };
 
-const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } => {
-    if (!tree) return { nodes: [], edges: [] };
+  const allNodes: Node[] = [];
+  const edges: Edge[] = [];
+  const xSpacing = 220;
+  const ySpacing = 80;
+  
+  const positionedNodes = new Map<string, Node>();
+
+  function traverse(node: Node, depth: number, parent: Node | null) {
+    if (!node) return;
     
-    const safeTree = JSON.parse(JSON.stringify(tree));
-
-    const nodes: Node[] = [];
-    const edges: Edge[] = [];
-    let yOffset = 0;
-    const xSpacing = 220;
-    const ySpacing = 100;
-
-    function traverse(node: Node | null, depth = 0, parent?: Node) {
-        if (!node) {
-            return;
-        }
-
-        const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
-        node.width = width;
-        node.height = height;
-        node.x = depth * xSpacing;
-        node.y = yOffset;
-        
-        nodes.push(node);
-
-        if (parent) {
-            const startX = parent.x! + parent.width!;
-            const startY = parent.y! + parent.height! / 2;
-            const endX = node.x!;
-            const endY = node.y! + node.height! / 2;
-            const midX = startX + (endX - startX) / 2;
-
-            const path = `M ${startX},${startY} C ${midX},${startY} ${midX},${endY} ${endX},${endY}`;
-
-            edges.push({
-                source: parent.id,
-                target: node.id,
-                path: path,
-            });
-        }
-        
-        yOffset += ySpacing;
-
-        if (node.children && node.children.length > 0) {
-             node.children.filter(Boolean).forEach(child => traverse(child, depth + 1, node));
-        }
+    const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
+    node.width = width;
+    node.height = height;
+    
+    node.x = depth * xSpacing;
+    
+    // We will set y later
+    allNodes.push(node);
+    
+    if (parent) {
+      edges.push({ source: parent.id, target: node.id, path: '' });
     }
+    
+    if (node.children) {
+        node.children.filter(Boolean).forEach(child => traverse(child, depth + 1, node));
+    }
+  }
 
-    traverse(safeTree);
+  traverse(rootNode, 0, null);
 
-    // Center the tree vertically
-    const heights = nodes.map(n => n.y!);
-    const minY = Math.min(...heights);
-    const maxY = Math.max(...heights);
-    const totalHeight = maxY - minY + ySpacing;
-    const verticalShift = -minY - (totalHeight / 2) + 400; // 400 is half of default viewBox height
+  // Position nodes vertically
+  const levels: Node[][] = [];
+  allNodes.forEach(node => {
+      const depth = Math.floor(node.x! / xSpacing);
+      if (!levels[depth]) {
+          levels[depth] = [];
+      }
+      levels[depth].push(node);
+  });
 
-    nodes.forEach(n => {
-        n.y! += verticalShift;
-    });
-    edges.forEach(edge => {
-        const path = edge.path.split(' ').map((part, i) => {
-            if (i > 0 && i % 2 === 0) { // y-coordinates
-                return parseFloat(part) + verticalShift;
-            }
-            return part;
-        }).join(' ');
-        edge.path = path;
-    });
+  let currentY = 0;
+  for (let i = levels.length - 1; i >= 0; i--) {
+      levels[i].forEach(node => {
+          if (!node.children || node.children.length === 0) {
+              node.y = currentY;
+              currentY += ySpacing;
+          } else {
+              const childNodes = node.children.filter(Boolean).map(child => allNodes.find(n => n.id === child.id)).filter(Boolean) as Node[];
+              if(childNodes.length > 0) {
+                 const firstChildY = childNodes[0].y;
+                 const lastChildY = childNodes[childNodes.length - 1].y;
+                 node.y = firstChildY! + (lastChildY! - firstChildY!) / 2;
+              }
+          }
+          positionedNodes.set(node.id, node);
+      });
+  }
 
-    return { nodes, edges };
+  // Center the entire tree vertically
+  const allY = allNodes.map(n => n.y!);
+  const minY = Math.min(...allY);
+  const maxY = Math.max(...allY);
+  const treeHeight = maxY - minY;
+  const yOffset = -minY - treeHeight / 2;
+  allNodes.forEach(n => { n.y! += yOffset; });
+
+  // Generate edge paths now that nodes are positioned
+  edges.forEach(edge => {
+      const parent = positionedNodes.get(edge.source)!;
+      const child = positionedNodes.get(edge.target)!;
+      const startX = parent.x! + parent.width!;
+      const startY = parent.y! + parent.height! / 2;
+      const endX = child.x!;
+      const endY = child.y! + child.height! / 2;
+      const midX = startX + (endX - startX) / 2;
+      
+      edge.path = `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`;
+  });
+
+  return { nodes: allNodes, edges };
 };
 
 
@@ -129,7 +144,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
   const [{ nodes, edges }, setLayout] = useState<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
   const { toast } = useToast();
   
-  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 1000, height: 800 });
+  const [viewBox, setViewBox] = useState({ x: -200, y: -400, width: 1200, height: 800 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
@@ -147,7 +162,8 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
       if (newNodes.length > 0) {
         const rootNode = newNodes.find(n => n.type === 'root');
         const initialX = rootNode ? rootNode.x! - 200 : -200;
-        setViewBox(prev => ({ ...prev, x: initialX }));
+        const initialY = rootNode ? rootNode.y! - 400 : -400;
+        setViewBox(prev => ({ ...prev, x: initialX, y: initialY }));
       }
     }
   }, [tree]);
