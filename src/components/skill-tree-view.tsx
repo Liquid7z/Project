@@ -50,6 +50,14 @@ const nodeColors = {
     'sub-detail': 'bg-muted/30 border-border/50 text-muted-foreground',
 };
 
+const activeNodeColors = {
+    root: 'bg-primary/40 border-primary shadow-[0_0_15px_hsl(var(--primary))]',
+    pillar: 'bg-accent/40 border-accent shadow-[0_0_15px_hsl(var(--accent))]',
+    concept: 'bg-secondary/80 border-ring shadow-[0_0_15px_hsl(var(--ring))]',
+    detail: 'bg-muted/80 border-muted-foreground shadow-[0_0_10px_hsl(var(--muted-foreground))]',
+    'sub-detail': 'bg-muted/60 border-muted-foreground/80 shadow-[0_0_8px_hsl(var(--muted-foreground)/80)]',
+};
+
 const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] } => {
     if (!rootNode) return { nodes: [], edges: [] };
 
@@ -79,10 +87,6 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
         allNodes.push(node);
         positionedNodes.set(node.id, node);
-
-        if (parentX !== null) {
-            // This will be populated later after all nodes are positioned
-        }
 
         const validChildren = (node.children || []).filter(Boolean);
         if (validChildren.length > 0) {
@@ -229,7 +233,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
 
             if (node.children) {
                 const childrenMarkdown = node.children
-                    .filter(Boolean) // Filter out null children
+                    .filter(Boolean)
                     .map(child => buildMarkdown(child, depth + 1))
                     .filter(Boolean)
                     .join('');
@@ -394,8 +398,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                                      animate={{ opacity: 1, scale: 1 }}
                                      className={cn(
                                          'flex flex-col justify-center items-center p-2 rounded-md h-full w-full transition-all text-center',
-                                         nodeColors[node.type],
-                                         activeNodeId === node.id && 'shadow-lg shadow-accent/50'
+                                         activeNodeId === node.id ? activeNodeColors[node.type] : nodeColors[node.type]
                                      )}
                                  >
                                     <p className="font-bold text-sm leading-tight">{node.label}</p>
@@ -460,3 +463,5 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
+
+    
