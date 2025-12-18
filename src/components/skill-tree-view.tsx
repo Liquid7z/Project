@@ -57,7 +57,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     const allNodes: Node[] = [];
     const edges: Edge[] = [];
     const xSpacing = 220;
-    const ySpacing = 80;
+    const ySpacing = 100; // Increased spacing
 
     const positionedNodes = new Map<string, Node>();
 
@@ -67,7 +67,6 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
         node.height = height;
-
         node.x = depth * xSpacing;
         
         allNodes.push(node);
@@ -85,7 +84,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
     const levels: Node[][] = [];
     allNodes.forEach(node => {
-        const depth = Math.floor(node.x! / xSpacing);
+        const depth = Math.floor((node.x || 0) / xSpacing);
         if (!levels[depth]) {
             levels[depth] = [];
         }
@@ -95,7 +94,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     let currentY = 0;
     for (let i = levels.length - 1; i >= 0; i--) {
         levels[i].forEach(node => {
-            if (!node.children || node.children.length === 0) {
+            if (!node.children || node.children.filter(Boolean).length === 0) {
                 node.y = currentY;
                 currentY += ySpacing;
             } else {
@@ -123,13 +122,17 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         const parent = positionedNodes.get(edge.source);
         const child = positionedNodes.get(edge.target);
         if (parent && child && parent.x !== undefined && parent.y !== undefined && child.x !== undefined && child.y !== undefined) {
-            const startX = parent.x! + parent.width! / 2;
-            const startY = parent.y! + parent.height!;
-            const endX = child.x! + child.width! / 2;
-            const endY = child.y!;
-            const midY = startY + (endY - startY) / 2;
+             const startX = parent.x + parent.width! / 2;
+             const startY = parent.y + parent.height! / 2;
+             const endX = child.x + child.width! / 2;
+             const endY = child.y + child.height! / 2;
+            
+             const c1X = startX + xSpacing / 2;
+             const c1Y = startY;
+             const c2X = endX - xSpacing / 2;
+             const c2Y = endY;
 
-            edge.path = `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`;
+            edge.path = `M ${startX},${startY} C ${c1X},${c1Y} ${c2X},${c2Y} ${endX},${endY}`;
         }
     });
 
@@ -229,7 +232,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         const isAllSelected = selectedIds.size === nodes.length && nodes.length > 0;
 
         const buildMarkdown = (node: Node, depth = 0): string => {
-            if (!node || !selectedIds.has(node.id)) return '';
+            if (!node || (!isAllSelected && !selectedIds.has(node.id))) return '';
             
             let markdown = `${'#'.repeat(depth + 2)} ${node.label}\n`;
             const fullNode = nodes.find(n => n.id === node.id);
@@ -240,6 +243,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
 
             if (node.children) {
                 const childrenMarkdown = node.children
+                    .filter(Boolean) // Filter out null children
                     .map(child => buildMarkdown(child, depth + 1))
                     .filter(Boolean)
                     .join('');
@@ -374,7 +378,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                  >
                     <defs>
                         <filter id="glow">
-                            <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                            <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
                             <feMerge>
                                 <feMergeNode in="coloredBlur" />
                                 <feMergeNode in="SourceGraphic" />
@@ -406,7 +410,6 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                                      )}
                                  >
                                     <p className="font-bold text-sm leading-tight">{node.label}</p>
-                                    <p className="text-xs text-muted-foreground capitalize">{node.type}</p>
                                  </motion.div>
                                </foreignObject>
                             </PopoverTrigger>
