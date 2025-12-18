@@ -112,14 +112,19 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
 };
 
 
-
-
 function deepCopy<T>(obj: T): T {
     if (obj === null || typeof obj !== 'object') {
         return obj;
     }
-    return JSON.parse(JSON.stringify(obj));
+    try {
+        return JSON.parse(JSON.stringify(obj));
+    } catch (e) {
+        console.error("Deep copy failed:", e);
+        // Fallback or error handling
+        return obj;
+    }
 }
+
 
 function chatToMarkdown(messages: Message[]): string {
     return messages.map(msg => `**${msg.role === 'user' ? 'You' : 'AI'}:**\n${msg.content.replace(/<[^>]+>/g, '\n')}`).join('\n\n---\n\n');
@@ -257,15 +262,15 @@ export function SkillTreeView() {
 
   const handleNodeToggle = (nodeId: string, checked: boolean) => {
     setSelectedNodes(prevSelected => {
-      const newSelected = new Set(prevSelected);
-      if (checked) {
-        newSelected.add(nodeId);
-      } else {
-        newSelected.delete(nodeId);
-      }
-      return newSelected;
+        const newSelected = new Set(prevSelected);
+        if (checked) {
+            newSelected.add(nodeId);
+        } else {
+            newSelected.delete(nodeId);
+        }
+        return newSelected;
     });
-  };
+};
   
   const handleSelectAllToggle = (checked: boolean) => {
     if (checked) {
@@ -275,7 +280,7 @@ export function SkillTreeView() {
     }
   }
 
-  const treeToMarkdown = useCallback((selectedIds: Set<string>): string => {
+ const treeToMarkdown = useCallback((selectedIds: Set<string>): string => {
     if (!tree) return '';
 
     const isFullTreeSelected = selectedIds.size === nodes.length;
@@ -300,7 +305,7 @@ export function SkillTreeView() {
 
         let markdown = `${'#'.repeat(depth + 2)} ${node.label}\n`;
         const fullNode = nodes.find(n => n.id === node.id);
-        if(fullNode?.definition) {
+        if (fullNode?.definition) {
             markdown += `> ${fullNode.definition}\n\n`;
         } else {
             markdown += `\n`;
@@ -316,7 +321,8 @@ export function SkillTreeView() {
         return markdown;
     };
     return `# Skill Tree for: ${currentTopic}\n\n` + buildMarkdown(tree, -1);
-  }, [tree, nodes, currentTopic]);
+}, [tree, nodes, currentTopic]);
+
   
   const handleExplainInChat = async (node: Node) => {
     const question = `Explain "${node.label}" in the context of ${currentTopic}. Keep it concise.`;
@@ -512,7 +518,7 @@ export function SkillTreeView() {
                                               stroke={isGlowing ? "hsl(var(--accent))" : "hsl(var(--border))"}
                                               strokeWidth={isGlowing ? 2 : 1}
                                               fill="none"
-                                              markerEnd="url(#arrow)"
+                                              markerEnd={!isGlowing ? "url(#arrow)" : undefined}
                                               className={cn(isGlowing && "glow-edge")}
                                             />
                                           );
