@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -56,83 +55,70 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
     const allNodes: Node[] = [];
     const edges: Edge[] = [];
-    const xSpacing = 220;
-    const ySpacing = 100; // Increased spacing
-
+    const xSpacing = 250;
+    const ySpacing = 120;
     const positionedNodes = new Map<string, Node>();
 
-    function traverse(node: Node, depth: number, parent: Node | null) {
+    const calculateSubtreeHeight = (node: Node | null): number => {
+        if (!node) return 0;
+        const { height } = nodeDimensions[node.type] || nodeDimensions.detail;
+        if (!node.children || node.children.filter(Boolean).length === 0) {
+            return height + ySpacing;
+        }
+        return node.children.filter(Boolean).reduce((acc, child) => acc + calculateSubtreeHeight(child), 0);
+    };
+
+    function traverse(node: Node | null, depth: number, parentX: number | null, parentY: number) {
         if (!node) return;
 
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
         node.height = height;
         node.x = depth * xSpacing;
-        
+        node.y = parentY;
+
         allNodes.push(node);
-        
-        if (parent) {
-            edges.push({ source: parent.id, target: node.id, path: '' });
+        positionedNodes.set(node.id, node);
+
+        if (parentX !== null) {
+            // This will be populated later after all nodes are positioned
         }
-        
-        if (node.children) {
-            node.children.filter(Boolean).forEach(child => traverse(child, depth + 1, node));
+
+        const validChildren = (node.children || []).filter(Boolean);
+        if (validChildren.length > 0) {
+            const totalSubtreeHeight = validChildren.reduce((acc, child) => acc + calculateSubtreeHeight(child), 0);
+            let currentYOffset = parentY - (totalSubtreeHeight / 2) + (calculateSubtreeHeight(validChildren[0]) / 2) - (nodeDimensions[validChildren[0].type].height / 2);
+
+            validChildren.forEach(child => {
+                const childSubtreeHeight = calculateSubtreeHeight(child);
+                traverse(child, depth + 1, node.x, currentYOffset);
+                currentYOffset += childSubtreeHeight;
+            });
         }
     }
 
-    traverse(rootNode, 0, null);
+    traverse(rootNode, 0, null, 0);
 
-    const levels: Node[][] = [];
+    // Create edges now that all nodes are positioned
     allNodes.forEach(node => {
-        const depth = Math.floor((node.x || 0) / xSpacing);
-        if (!levels[depth]) {
-            levels[depth] = [];
-        }
-        levels[depth].push(node);
-    });
-
-    let currentY = 0;
-    for (let i = levels.length - 1; i >= 0; i--) {
-        levels[i].forEach(node => {
-            if (!node.children || node.children.filter(Boolean).length === 0) {
-                node.y = currentY;
-                currentY += ySpacing;
-            } else {
-                const childNodes = node.children.filter(Boolean).map(child => allNodes.find(n => n.id === child.id)).filter(Boolean) as Node[];
-                if (childNodes.length > 0) {
-                    const firstChildY = childNodes[0].y;
-                    const lastChildY = childNodes[childNodes.length - 1].y;
-                    node.y = firstChildY! + (lastChildY! - firstChildY!) / 2;
+        if (node.children) {
+            node.children.filter(Boolean).forEach(child => {
+                const parentPos = positionedNodes.get(node.id);
+                const childPos = positionedNodes.get(child.id);
+                if (parentPos && childPos) {
+                    const startX = parentPos.x! + parentPos.width!;
+                    const startY = parentPos.y! + parentPos.height! / 2;
+                    const endX = childPos.x!;
+                    const endY = childPos.y! + childPos.height! / 2;
+                    const midX = startX + xSpacing / 2;
+                    
+                    edges.push({
+                        source: node.id,
+                        target: child.id,
+                        path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`,
+                    });
                 }
-            }
-            positionedNodes.set(node.id, node);
-        });
-    }
-
-    const allY = allNodes.map(n => n.y!).filter(y => y !== undefined);
-    if(allY.length > 0) {
-        const minY = Math.min(...allY);
-        const maxY = Math.max(...allY);
-        const treeHeight = maxY - minY;
-        const yOffset = -minY - treeHeight / 2;
-        allNodes.forEach(n => { if (n.y !== undefined) n.y += yOffset; });
-    }
-
-    edges.forEach(edge => {
-        const parent = positionedNodes.get(edge.source);
-        const child = positionedNodes.get(edge.target);
-        if (parent && child && parent.x !== undefined && parent.y !== undefined && child.x !== undefined && child.y !== undefined) {
-             const startX = parent.x + parent.width! / 2;
-             const startY = parent.y + parent.height! / 2;
-             const endX = child.x + child.width! / 2;
-             const endY = child.y + child.height! / 2;
-            
-             const c1X = startX + xSpacing / 2;
-             const c1Y = startY;
-             const c2X = endX - xSpacing / 2;
-             const c2Y = endY;
-
-            edge.path = `M ${startX},${startY} C ${c1X},${c1Y} ${c2X},${c2Y} ${endX},${endY}`;
+            });
         }
     });
 
@@ -293,6 +279,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     };
     
     const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+        if ((e.target as SVGElement).closest('foreignObject')) return;
         setIsDragging(true);
         setDragStart({ x: e.clientX, y: e.clientY });
         e.currentTarget.style.cursor = 'grabbing';
@@ -321,8 +308,10 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     };
     
     const handleMouseLeave = (e: React.MouseEvent<SVGSVGElement>) => {
-        setIsDragging(false);
-        e.currentTarget.style.cursor = 'default';
+        if(isDragging) {
+           setIsDragging(false);
+           e.currentTarget.style.cursor = 'grab';
+        }
     };
   
 
@@ -392,7 +381,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                                 d={edge.path}
                                 fill="none"
                                 stroke={activeNodeId === edge.source ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
-                                strokeWidth={activeNodeId === edge.source ? 2 : 1}
+                                strokeWidth={2}
                                 className={cn("transition-all", activeNodeId === edge.source && "glow-edge")}
                             />
                        ))}
@@ -410,6 +399,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                                      )}
                                  >
                                     <p className="font-bold text-sm leading-tight">{node.label}</p>
+                                    <p className="text-xs capitalize opacity-70">{node.type}</p>
                                  </motion.div>
                                </foreignObject>
                             </PopoverTrigger>
