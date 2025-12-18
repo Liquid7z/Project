@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader, Send, Save, BookOpen, Hand, MousePointer } from 'lucide-react';
+import { Loader, Send, Save, BookOpen, Hand, MousePointer, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { generateSkillTreeAction, getShortDefinitionAction } from '@/actions/generation';
 import { useToast } from '@/hooks/use-toast';
@@ -54,15 +54,14 @@ const nodeColors = {
 
 const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } => {
     if (!tree) return { nodes: [], edges: [] };
-
+    
     const safeTree = JSON.parse(JSON.stringify(tree));
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const xSpacing = 220;
     const ySpacing = 100;
-    let yOffset = 0;
-
+    
     const yOffsets: number[] = [];
 
     function traverse(node: Node | null, depth = 0, parent?: Node) {
@@ -75,35 +74,33 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         node.height = height;
         node.x = depth * xSpacing;
         
-        let localYOffset = yOffsets[depth] || 0;
-        node.y = localYOffset;
-
-        const subtreeHeight = (node.children?.filter(Boolean).reduce((acc, child) => {
+        const subtreeHeight = (node.children?.reduce((acc, child) => {
             return acc + traverse(child, depth + 1, node);
         }, 0) || 0);
 
-        localYOffset += subtreeHeight;
-        
         if (node.children && node.children.length > 0) {
             const firstChild = nodes.find(n => n.id === node.children![0].id);
             const lastChild = nodes.find(n => n.id === node.children![node.children!.length - 1].id);
             if (firstChild && lastChild) {
-                node.y = (firstChild.y! + firstChild.height!/2 + lastChild.y! + lastChild.height!/2) / 2 - node.height/2;
+                node.y = (firstChild.y! + lastChild.y!) / 2;
+            } else {
+                 node.y = (yOffsets[depth] || 0) + subtreeHeight / 2 - height / 2;
             }
         } else {
+             node.y = yOffsets[depth] || 0;
              yOffsets[depth] = (yOffsets[depth] || 0) + ySpacing;
         }
         
         nodes.push(node);
 
         if (parent) {
-            const startX = parent.x! + parent.width!;
-            const startY = parent.y! + parent.height! / 2;
-            const endX = node.x!;
-            const endY = node.y! + node.height! / 2;
-            const midX = startX + xSpacing / 2;
-            
-            const path = `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`;
+            const startX = parent.x! + parent.width! / 2;
+            const startY = parent.y! + parent.height!;
+            const endX = node.x! + node.width! / 2;
+            const endY = node.y!;
+            const midY = startY + (endY - startY) / 2;
+
+            const path = `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`;
 
             edges.push({
                 source: parent.id,
@@ -152,7 +149,6 @@ export function SkillTreeView() {
         const minX = Math.min(...newNodes.map(n => n.x!));
         const minY = Math.min(...newNodes.map(n => n.y!));
         
-        // Center the initial view on the root node
         const rootNode = newNodes.find(n => n.type === 'root');
         const initialX = rootNode ? (rootNode.x! + rootNode.width! / 2) - (1000 / 2) : minX - 200;
         const initialY = minY - 100;
@@ -375,9 +371,9 @@ export function SkillTreeView() {
                                 key={`${edge.source}-${edge.target}`}
                                 d={edge.path}
                                 fill="none"
-                                stroke={activeNodeId === edge.source || activeNodeId === edge.target ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
-                                strokeWidth={activeNodeId === edge.source || activeNodeId === edge.target ? 2 : 1}
-                                className={cn("transition-all", (activeNodeId === edge.source) && "stroke-accent animate-pulse")}
+                                stroke={activeNodeId === edge.source ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
+                                strokeWidth={activeNodeId === edge.source ? 2 : 1}
+                                className={cn("transition-all", activeNodeId === edge.source && "animate-[pulse_1.5s_ease-in-out_infinite]")}
                             />
                        ))}
                        {nodes.map(node => (
@@ -398,7 +394,6 @@ export function SkillTreeView() {
                                      )}
                                  >
                                      <p className="font-bold text-center text-sm leading-tight">{node.label}</p>
-                                     <p className="text-xs opacity-70 capitalize mt-1">{node.type}</p>
                                  </motion.div>
                                </foreignObject>
                             </PopoverTrigger>
@@ -422,7 +417,8 @@ export function SkillTreeView() {
                                             }}
                                             disabled={!!node.definition}
                                         >
-                                           <BookOpen className="mr-2"/> Get Definition
+                                           {node.definition ? <CheckCircle className="mr-2 text-green-500" /> : <BookOpen className="mr-2"/> }
+                                           {node.definition ? 'Defined' : 'Get Definition' }
                                         </Button>
                                          <div className="flex items-center space-x-2">
                                              <Checkbox
@@ -452,3 +448,5 @@ export function SkillTreeView() {
     </div>
   );
 }
+
+    
