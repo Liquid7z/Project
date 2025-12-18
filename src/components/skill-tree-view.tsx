@@ -91,7 +91,8 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         const validChildren = (node.children || []).filter(Boolean);
         if (validChildren.length > 0) {
             const totalSubtreeHeight = validChildren.reduce((acc, child) => acc + calculateSubtreeHeight(child), 0);
-            let currentYOffset = parentY - (totalSubtreeHeight / 2) + (calculateSubtreeHeight(validChildren[0]) / 2) - (nodeDimensions[validChildren[0].type].height / 2);
+            const firstChildDimensions = nodeDimensions[validChildren[0].type] || nodeDimensions.detail;
+            let currentYOffset = parentY - (totalSubtreeHeight / 2) + (calculateSubtreeHeight(validChildren[0]) / 2) - (firstChildDimensions.height / 2);
 
             validChildren.forEach(child => {
                 const childSubtreeHeight = calculateSubtreeHeight(child);
@@ -110,23 +111,23 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
                 const parentPos = positionedNodes.get(node.id);
                 const childPos = positionedNodes.get(child.id);
                 if (parentPos && childPos) {
-                    const startX = parentPos.x! + parentPos.width!;
-                    const startY = parentPos.y! + parentPos.height! / 2;
-                    const endX = childPos.x!;
-                    const endY = childPos.y! + childPos.height! / 2;
-                    const midX = startX + xSpacing / 2;
+                    const startX = parentPos.x! + parentPos.width! / 2;
+                    const startY = parentPos.y! + parentPos.height!;
+                    const endX = childPos.x! + childPos.width! / 2;
+                    const endY = childPos.y!;
+                    const midY = startY + (endY - startY) / 2;
                     
                     edges.push({
                         source: node.id,
                         target: child.id,
-                        path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`,
+                        path: `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`,
                     });
                 }
             });
         }
     });
 
-    return { nodes: allNodes, edges };
+    return { nodes: allNodes, edges: [] }; // Return empty edges and let useEffect handle it
 };
 
 
@@ -149,7 +150,31 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
 
   useEffect(() => {
     if (tree) {
-      const { nodes: newNodes, edges: newEdges } = calculateLayout(tree);
+      const { nodes: newNodes } = calculateLayout(tree);
+      
+      const newEdges: Edge[] = [];
+       newNodes.forEach(node => {
+        if (node.children) {
+            node.children.filter(Boolean).forEach(child => {
+                const parentPos = newNodes.find(n => n.id === node.id);
+                const childPos = newNodes.find(n => n.id === child.id);
+                if (parentPos && childPos) {
+                    const startX = parentPos.x! + parentPos.width! / 2;
+                    const startY = parentPos.y! + parentPos.height!;
+                    const endX = childPos.x! + childPos.width! / 2;
+                    const endY = childPos.y!;
+                    const midY = startY + (endY - startY) / 2;
+                    
+                    newEdges.push({
+                        source: node.id,
+                        target: child.id,
+                        path: `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`,
+                    });
+                }
+            });
+        }
+    });
+
       setLayout({ nodes: newNodes, edges: newEdges });
 
       if (newNodes.length > 0) {
@@ -463,5 +488,3 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
-
-    
