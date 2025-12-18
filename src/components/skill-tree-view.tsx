@@ -112,6 +112,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
     return { nodes, edges };
 };
 
+
 const getAllNodeIds = (node: Node | null): string[] => {
     if (!node) return [];
     let ids = [node.id];
@@ -128,16 +129,8 @@ function deepCopy<T>(obj: T): T {
     if (obj === null || typeof obj !== 'object') {
         return obj;
     }
-    if (Array.isArray(obj)) {
-        return obj.map(item => deepCopy(item)) as any;
-    }
-    const newObj = {} as T;
-    for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            newObj[key] = deepCopy(obj[key]);
-        }
-    }
-    return newObj;
+    // A more robust deep copy to avoid the state mutation issues.
+    return JSON.parse(JSON.stringify(obj));
 }
 
 function chatToMarkdown(messages: Message[]): string {
@@ -215,7 +208,7 @@ export function SkillTreeView() {
       const result = await generateSkillTreeAction({ topic });
       if (result && result.tree) {
         const treeCopy = deepCopy(result.tree);
-        setTree(treeCopy);
+        setTree(result.tree); // Keep original state pure
         const { nodes: layoutNodes, edges: layoutEdges } = calculateLayout(treeCopy);
         
         const xs = layoutNodes.map(n => n.x ?? 0);
@@ -273,10 +266,10 @@ export function SkillTreeView() {
   };
 
   const handleNodeToggle = (nodeId: string, checked: boolean) => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return;
+    const nodeToToggle = tree ? findNode(tree, nodeId) : null;
+    if (!nodeToToggle) return;
 
-    const allChildIds = getAllNodeIds(node);
+    const allChildIds = getAllNodeIds(nodeToToggle);
     setSelectedNodes(prevSelected => {
         const newSelected = new Set(prevSelected);
         if(checked) {
@@ -286,6 +279,19 @@ export function SkillTreeView() {
         }
         return newSelected;
     });
+  }
+  
+  const findNode = (node: Node, id: string): Node | null => {
+    if (node.id === id) return node;
+    if (node.children) {
+        for (const child of node.children) {
+            if (child) {
+                const found = findNode(child, id);
+                if (found) return found;
+            }
+        }
+    }
+    return null;
   }
 
   const handleSelectAllToggle = (checked: boolean) => {
@@ -303,7 +309,7 @@ export function SkillTreeView() {
 
     // If only specific nodes are selected, create a flat list.
     if (!isFullTreeSelected) {
-        let markdown = '';
+        let markdown = '# Selected Key Points\n\n';
         nodes.forEach(node => {
             if (selectedIds.has(node.id)) {
                 markdown += `### ${node.label}\n`;
@@ -321,7 +327,7 @@ export function SkillTreeView() {
     const buildMarkdown = (node: Node, depth = 0): string => {
         if (!node || !selectedIds.has(node.id)) return '';
 
-        let markdown = `${'#'.repeat(depth + 1)} ${node.label}\n`;
+        let markdown = `${'#'.repeat(depth + 2)} ${node.label}\n`; // Start with H2 for root
         const fullNode = nodes.find(n => n.id === node.id);
         if(fullNode?.definition) {
             markdown += `> ${fullNode.definition}\n\n`;
@@ -338,8 +344,8 @@ export function SkillTreeView() {
         }
         return markdown;
     };
-    return buildMarkdown(tree);
-  }, [tree, nodes]);
+    return `# Skill Tree for: ${currentTopic}\n\n` + buildMarkdown(tree);
+  }, [tree, nodes, currentTopic]);
   
   const handleExplainInChat = async (node: Node) => {
     const question = `Explain "${node.label}" in the context of ${currentTopic}. Keep it concise.`;
