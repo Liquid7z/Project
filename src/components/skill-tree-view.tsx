@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -65,7 +66,7 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
     const ySpacing = 120;
     const xSpacing = 250;
 
-    function traverse(node: Node, depth = 0, parent?: Node, parentX?: number) {
+    function traverse(node: Node, depth = 0, parent?: Node) {
         if (!node) {
             return;
         }
@@ -76,17 +77,14 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         node.y = depth * ySpacing;
         
         const childrenCount = node.children?.filter(Boolean).length || 0;
-        const childrenWidth = childrenCount * xSpacing - (xSpacing - width);
         
-        if (!parent) { // Root node
-            node.x = 0;
-        } else if (childrenCount === 0) { // Leaf node
-            node.x = parentX!;
+        if (childrenCount === 0) { // Leaf node
+            node.x = xOffset;
             xOffset += xSpacing;
         } else { // Branch node
-            const startX = parentX!;
-            node.children!.filter(Boolean).forEach((child, i) => {
-                traverse(child, depth + 1, node, startX + i * xSpacing);
+            const startX = xOffset;
+            node.children!.filter(Boolean).forEach((child) => {
+                traverse(child, depth + 1, node);
             });
             const firstChild = nodes.find(n => n.id === node.children![0].id);
             const lastChild = nodes.find(n => n.id === node.children![childrenCount - 1].id);
@@ -110,17 +108,6 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         }
         
         nodes.push(node);
-
-        if (childrenCount > 0 && !parent) { // Root node with children
-             node.children!.filter(Boolean).forEach((child, i) => {
-                traverse(child, depth + 1, node, i * xSpacing);
-            });
-            const firstChild = nodes.find(n => n.id === node.children![0].id);
-            const lastChild = nodes.find(n => n.id === node.children![childrenCount - 1].id);
-            if(firstChild && lastChild) {
-               node.x = (firstChild.x! + lastChild.x!) / 2;
-            }
-        }
     }
 
     traverse(safeTree);
@@ -464,3 +451,4 @@ export function SkillTreeView() {
     </div>
   );
 }
+

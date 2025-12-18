@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Folder, Plus, Loader, AlertTriangle, MoreVertical, Sparkles } from 'lucide-react';
+import { Folder, Plus, Loader, AlertTriangle, MoreVertical, Sparkles, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,10 @@ import { cn } from '@/lib/utils';
 import { WipPage } from '@/components/wip-page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SkillTreeView } from '@/components/skill-tree-view';
+import { explainTopicAction } from '@/actions/generation';
+import { ChatView } from '@/components/chat-view';
+import type { Message } from '@/components/chat-view';
+
 
 const subjectFormSchema = z.object({
     name: z.string().min(1, 'Subject name is required.'),
@@ -272,6 +277,72 @@ function SubjectsView() {
     );
 }
 
+function SkillTreeChatView() {
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+
+        const newUserMessage: Message = { role: 'user', content: input };
+        setMessages(prev => [...prev, newUserMessage]);
+        setInput('');
+        setIsLoading(true);
+
+        try {
+            const result = await explainTopicAction({
+                topic: input,
+                history: messages,
+            });
+            const newModelMessage: Message = { role: 'model', content: result.response };
+            setMessages(prev => [...prev, newModelMessage]);
+        } catch (error) {
+            console.error("Error explaining topic:", error);
+            const errorMessage: Message = {
+                role: 'model',
+                content: 'Sorry, I encountered an error trying to respond.',
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    return (
+        <Card className="glass-pane h-full flex flex-col">
+            <CardHeader>
+                <CardTitle className="font-headline">AI Chat</CardTitle>
+                <CardDescription>Ask for more details about your topic.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col p-0">
+                <ChatView messages={messages} isLoading={isLoading} />
+                 <form onSubmit={handleSendMessage} className="p-4 border-t">
+                    <div className="relative">
+                        <Input
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Ask a follow-up question..."
+                            className="pr-12"
+                            disabled={isLoading}
+                        />
+                        <Button
+                            type="submit"
+                            size="icon"
+                            variant="ghost"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                            disabled={isLoading || !input.trim()}
+                        >
+                            <Plus />
+                        </Button>
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
+    );
+}
+
 export default function NotesDashboardPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
@@ -287,6 +358,8 @@ export default function NotesDashboardPage() {
 
     const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
     const isNotesWip = siteConfig?.notesWip === false && userProfile?.isAdmin !== true;
+    const isSkillTreeWip = siteConfig?.skillTreeWip === false && userProfile?.isAdmin !== true;
+
 
     if (isLoading) {
         return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
@@ -300,13 +373,17 @@ export default function NotesDashboardPage() {
         <Tabs defaultValue="subjects" className="h-full flex flex-col">
             <TabsList>
                 <TabsTrigger value="subjects">Subjects</TabsTrigger>
-                <TabsTrigger value="skill-tree">Skill Tree</TabsTrigger>
+                <TabsTrigger value="skill-tree" disabled={isSkillTreeWip}><BrainCircuit className="w-4 h-4 mr-2"/> Skill Tree {isSkillTreeWip ? '(WIP)' : ''}</TabsTrigger>
+                 <TabsTrigger value="chat">AI Chat</TabsTrigger>
             </TabsList>
             <TabsContent value="subjects" className="mt-6">
                 <SubjectsView />
             </TabsContent>
             <TabsContent value="skill-tree" className="mt-6 flex-grow">
-                <SkillTreeView />
+                 {isSkillTreeWip ? <WipPage /> : <SkillTreeView />}
+            </TabsContent>
+            <TabsContent value="chat" className="mt-6 flex-grow">
+                 <SkillTreeChatView />
             </TabsContent>
         </Tabs>
     );
