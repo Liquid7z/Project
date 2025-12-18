@@ -3,16 +3,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader, Send, ZoomIn, ZoomOut, Save, BookOpen, Library, CheckSquare, Square, MousePointer, Hand } from 'lucide-react';
-import { Card, CardContent, CardHeader } from './ui/card';
-import { generateSkillTreeAction, explainTopicAction, getShortDefinitionAction } from '@/actions/generation';
+import { Loader, Send, Save, BookOpen, Hand, MousePointer } from 'lucide-react';
+import { Card, CardContent } from './ui/card';
+import { generateSkillTreeAction, getShortDefinitionAction } from '@/actions/generation';
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChatView } from './chat-view';
-import type { Message } from './chat-view';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SaveNoteDialog } from '@/components/save-note-dialog';
@@ -39,11 +36,11 @@ interface Edge {
 }
 
 const nodeDimensions = {
-  root: { width: 220, height: 70 },
-  pillar: { width: 200, height: 65 },
-  concept: { width: 180, height: 60 },
-  detail: { width: 160, height: 55 },
-  'sub-detail': { width: 150, height: 50 },
+  root: { width: 180, height: 60 },
+  pillar: { width: 160, height: 52 },
+  concept: { width: 160, height: 52 },
+  detail: { width: 150, height: 48 },
+  'sub-detail': { width: 140, height: 44 },
 };
 
 const nodeColors = {
@@ -62,61 +59,66 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    let xOffset = 0;
-    const ySpacing = 120;
-    const xSpacing = 250;
+    const xSpacing = 220;
+    const ySpacing = 100;
+    let yOffset = 0;
 
-    function traverse(node: Node, depth = 0, parent?: Node) {
+    const yOffsets: number[] = [];
+
+    function traverse(node: Node | null, depth = 0, parent?: Node) {
         if (!node) {
-            return;
+            return 0;
         }
-        
+
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
         node.height = height;
-        node.y = depth * ySpacing;
+        node.x = depth * xSpacing;
         
-        const childrenCount = node.children?.filter(Boolean).length || 0;
-        
-        if (childrenCount === 0) { // Leaf node
-            node.x = xOffset;
-            xOffset += xSpacing;
-        } else { // Branch node
-            const startX = xOffset;
-            node.children!.filter(Boolean).forEach((child) => {
-                traverse(child, depth + 1, node);
-            });
-            const firstChild = nodes.find(n => n.id === node.children![0].id);
-            const lastChild = nodes.find(n => n.id === node.children![childrenCount - 1].id);
-            node.x = (firstChild!.x! + lastChild!.x!) / 2;
-        }
-        
-        if (parent) {
-             const startX = parent.x! + parent.width! / 2;
-             const startY = parent.y! + parent.height!;
-             const endX = node.x! + node.width! / 2;
-             const endY = node.y!;
-             const midY = startY + ySpacing / 2;
-             
-             const path = `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`;
+        let localYOffset = yOffsets[depth] || 0;
+        node.y = localYOffset;
 
-             edges.push({
-                 source: parent.id,
-                 target: node.id,
-                 path: path
-             });
+        const subtreeHeight = (node.children?.filter(Boolean).reduce((acc, child) => {
+            return acc + traverse(child, depth + 1, node);
+        }, 0) || 0);
+
+        localYOffset += subtreeHeight;
+        
+        if (node.children && node.children.length > 0) {
+            const firstChild = nodes.find(n => n.id === node.children![0].id);
+            const lastChild = nodes.find(n => n.id === node.children![node.children!.length - 1].id);
+            if (firstChild && lastChild) {
+                node.y = (firstChild.y! + firstChild.height!/2 + lastChild.y! + lastChild.height!/2) / 2 - node.height/2;
+            }
+        } else {
+             yOffsets[depth] = (yOffsets[depth] || 0) + ySpacing;
         }
         
         nodes.push(node);
+
+        if (parent) {
+            const startX = parent.x! + parent.width!;
+            const startY = parent.y! + parent.height! / 2;
+            const endX = node.x!;
+            const endY = node.y! + node.height! / 2;
+            const midX = startX + xSpacing / 2;
+            
+            const path = `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`;
+
+            edges.push({
+                source: parent.id,
+                target: node.id,
+                path: path,
+            });
+        }
+        
+        return subtreeHeight > 0 ? subtreeHeight : ySpacing;
     }
 
     traverse(safeTree);
-    
-    // Center the whole tree
-    const minX = Math.min(...nodes.map(n => n.x!));
-    nodes.forEach(n => {
-        n.x! -= minX;
-    });
+
+    const minY = Math.min(...nodes.map(n => n.y!));
+    nodes.forEach(n => n.y! -= minY);
 
     return { nodes, edges };
 };
@@ -149,10 +151,6 @@ export function SkillTreeView() {
       if (newNodes.length > 0) {
         const minX = Math.min(...newNodes.map(n => n.x!));
         const minY = Math.min(...newNodes.map(n => n.y!));
-        const maxX = Math.max(...newNodes.map(n => n.x! + n.width!));
-        const maxY = Math.max(...newNodes.map(n => n.y! + n.height!));
-        const width = maxX - minX + 400; // Add padding
-        const height = maxY - minY + 200; // Add padding
         
         // Center the initial view on the root node
         const rootNode = newNodes.find(n => n.type === 'root');
@@ -379,7 +377,7 @@ export function SkillTreeView() {
                                 fill="none"
                                 stroke={activeNodeId === edge.source || activeNodeId === edge.target ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
                                 strokeWidth={activeNodeId === edge.source || activeNodeId === edge.target ? 2 : 1}
-                                className={cn("transition-all", (activeNodeId === edge.source || activeNodeId === edge.target) && "stroke-accent animate-pulse")}
+                                className={cn("transition-all", (activeNodeId === edge.source) && "stroke-accent animate-pulse")}
                             />
                        ))}
                        {nodes.map(node => (
@@ -417,7 +415,10 @@ export function SkillTreeView() {
                                                 if (node.definition) return;
                                                 toast({ title: "Getting definition..." });
                                                 const res = await getShortDefinitionAction({ topic: node.label, context: tree.label });
-                                                setNodes(currentNodes => currentNodes.map(n => n.id === node.id ? { ...n, definition: res.definition } : n));
+                                                setLayout(prev => ({
+                                                    ...prev,
+                                                    nodes: prev.nodes.map(n => n.id === node.id ? { ...n, definition: res.definition } : n)
+                                                }));
                                             }}
                                             disabled={!!node.definition}
                                         >
@@ -451,4 +452,3 @@ export function SkillTreeView() {
     </div>
   );
 }
-
