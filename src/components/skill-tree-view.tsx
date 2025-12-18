@@ -42,9 +42,9 @@ interface Edge {
 const nodeDimensions = {
   root: { width: 200, height: 70 },
   pillar: { width: 180, height: 60 },
-  concept: { width: 170, height: 56 },
-  detail: { width: 160, height: 52 },
-  'sub-detail': { width: 150, height: 48 },
+  concept: { width: 160, height: 52 },
+  detail: { width: 150, height: 48 },
+  'sub-detail': { width: 140, height: 44 },
 };
 
 const nodeColors = {
@@ -59,14 +59,20 @@ const nodeColors = {
 const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } => {
     if (!tree) return { nodes: [], edges: [] };
 
+    // Deep copy to prevent state mutation
+    const safeTree = JSON.parse(JSON.stringify(tree));
+
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     let yOffset = 0;
-    const xSpacing = 250;
-    const ySpacing = 120;
+    const xSpacing = 220; // Increased spacing for new node style
+    const ySpacing = 120; // Increased spacing
 
     function traverse(node: Node, depth = 0, parent?: Node) {
-        if (!node) return;
+        // *** THE FIX ***: This guard clause prevents the function from crashing if the AI returns a null child.
+        if (!node) {
+            return;
+        }
         
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
@@ -77,12 +83,12 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         nodes.push(node);
 
         if (parent) {
-             const startX = parent.x! + parent.width! / 2;
-             const startY = parent.y! + parent.height!;
-             const endX = node.x! + node.width! / 2;
-             const endY = node.y!;
+             const startX = parent.x! + parent.width!;
+             const startY = parent.y! + parent.height! / 2;
+             const endX = node.x!;
+             const endY = node.y! + node.height! / 2;
              
-             const path = `M ${startX},${startY} C ${startX},${startY + (endY - startY)/2} ${endX},${startY + (endY - startY)/2} ${endX},${endY}`;
+             const path = `M ${startX},${startY} L ${startX + xSpacing / 2},${startY} L ${startX + xSpacing / 2},${endY} L ${endX},${endY}`;
 
              edges.push({
                  source: parent.id,
@@ -95,7 +101,7 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         const initialYOffset = yOffset;
 
         if (childrenCount > 0) {
-             node.children!.filter(child => child !== null).forEach((child, index) => {
+             node.children!.filter(Boolean).forEach((child, index) => {
                  if (index > 0) {
                     yOffset += ySpacing;
                  }
@@ -109,7 +115,6 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         }
     }
 
-    const safeTree = JSON.parse(JSON.stringify(tree));
     traverse(safeTree);
     return { nodes, edges };
 };
@@ -227,7 +232,7 @@ export function SkillTreeView() {
         };
     
         if (isAllSelected) {
-            return buildMarkdown(tree, 0);
+            return buildMarkdown(tree);
         } else {
             let markdown = '';
             for (const id of selectedIds) {
@@ -471,3 +476,4 @@ export default function SkillTreePage() {
         </Tabs>
     );
 }
+
