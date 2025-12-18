@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader, Send, ZoomIn, ZoomOut, Save, BookOpen, Library, CheckSquare, Square } from 'lucide-react';
+import { Loader, Send, ZoomIn, ZoomOut, Save, BookOpen, Library, CheckSquare, Square, MousePointer, Hand } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { generateSkillTreeAction, explainTopicAction, getShortDefinitionAction } from '@/actions/generation';
 import { useToast } from '@/hooks/use-toast';
@@ -18,7 +17,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SaveNoteDialog } from '@/components/save-note-dialog';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
-
 
 // Type definitions for the skill tree
 interface Node {
@@ -40,11 +38,11 @@ interface Edge {
 }
 
 const nodeDimensions = {
-  root: { width: 200, height: 70 },
-  pillar: { width: 180, height: 60 },
-  concept: { width: 160, height: 52 },
-  detail: { width: 150, height: 48 },
-  'sub-detail': { width: 140, height: 44 },
+  root: { width: 220, height: 70 },
+  pillar: { width: 200, height: 65 },
+  concept: { width: 180, height: 60 },
+  detail: { width: 160, height: 55 },
+  'sub-detail': { width: 150, height: 50 },
 };
 
 const nodeColors = {
@@ -59,17 +57,15 @@ const nodeColors = {
 const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } => {
     if (!tree) return { nodes: [], edges: [] };
 
-    // Deep copy to prevent state mutation
     const safeTree = JSON.parse(JSON.stringify(tree));
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    let yOffset = 0;
-    const xSpacing = 220; // Increased spacing for new node style
-    const ySpacing = 120; // Increased spacing
+    let xOffset = 0;
+    const ySpacing = 120;
+    const xSpacing = 250;
 
-    function traverse(node: Node, depth = 0, parent?: Node) {
-        // *** THE FIX ***: This guard clause prevents the function from crashing if the AI returns a null child.
+    function traverse(node: Node, depth = 0, parent?: Node, parentX?: number) {
         if (!node) {
             return;
         }
@@ -77,18 +73,34 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
         node.height = height;
-        node.x = depth * xSpacing;
-        node.y = yOffset;
-
-        nodes.push(node);
-
+        node.y = depth * ySpacing;
+        
+        const childrenCount = node.children?.filter(Boolean).length || 0;
+        const childrenWidth = childrenCount * xSpacing - (xSpacing - width);
+        
+        if (!parent) { // Root node
+            node.x = 0;
+        } else if (childrenCount === 0) { // Leaf node
+            node.x = parentX!;
+            xOffset += xSpacing;
+        } else { // Branch node
+            const startX = parentX!;
+            node.children!.filter(Boolean).forEach((child, i) => {
+                traverse(child, depth + 1, node, startX + i * xSpacing);
+            });
+            const firstChild = nodes.find(n => n.id === node.children![0].id);
+            const lastChild = nodes.find(n => n.id === node.children![childrenCount - 1].id);
+            node.x = (firstChild!.x! + lastChild!.x!) / 2;
+        }
+        
         if (parent) {
-             const startX = parent.x! + parent.width!;
-             const startY = parent.y! + parent.height! / 2;
-             const endX = node.x!;
-             const endY = node.y! + node.height! / 2;
+             const startX = parent.x! + parent.width! / 2;
+             const startY = parent.y! + parent.height!;
+             const endX = node.x! + node.width! / 2;
+             const endY = node.y!;
+             const midY = startY + ySpacing / 2;
              
-             const path = `M ${startX},${startY} L ${startX + xSpacing / 2},${startY} L ${startX + xSpacing / 2},${endY} L ${endX},${endY}`;
+             const path = `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`;
 
              edges.push({
                  source: parent.id,
@@ -96,26 +108,29 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
                  path: path
              });
         }
+        
+        nodes.push(node);
 
-        const childrenCount = node.children?.length || 0;
-        const initialYOffset = yOffset;
-
-        if (childrenCount > 0) {
-             node.children!.filter(Boolean).forEach((child, index) => {
-                 if (index > 0) {
-                    yOffset += ySpacing;
-                 }
-                traverse(child, depth + 1, node);
+        if (childrenCount > 0 && !parent) { // Root node with children
+             node.children!.filter(Boolean).forEach((child, i) => {
+                traverse(child, depth + 1, node, i * xSpacing);
             });
-             if (childrenCount > 1) {
-                const lastChild = nodes[nodes.length - 1];
-                const newParentY = (initialYOffset + lastChild.y!) / 2;
-                node.y = newParentY;
+            const firstChild = nodes.find(n => n.id === node.children![0].id);
+            const lastChild = nodes.find(n => n.id === node.children![childrenCount - 1].id);
+            if(firstChild && lastChild) {
+               node.x = (firstChild.x! + lastChild.x!) / 2;
             }
         }
     }
 
     traverse(safeTree);
+    
+    // Center the whole tree
+    const minX = Math.min(...nodes.map(n => n.x!));
+    nodes.forEach(n => {
+        n.x! -= minX;
+    });
+
     return { nodes, edges };
 };
 
@@ -126,13 +141,18 @@ export function SkillTreeView() {
   const [tree, setTree] = useState<Node | null>(null);
   const [{ nodes, edges }, setLayout] = useState<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
   const { toast } = useToast();
-  const [zoom, setZoom] = useState(1);
-  const [viewBox, setViewBox] = useState('0 0 1000 800');
+  
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 1000, height: 800 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
   const svgRef = useRef<SVGSVGElement>(null);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSaveNoteDialogOpen, setIsSaveNoteDialogOpen] = useState(false);
+  
+  const [panMode, setPanMode] = useState(true);
 
   useEffect(() => {
     if (tree) {
@@ -144,9 +164,15 @@ export function SkillTreeView() {
         const minY = Math.min(...newNodes.map(n => n.y!));
         const maxX = Math.max(...newNodes.map(n => n.x! + n.width!));
         const maxY = Math.max(...newNodes.map(n => n.y! + n.height!));
-        const width = maxX - minX + 200;
-        const height = maxY - minY + 200;
-        setViewBox(`${minX - 100} ${minY - 100} ${width} ${height}`);
+        const width = maxX - minX + 400; // Add padding
+        const height = maxY - minY + 200; // Add padding
+        
+        // Center the initial view on the root node
+        const rootNode = newNodes.find(n => n.type === 'root');
+        const initialX = rootNode ? (rootNode.x! + rootNode.width! / 2) - (1000 / 2) : minX - 200;
+        const initialY = minY - 100;
+        
+        setViewBox({ x: initialX, y: initialY, width: 1000, height: 800});
       }
     }
   }, [tree]);
@@ -207,19 +233,19 @@ export function SkillTreeView() {
   
     const treeToMarkdown = useCallback(() => {
         if (!tree) return '';
-    
+
         const isAllSelected = selectedIds.size === nodes.length && nodes.length > 0;
-    
+
         const buildMarkdown = (node: Node, depth = 0): string => {
             if (!node || !selectedIds.has(node.id)) return '';
-    
-            let markdown = `${'#'.repeat(depth + 1)} ${node.label}\n`;
+            
+            let markdown = `${'#'.repeat(depth + 2)} ${node.label}\n`;
             const fullNode = nodes.find(n => n.id === node.id);
-    
+
             if (fullNode?.definition) {
                 markdown += `> ${fullNode.definition}\n\n`;
             }
-    
+
             if (node.children) {
                 const childrenMarkdown = node.children
                     .map(child => buildMarkdown(child, depth + 1))
@@ -227,14 +253,16 @@ export function SkillTreeView() {
                     .join('');
                 markdown += childrenMarkdown;
             }
-    
+
             return markdown;
         };
-    
+        
         if (isAllSelected) {
-            return buildMarkdown(tree);
+            let markdown = `# Skill Tree: ${tree.label}\n\n`;
+            markdown += buildMarkdown(tree, 0);
+            return markdown;
         } else {
-            let markdown = '';
+            let markdown = `# Selected Key Points for: ${tree.label}\n\n`;
             for (const id of selectedIds) {
                 const node = nodes.find(n => n.id === id);
                 if (node) {
@@ -243,7 +271,64 @@ export function SkillTreeView() {
             }
             return markdown;
         }
+
     }, [tree, selectedIds, nodes]);
+    
+    const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+        e.preventDefault();
+        const zoomFactor = 1.1;
+        const { clientX, clientY } = e;
+        const svg = svgRef.current;
+        if (!svg) return;
+
+        const point = svg.createSVGPoint();
+        point.x = clientX;
+        point.y = clientY;
+        
+        const { x: svgX, y: svgY } = point.matrixTransform(svg.getScreenCTM()!.inverse());
+
+        const newWidth = e.deltaY < 0 ? viewBox.width / zoomFactor : viewBox.width * zoomFactor;
+        const newHeight = e.deltaY < 0 ? viewBox.height / zoomFactor : viewBox.height * zoomFactor;
+        
+        const newX = svgX - (svgX - viewBox.x) * (newWidth / viewBox.width);
+        const newY = svgY - (svgY - viewBox.y) * (newHeight / viewBox.height);
+
+        setViewBox({ x: newX, y: newY, width: newWidth, height: newHeight });
+    };
+    
+    const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+      if (!panMode) return;
+        setIsDragging(true);
+        setDragStart({ x: e.clientX, y: e.clientY });
+        e.currentTarget.style.cursor = 'grabbing';
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+        if (!isDragging || !panMode) return;
+        
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+        
+        const scale = viewBox.width / svgRef.current!.clientWidth;
+
+        setViewBox(prev => ({
+            ...prev,
+            x: prev.x - dx * scale,
+            y: prev.y - dy * scale,
+        }));
+        
+        setDragStart({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
+        setIsDragging(false);
+        if (panMode) e.currentTarget.style.cursor = 'grab';
+    };
+    
+    const handleMouseLeave = (e: React.MouseEvent<SVGSVGElement>) => {
+        setIsDragging(false);
+        if (panMode) e.currentTarget.style.cursor = 'default';
+    };
   
 
   return (
@@ -278,18 +363,28 @@ export function SkillTreeView() {
         {tree && (
             <>
                 <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setPanMode(!panMode)}>
+                        {panMode ? <MousePointer /> : <Hand />}
+                    </Button>
                     <div className="flex items-center space-x-2 bg-card/80 p-2 rounded-md">
                         <Checkbox id="select-all" onCheckedChange={handleSelectAll} />
                         <Label htmlFor="select-all">Select All</Label>
                     </div>
                     <Button variant="glow" size="sm" onClick={() => setIsSaveNoteDialogOpen(true)} disabled={selectedIds.size === 0}>
-                        <Save className="mr-2 h-4 w-4" /> Save to Note
+                        <Save className="mr-2 h-4 w-4" /> Save
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => setZoom(z => z * 1.2)}><ZoomIn/></Button>
-                    <Button variant="outline" size="icon" onClick={() => setZoom(z => z / 1.2)}><ZoomOut/></Button>
                 </div>
-                 <svg ref={svgRef} className="w-full h-full" viewBox={viewBox}>
-                    <g transform={`scale(${zoom})`}>
+                 <svg 
+                     ref={svgRef} 
+                     className={cn("w-full h-full", panMode ? "cursor-grab" : "cursor-default")}
+                     viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+                     onWheel={handleWheel}
+                     onMouseDown={handleMouseDown}
+                     onMouseMove={handleMouseMove}
+                     onMouseUp={handleMouseUp}
+                     onMouseLeave={handleMouseLeave}
+                 >
+                    <g>
                        {edges.map(edge => (
                            <path
                                 key={`${edge.source}-${edge.target}`}
@@ -303,19 +398,22 @@ export function SkillTreeView() {
                        {nodes.map(node => (
                            <Popover key={node.id}>
                             <PopoverTrigger asChild>
-                               <foreignObject x={node.x} y={node.y} width={node.width} height={node.height} className="overflow-visible">
+                               <foreignObject x={node.x} y={node.y} width={node.width} height={node.height} className={cn("overflow-visible", !panMode && "cursor-pointer")}>
                                  <motion.div
                                      initial={{ opacity: 0, scale: 0.8 }}
                                      animate={{ opacity: 1, scale: 1 }}
-                                     onClick={() => handleNodeClick(node.id)}
+                                     onClick={(e) => {
+                                         if (!panMode) handleNodeClick(node.id);
+                                         else e.stopPropagation();
+                                     }}
                                      className={cn(
-                                         'flex flex-col justify-center items-center p-2 rounded-md h-full w-full cursor-pointer transition-all',
+                                         'flex flex-col justify-center items-center p-2 rounded-md h-full w-full transition-all',
                                          nodeColors[node.type],
                                          activeNodeId === node.id && 'shadow-lg shadow-accent/50'
                                      )}
                                  >
                                      <p className="font-bold text-center text-sm leading-tight">{node.label}</p>
-                                     <p className="text-xs opacity-70 capitalize">{node.type}</p>
+                                     <p className="text-xs opacity-70 capitalize mt-1">{node.type}</p>
                                  </motion.div>
                                </foreignObject>
                             </PopoverTrigger>
@@ -366,114 +464,3 @@ export function SkillTreeView() {
     </div>
   );
 }
-
-function NormalChat() {
-    const [isLoading, setIsLoading] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [input, setInput] = useState('');
-    const { toast } = useToast();
-    const [isSaveNoteDialogOpen, setIsSaveNoteDialogOpen] = useState(false);
-
-    const handleSendMessage = async () => {
-        if (!input.trim()) return;
-        const userMessage: Message = { role: 'user', content: input };
-        const newMessages: Message[] = [...messages, userMessage];
-        setMessages(newMessages);
-        setInput('');
-        setIsLoading(true);
-    
-        try {
-            // Ensure history alternates between user and model
-            const history = newMessages.slice(0, -1).reduce((acc, msg, i) => {
-                // If it's the first message, or different from the last role, add it
-                if (i === 0 || msg.role !== acc[acc.length - 1]?.role) {
-                    acc.push(msg);
-                }
-                return acc;
-            }, [] as Message[]);
-    
-            const result = await explainTopicAction({ topic: input, history: history });
-            setMessages([...newMessages, { role: 'model', content: result.response }]);
-        } catch (error) {
-            console.error(error);
-            toast({
-                variant: 'destructive',
-                title: 'An error occurred',
-                description: 'Could not get a response from the AI.',
-            });
-            // Restore user input on failure
-            setInput(input);
-            setMessages(messages);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    const chatToMarkdown = () => {
-        return messages.map(msg => `**${msg.role === 'user' ? 'You' : 'AI'}:**\n\n${msg.content.replace(/<[^>]+>/g, '')}\n\n---\n\n`).join('');
-    };
-
-    return (
-        <div className="h-full flex flex-col">
-            <Card className="glass-pane flex-grow flex flex-col">
-                 <CardHeader className="flex-row items-center justify-between">
-                    <div className="space-y-1">
-                        <h2 className="text-2xl font-bold font-headline">Normal Chat</h2>
-                        <p className="text-sm text-muted-foreground">Ask the AI anything.</p>
-                    </div>
-                     <Button variant="outline" size="sm" onClick={() => setIsSaveNoteDialogOpen(true)} disabled={messages.length === 0}>
-                        <Save className="mr-2"/> Save Chat
-                    </Button>
-                </CardHeader>
-                <CardContent className="flex-grow flex flex-col-reverse overflow-hidden p-0">
-                    <div className="p-4 border-t">
-                        <div className="relative">
-                            <Input
-                                placeholder="Type your message..."
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                disabled={isLoading}
-                                className="pr-12"
-                            />
-                            <Button
-                                size="icon"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                onClick={handleSendMessage}
-                                disabled={isLoading || !input.trim()}
-                            >
-                                <Send />
-                            </Button>
-                        </div>
-                    </div>
-                   <ChatView messages={messages} isLoading={isLoading} />
-                </CardContent>
-            </Card>
-             <SaveNoteDialog
-                isOpen={isSaveNoteDialogOpen}
-                onOpenChange={setIsSaveNoteDialogOpen}
-                initialTitle={`Chat on ${new Date().toLocaleDateString()}`}
-                noteContent={chatToMarkdown()}
-            />
-        </div>
-    );
-}
-
-// Main component is just a wrapper for the tabs now
-export default function SkillTreePage() {
-    return (
-        <Tabs defaultValue="skill-tree" className="h-full flex flex-col">
-             <TabsList>
-                <TabsTrigger value="skill-tree">Skill Tree</TabsTrigger>
-                <TabsTrigger value="normal-chat">Normal Chat</TabsTrigger>
-            </TabsList>
-            <TabsContent value="skill-tree" className="mt-6 flex-grow">
-                <SkillTreeView />
-            </TabsContent>
-            <TabsContent value="normal-chat" className="mt-6 flex-grow">
-                <NormalChat />
-            </TabsContent>
-        </Tabs>
-    );
-}
-
