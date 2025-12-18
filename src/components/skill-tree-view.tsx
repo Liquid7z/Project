@@ -64,7 +64,7 @@ const calculateLayout = (node: Node, x = 0, y = 0, depth = 0): { nodes: Node[]; 
         return { nodes, edges };
     }
     
-    const validChildren = node.children?.filter(Boolean) ?? [];
+    const validChildren = node.children?.filter(child => child && typeof child === 'object') ?? [];
 
     const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
     node.width = width;
@@ -118,7 +118,6 @@ function deepCopy<T>(obj: T): T {
     if (obj === null || typeof obj !== 'object') {
         return obj;
     }
-    // A more robust deep copy to avoid the state mutation issues.
     return JSON.parse(JSON.stringify(obj));
 }
 
@@ -197,7 +196,7 @@ export function SkillTreeView() {
       const result = await generateSkillTreeAction({ topic });
       if (result && result.tree) {
         const treeCopy = deepCopy(result.tree);
-        setTree(result.tree); // Keep original state pure
+        setTree(result.tree);
         const { nodes: layoutNodes, edges: layoutEdges } = calculateLayout(treeCopy);
         
         const xs = layoutNodes.map(n => n.x ?? 0);
@@ -279,7 +278,6 @@ export function SkillTreeView() {
 
     const isFullTreeSelected = selectedIds.size === nodes.length;
 
-    // If only specific nodes are selected, create a flat list.
     if (!isFullTreeSelected) {
         let markdown = '# Selected Key Points\n\n';
         nodes.forEach(node => {
@@ -295,11 +293,10 @@ export function SkillTreeView() {
         return markdown;
     }
 
-    // If all nodes are selected, create a hierarchical structure.
     const buildMarkdown = (node: Node, depth = 0): string => {
         if (!node || !selectedIds.has(node.id)) return '';
 
-        let markdown = `${'#'.repeat(depth + 2)} ${node.label}\n`; // Start with H2 for root
+        let markdown = `${'#'.repeat(depth + 2)} ${node.label}\n`;
         const fullNode = nodes.find(n => n.id === node.id);
         if(fullNode?.definition) {
             markdown += `> ${fullNode.definition}\n\n`;
@@ -352,9 +349,9 @@ export function SkillTreeView() {
     setIsChatLoading(true);
     
     try {
-        const history = newMessages.slice(0, -1).map(m => ({role: m.role, content: m.content}));
-        const result = await explainTopicAction({ topic: input, history });
-        setMessages(prev => [...prev, { role: 'model', content: result.response }]);
+      const history = newMessages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
+      const result = await explainTopicAction({ topic: input, history });
+      setMessages(prev => [...prev, { role: 'model', content: result.response }]);
     } catch(error) {
         console.error(error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to get a response from the AI.'});
