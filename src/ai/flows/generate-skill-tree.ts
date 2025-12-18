@@ -8,7 +8,7 @@ const NodeSchema = z.object({
   id: z.string().describe('A unique identifier for the node (e.g., "1", "1.1", "1.1.1").'),
   label: z.string().describe('A concise title for the skill or concept (max 5 words).'),
   type: z.enum(['root', 'pillar', 'concept', 'detail', 'sub-detail']).describe('The hierarchical level of the node.'),
-  children: z.array(z.lazy(() => NodeSchema)).optional().describe('Child nodes representing sub-topics.'),
+  children: z.array(z.lazy(() => NodeSchema.nullable())).optional().describe('Child nodes representing sub-topics.'),
 });
 
 const GenerateSkillTreeInputSchema = z.object({
