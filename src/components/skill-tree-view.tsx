@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader, Send, Save, BookOpen, Hand, MousePointer, CheckCircle } from 'lucide-react';
+import { Loader, Send, Save, BookOpen, CheckCircle, MessageSquare } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { generateSkillTreeAction, getShortDefinitionAction } from '@/actions/generation';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +20,7 @@ import { Label } from './ui/label';
 interface Node {
   id: string;
   label: string;
-  type: 'root' | 'pillar' | 'concept' | 'detail' | 'sub-detail';
+  type: 'root' | 'pillar' | 'concept' | 'detail';
   children?: Node[];
   x?: number;
   y?: number;
@@ -38,9 +38,8 @@ interface Edge {
 const nodeDimensions = {
   root: { width: 180, height: 60 },
   pillar: { width: 160, height: 52 },
-  concept: { width: 160, height: 52 },
-  detail: { width: 150, height: 48 },
-  'sub-detail': { width: 140, height: 44 },
+  concept: { width: 150, height: 48 },
+  detail: { width: 140, height: 44 },
 };
 
 const nodeColors = {
@@ -48,7 +47,6 @@ const nodeColors = {
     pillar: 'bg-accent/20 border-accent text-accent-foreground',
     concept: 'bg-secondary border-border text-foreground',
     detail: 'bg-muted/50 border-border text-muted-foreground',
-    'sub-detail': 'bg-muted/30 border-border text-muted-foreground',
 };
 
 
@@ -59,48 +57,31 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
+    let yOffset = 0;
     const xSpacing = 220;
     const ySpacing = 100;
-    
-    const yOffsets: number[] = [];
 
     function traverse(node: Node | null, depth = 0, parent?: Node) {
         if (!node) {
-            return 0;
+            return;
         }
 
         const { width, height } = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = width;
         node.height = height;
         node.x = depth * xSpacing;
-        
-        const subtreeHeight = (node.children?.reduce((acc, child) => {
-            return acc + traverse(child, depth + 1, node);
-        }, 0) || 0);
-
-        if (node.children && node.children.length > 0) {
-            const firstChild = nodes.find(n => n.id === node.children![0].id);
-            const lastChild = nodes.find(n => n.id === node.children![node.children!.length - 1].id);
-            if (firstChild && lastChild) {
-                node.y = (firstChild.y! + lastChild.y!) / 2;
-            } else {
-                 node.y = (yOffsets[depth] || 0) + subtreeHeight / 2 - height / 2;
-            }
-        } else {
-             node.y = yOffsets[depth] || 0;
-             yOffsets[depth] = (yOffsets[depth] || 0) + ySpacing;
-        }
+        node.y = yOffset;
         
         nodes.push(node);
 
         if (parent) {
-            const startX = parent.x! + parent.width! / 2;
-            const startY = parent.y! + parent.height!;
-            const endX = node.x! + node.width! / 2;
-            const endY = node.y!;
-            const midY = startY + (endY - startY) / 2;
+            const startX = parent.x! + parent.width!;
+            const startY = parent.y! + parent.height! / 2;
+            const endX = node.x!;
+            const endY = node.y! + node.height! / 2;
+            const midX = startX + (endX - startX) / 2;
 
-            const path = `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`;
+            const path = `M ${startX},${startY} C ${midX},${startY} ${midX},${endY} ${endX},${endY}`;
 
             edges.push({
                 source: parent.id,
@@ -109,19 +90,41 @@ const calculateLayout = (tree: Node | null): { nodes: Node[]; edges: Edge[] } =>
             });
         }
         
-        return subtreeHeight > 0 ? subtreeHeight : ySpacing;
+        yOffset += ySpacing;
+
+        if (node.children && node.children.length > 0) {
+            // Filter out any null children before mapping
+            node.children.filter(child => child).forEach(child => traverse(child, depth + 1, node));
+        }
     }
 
     traverse(safeTree);
 
-    const minY = Math.min(...nodes.map(n => n.y!));
-    nodes.forEach(n => n.y! -= minY);
+    // Center the tree vertically
+    const heights = nodes.map(n => n.y!);
+    const minY = Math.min(...heights);
+    const maxY = Math.max(...heights);
+    const totalHeight = maxY - minY + ySpacing;
+    const verticalShift = -minY - (totalHeight / 2) + 400; // 400 is half of default viewBox height
+
+    nodes.forEach(n => {
+        n.y! += verticalShift;
+    });
+    edges.forEach(edge => {
+        const path = edge.path.split(' ').map((part, i) => {
+            if (i > 0 && i % 2 === 0) { // y-coordinates
+                return parseFloat(part) + verticalShift;
+            }
+            return part;
+        }).join(' ');
+        edge.path = path;
+    });
 
     return { nodes, edges };
 };
 
 
-export function SkillTreeView() {
+export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: string) => void }) {
   const [topic, setTopic] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tree, setTree] = useState<Node | null>(null);
@@ -137,8 +140,6 @@ export function SkillTreeView() {
   
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSaveNoteDialogOpen, setIsSaveNoteDialogOpen] = useState(false);
-  
-  const [panMode, setPanMode] = useState(true);
 
   useEffect(() => {
     if (tree) {
@@ -146,14 +147,9 @@ export function SkillTreeView() {
       setLayout({ nodes: newNodes, edges: newEdges });
 
       if (newNodes.length > 0) {
-        const minX = Math.min(...newNodes.map(n => n.x!));
-        const minY = Math.min(...newNodes.map(n => n.y!));
-        
         const rootNode = newNodes.find(n => n.type === 'root');
-        const initialX = rootNode ? (rootNode.x! + rootNode.width! / 2) - (1000 / 2) : minX - 200;
-        const initialY = minY - 100;
-        
-        setViewBox({ x: initialX, y: initialY, width: 1000, height: 800});
+        const initialX = rootNode ? rootNode.x! - 200 : -200;
+        setViewBox(prev => ({ ...prev, x: initialX }));
       }
     }
   }, [tree]);
@@ -189,7 +185,8 @@ export function SkillTreeView() {
     }
   };
   
-    const handleNodeClick = (nodeId: string) => {
+    const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
+        e.stopPropagation();
         setActiveNodeId(nodeId);
     };
     
@@ -278,14 +275,13 @@ export function SkillTreeView() {
     };
     
     const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!panMode) return;
         setIsDragging(true);
         setDragStart({ x: e.clientX, y: e.clientY });
         e.currentTarget.style.cursor = 'grabbing';
     };
 
     const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-        if (!isDragging || !panMode) return;
+        if (!isDragging) return;
         
         const dx = e.clientX - dragStart.x;
         const dy = e.clientY - dragStart.y;
@@ -303,12 +299,12 @@ export function SkillTreeView() {
 
     const handleMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
         setIsDragging(false);
-        if (panMode) e.currentTarget.style.cursor = 'grab';
+        e.currentTarget.style.cursor = 'grab';
     };
     
     const handleMouseLeave = (e: React.MouseEvent<SVGSVGElement>) => {
         setIsDragging(false);
-        if (panMode) e.currentTarget.style.cursor = 'default';
+        e.currentTarget.style.cursor = 'default';
     };
   
 
@@ -344,9 +340,6 @@ export function SkillTreeView() {
         {tree && (
             <>
                 <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => setPanMode(!panMode)}>
-                        {panMode ? <MousePointer /> : <Hand />}
-                    </Button>
                     <div className="flex items-center space-x-2 bg-card/80 p-2 rounded-md">
                         <Checkbox id="select-all" onCheckedChange={handleSelectAll} />
                         <Label htmlFor="select-all">Select All</Label>
@@ -357,7 +350,7 @@ export function SkillTreeView() {
                 </div>
                  <svg 
                      ref={svgRef} 
-                     className={cn("w-full h-full", panMode ? "cursor-grab" : "cursor-default")}
+                     className="w-full h-full cursor-grab"
                      viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
                      onWheel={handleWheel}
                      onMouseDown={handleMouseDown}
@@ -365,6 +358,15 @@ export function SkillTreeView() {
                      onMouseUp={handleMouseUp}
                      onMouseLeave={handleMouseLeave}
                  >
+                    <defs>
+                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
                     <g>
                        {edges.map(edge => (
                            <path
@@ -373,20 +375,16 @@ export function SkillTreeView() {
                                 fill="none"
                                 stroke={activeNodeId === edge.source ? 'hsl(var(--accent))' : 'hsl(var(--border))'}
                                 strokeWidth={activeNodeId === edge.source ? 2 : 1}
-                                className={cn("transition-all", activeNodeId === edge.source && "animate-[pulse_1.5s_ease-in-out_infinite]")}
+                                className={cn("transition-all", activeNodeId === edge.source && "glow-edge")}
                             />
                        ))}
                        {nodes.map(node => (
                            <Popover key={node.id}>
                             <PopoverTrigger asChild>
-                               <foreignObject x={node.x} y={node.y} width={node.width} height={node.height} className={cn("overflow-visible", !panMode && "cursor-pointer")}>
+                               <foreignObject x={node.x} y={node.y} width={node.width} height={node.height} className="overflow-visible cursor-pointer" onClick={(e) => handleNodeClick(e, node.id)}>
                                  <motion.div
                                      initial={{ opacity: 0, scale: 0.8 }}
                                      animate={{ opacity: 1, scale: 1 }}
-                                     onClick={(e) => {
-                                         if (!panMode) handleNodeClick(node.id);
-                                         else e.stopPropagation();
-                                     }}
                                      className={cn(
                                          'flex flex-col justify-center items-center p-2 rounded-md h-full w-full transition-all',
                                          nodeColors[node.type],
@@ -401,9 +399,9 @@ export function SkillTreeView() {
                                  <div className="space-y-4">
                                      <div className="space-y-1">
                                         <h4 className="font-medium leading-none">{node.label}</h4>
-                                        <p className="text-sm text-muted-foreground">{node.definition || 'Click the button to get a definition.'}</p>
+                                        <p className="text-sm text-muted-foreground">{node.definition || 'Click "Get Definition" for a quick summary.'}</p>
                                      </div>
-                                     <div className="flex items-center justify-between">
+                                     <div className="flex items-center justify-between gap-2">
                                         <Button 
                                             variant="outline" size="sm" 
                                             onClick={async () => {
@@ -420,14 +418,20 @@ export function SkillTreeView() {
                                            {node.definition ? <CheckCircle className="mr-2 text-green-500" /> : <BookOpen className="mr-2"/> }
                                            {node.definition ? 'Defined' : 'Get Definition' }
                                         </Button>
-                                         <div className="flex items-center space-x-2">
-                                             <Checkbox
-                                                 id={`check-${node.id}`}
-                                                 checked={selectedIds.has(node.id)}
-                                                 onCheckedChange={(checked) => handleNodeToggle(node.id, !!checked)}
-                                             />
-                                             <Label htmlFor={`check-${node.id}`}>Select</Label>
-                                         </div>
+                                         <Button variant="secondary" size="sm" onClick={() => onExplainInChat(node.label)}>
+                                             <MessageSquare className="mr-2" />
+                                             Explain in Chat
+                                         </Button>
+                                     </div>
+                                      <div className="flex items-center space-x-2 pt-4 border-t">
+                                         <Checkbox
+                                             id={`check-${node.id}`}
+                                             checked={selectedIds.has(node.id)}
+                                             onCheckedChange={(checked) => handleNodeToggle(node.id, !!checked)}
+                                         />
+                                         <Label htmlFor={`check-${node.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                            Select for export
+                                         </Label>
                                      </div>
                                  </div>
                              </PopoverContent>
@@ -448,5 +452,3 @@ export function SkillTreeView() {
     </div>
   );
 }
-
-    
