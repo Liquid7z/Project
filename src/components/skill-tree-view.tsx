@@ -73,7 +73,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         node.width = dims.width;
         node.height = dims.height;
 
-        const validChildren = (node.children || []).filter(Boolean);
+        const validChildren = Array.isArray(node.children) ? node.children.filter(Boolean) : [];
         if (validChildren.length === 0) {
             return node.height;
         }
@@ -97,11 +97,11 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         node.y = y;
         allNodes.push(node);
 
-        const validChildren = (node.children || []).filter(Boolean);
+        const validChildren = Array.isArray(node.children) ? node.children.filter(Boolean) : [];
         if (validChildren.length === 0) return;
 
         const totalSubtreeHeight = (node as any).subtreeHeight;
-        let currentY = y - totalSubtreeHeight / 2 + (validChildren[0] as any).subtreeHeight / 2;
+        let currentY = y - totalSubtreeHeight / 2 + ((validChildren[0] as any).subtreeHeight || validChildren[0].height!) / 2;
 
         validChildren.forEach(child => {
             const childSubtreeHeight = (child as any).subtreeHeight || child.height!;
