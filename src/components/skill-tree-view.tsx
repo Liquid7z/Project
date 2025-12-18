@@ -118,7 +118,9 @@ const getAllNodeIds = (node: Node | null): string[] => {
     let ids = [node.id];
     if (node.children) {
         node.children.forEach(child => {
-            ids = ids.concat(getAllNodeIds(child));
+            if (child) { // Check if child is not null
+                ids = ids.concat(getAllNodeIds(child));
+            }
         });
     }
     return ids;
@@ -266,20 +268,16 @@ export function SkillTreeView() {
   };
 
   const handleNodeToggle = (nodeId: string, checked: boolean) => {
-    const nodeToToggle = tree ? findNode(tree, nodeId) : null;
-    if (!nodeToToggle) return;
-
-    const allChildIds = getAllNodeIds(nodeToToggle);
     setSelectedNodes(prevSelected => {
         const newSelected = new Set(prevSelected);
-        if(checked) {
-            allChildIds.forEach(id => newSelected.add(id));
+        if (checked) {
+            newSelected.add(nodeId);
         } else {
-            allChildIds.forEach(id => newSelected.delete(id));
+            newSelected.delete(nodeId);
         }
         return newSelected;
     });
-  }
+  };
   
   const findNode = (node: Node, id: string): Node | null => {
     if (node.id === id) return node;
@@ -344,7 +342,7 @@ export function SkillTreeView() {
         }
         return markdown;
     };
-    return `# Skill Tree for: ${currentTopic}\n\n` + buildMarkdown(tree);
+    return `# Skill Tree for: ${currentTopic}\n\n` + buildMarkdown(tree, -1);
   }, [tree, nodes, currentTopic]);
   
   const handleExplainInChat = async (node: Node) => {
