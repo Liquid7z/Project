@@ -59,6 +59,9 @@ const activeNodeColors = {
     'sub-detail': 'bg-muted/60 border-muted-foreground/80 shadow-[0_0_8px_hsl(var(--muted-foreground)/80)]',
 };
 
+const isValidNode = (node: any): node is Node => {
+    return node && typeof node === 'object' && node !== null && typeof node.id === 'string';
+}
 
 const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] } => {
     if (!rootNode) return { nodes: [], edges: [] };
@@ -69,15 +72,14 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     const ySpacing = 60; // Vertical gap between nodes
 
     // 1. First pass: set dimensions and compute subtree heights for each node
-    function firstPass(node: Node | null): number {
-        if (!node) return 0;
+    function firstPass(node: Node): number {
+        if (!isValidNode(node)) return 0;
         const dims = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = dims.width;
         node.height = dims.height;
 
-        const validChildren = Array.isArray(node.children) ? node.children.filter(Boolean) : [];
+        const validChildren = Array.isArray(node.children) ? node.children.filter(isValidNode) : [];
         if (validChildren.length === 0) {
-            (node as any).subtreeHeight = node.height;
             return node.height;
         }
         
@@ -93,18 +95,18 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     firstPass(rootNode);
 
     // 2. Second pass: calculate x, y positions
-    function secondPass(node: Node | null, depth: number, y: number) {
-        if (!node) return;
+    function secondPass(node: Node, depth: number, y: number) {
+        if (!isValidNode(node)) return;
         
         node.x = depth * xSpacing;
         node.y = y;
         allNodes.push(node);
 
-        const validChildren = Array.isArray(node.children) ? node.children.filter(Boolean) : [];
+        const validChildren = Array.isArray(node.children) ? node.children.filter(isValidNode) : [];
         if (validChildren.length === 0) return;
 
-        const totalSubtreeHeight = (node as any).subtreeHeight;
-        let currentY = y - totalSubtreeHeight / 2 + ((validChildren[0] as any).subtreeHeight || validChildren[0].height!) / 2;
+        const totalSubtreeHeight = (node as any).subtreeHeight || node.height!;
+        let currentY = y - totalSubtreeHeight / 2 + (validChildren[0].height!) / 2;
 
         validChildren.forEach(child => {
             const childSubtreeHeight = (child as any).subtreeHeight || child.height!;
@@ -198,7 +200,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
   };
   
     const findNodeById = (node: Node | null, id: string): Node | null => {
-        if (!node) return null;
+        if (!isValidNode(node)) return null;
         if (node.id === id) return node;
         if (Array.isArray(node.children)) {
             for (const child of node.children) {
@@ -209,44 +211,58 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         return null;
     };
 
-    const handleNodeClick = async (e: React.MouseEvent, nodeId: string) => {
+    const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
         e.stopPropagation();
         setActiveNodeId(nodeId);
         
         const activeNode = findNodeById(tree, nodeId);
 
         if (activeNode) {
-            const validChildren = Array.isArray(activeNode.children) ? activeNode.children.filter(Boolean) : [];
+            const validChildren = Array.isArray(activeNode.children) ? activeNode.children.filter(isValidNode) : [];
             const childIds = new Set(validChildren.map(child => child.id));
             setActiveChildIds(childIds);
-
-            // Fetch definition if it doesn't exist and isn't already loading
-            if (!activeNode.definition && !activeNode.isDefinitionLoading) {
-                setLayout(prev => ({
-                    ...prev,
-                    nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isDefinitionLoading: true } : n)
-                }));
-
-                try {
-                    const res = await getShortDefinitionAction({ topic: activeNode.label, context: tree?.label || topic });
-                    setLayout(prev => ({
-                        ...prev,
-                        nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, definition: res.definition, isDefinitionLoading: false } : n)
-                    }));
-                } catch (error) {
-                    console.error("Failed to get definition", error);
-                    toast({variant: 'destructive', title: "Could not get definition."});
-                    setLayout(prev => ({
-                        ...prev,
-                        nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isDefinitionLoading: false } : n)
-                    }));
-                }
-            }
         } else {
             setActiveChildIds(new Set());
         }
     };
+    
+    const handlePopoverOpenChange = async (isOpen: boolean, nodeId: string) => {
+        if (isOpen) {
+            setActiveNodeId(nodeId);
+            const activeNode = nodes.find(n => n.id === nodeId);
 
+             if (activeNode) {
+                const validChildren = Array.isArray(activeNode.children) ? activeNode.children.filter(isValidNode) : [];
+                const childIds = new Set(validChildren.map(child => child.id));
+                setActiveChildIds(childIds);
+
+                // Fetch definition if it doesn't exist and isn't already loading
+                if (!activeNode.definition && !activeNode.isDefinitionLoading) {
+                    setLayout(prev => ({
+                        ...prev,
+                        nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isDefinitionLoading: true } : n)
+                    }));
+
+                    try {
+                        const res = await getShortDefinitionAction({ topic: activeNode.label, context: tree?.label || topic });
+                        setLayout(prev => ({
+                            ...prev,
+                            nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, definition: res.definition, isDefinitionLoading: false } : n)
+                        }));
+                    } catch (error) {
+                        console.error("Failed to get definition", error);
+                        toast({variant: 'destructive', title: "Could not get definition."});
+                        setLayout(prev => ({
+                            ...prev,
+                            nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isDefinitionLoading: false } : n)
+                        }));
+                    }
+                }
+            } else {
+                setActiveChildIds(new Set());
+            }
+        }
+    };
     
     const handleNodeToggle = (nodeId: string, isChecked: boolean) => {
         const newSelectedIds = new Set(selectedIds);
@@ -273,7 +289,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         const isAllSelected = selectedIds.size === nodes.length && nodes.length > 0;
 
         const buildMarkdown = (node: Node, depth = 0): string => {
-            if (!node || (!isAllSelected && !selectedIds.has(node.id))) return '';
+            if (!isValidNode(node) || (!isAllSelected && !selectedIds.has(node.id))) return '';
             
             let markdown = `${'#'.repeat(depth + 2)} ${node.label}\n`;
             const fullNode = nodes.find(n => n.id === node.id);
@@ -284,7 +300,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
 
             if (Array.isArray(node.children)) {
                 const childrenMarkdown = node.children
-                    .filter(Boolean)
+                    .filter(isValidNode)
                     .map(child => buildMarkdown(child, depth + 1))
                     .filter(Boolean)
                     .join('');
@@ -448,7 +464,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                        {nodes.map(node => {
                             const isNodeActive = activeNodeId === node.id || activeChildIds.has(node.id);
                             return (
-                               <Popover key={node.id}>
+                               <Popover key={node.id} onOpenChange={(open) => handlePopoverOpenChange(open, node.id)}>
                                 <PopoverTrigger asChild>
                                    <foreignObject x={node.x} y={node.y} width={node.width} height={node.height} className="overflow-visible cursor-pointer" onClick={(e) => handleNodeClick(e, node.id)}>
                                      <motion.div
@@ -510,5 +526,3 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
-
-    
