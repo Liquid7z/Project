@@ -60,7 +60,7 @@ const activeNodeColors = {
 };
 
 const isValidNode = (node: any): node is Node => {
-    return node && typeof node === 'object' && node !== null && typeof node.id === 'string';
+    return node && typeof node === 'object' && typeof node.id === 'string';
 }
 
 const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] } => {
@@ -361,7 +361,10 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         const dx = e.clientX - dragStart.x;
         const dy = e.clientY - dragStart.y;
         
-        const scale = viewBox.width / svgRef.current!.clientWidth;
+        const svg = svgRef.current;
+        if (!svg) return;
+        
+        const scale = viewBox.width / svg.clientWidth;
 
         setViewBox(prev => ({
             ...prev,
@@ -427,7 +430,8 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                 </div>
                  <svg 
                      ref={svgRef} 
-                     className="w-full h-full cursor-grab"
+                     className="w-full h-full"
+                     style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
                      viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
                      onWheel={handleWheel}
                      onMouseDown={handleMouseDown}
