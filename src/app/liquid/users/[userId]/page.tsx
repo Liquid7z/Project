@@ -17,15 +17,15 @@ function UserDataViewer({ userId }: { userId: string }) {
     const { firestore, areServicesAvailable } = useFirebase();
 
     const userProfileRef = useMemoFirebase(() => {
-        if (!areServicesAvailable) return null;
+        if (!firestore) return null;
         return doc(firestore, 'users', userId);
-    }, [firestore, userId, areServicesAvailable]);
+    }, [firestore, userId]);
     const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useDoc(userProfileRef);
 
     const subjectsCollectionRef = useMemoFirebase(() => {
-        if (!areServicesAvailable) return null;
+        if (!firestore) return null;
         return collection(firestore, 'users', userId, 'subjects');
-    }, [firestore, userId, areServicesAvailable]);
+    }, [firestore, userId]);
     const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
 
     const isLoading = !areServicesAvailable || isProfileLoading || areSubjectsLoading;
@@ -100,7 +100,7 @@ function UserDataViewer({ userId }: { userId: string }) {
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent className="pl-6">
-                                        <SubjectContentViewer firestore={firestore} userId={userId} subjectId={subject.id}/>
+                                        <SubjectContentViewer firestore={firestore!} userId={userId} subjectId={subject.id}/>
                                     </AccordionContent>
                                 </AccordionItem>
                             ))}
