@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader, AlertTriangle, Folder, FileText } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, Firestore } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -101,7 +100,7 @@ function UserDataViewer({ userId }: { userId: string }) {
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent className="pl-6">
-                                        <SubjectContentViewer userId={userId} subjectId={subject.id}/>
+                                        <SubjectContentViewer firestore={firestore} userId={userId} subjectId={subject.id}/>
                                     </AccordionContent>
                                 </AccordionItem>
                             ))}
@@ -118,28 +117,24 @@ function UserDataViewer({ userId }: { userId: string }) {
     );
 }
 
-function SubjectContentViewer({ userId, subjectId }: { userId: string, subjectId: string }) {
-    const { firestore, areServicesAvailable } = useFirebase();
+function SubjectContentViewer({ firestore, userId, subjectId }: { firestore: Firestore, userId: string, subjectId: string }) {
 
     const notesCollectionRef = useMemoFirebase(() => {
-        if (!areServicesAvailable) return null;
         return collection(firestore, 'users', userId, 'subjects', subjectId, 'notes');
-    }, [firestore, userId, subjectId, areServicesAvailable]);
+    }, [firestore, userId, subjectId]);
     const { data: notes, isLoading: areNotesLoading } = useCollection(notesCollectionRef);
 
     const questionsCollectionRef = useMemoFirebase(() => {
-        if (!areServicesAvailable) return null;
         return collection(firestore, 'users', userId, 'subjects', subjectId, 'examQuestions');
-    }, [firestore, userId, subjectId, areServicesAvailable]);
+    }, [firestore, userId, subjectId]);
     const { data: questions, isLoading: areQuestionsLoading } = useCollection(questionsCollectionRef);
     
     const resourcesCollectionRef = useMemoFirebase(() => {
-        if (!areServicesAvailable) return null;
         return collection(firestore, 'users', userId, 'subjects', subjectId, 'resources');
-    }, [firestore, userId, subjectId, areServicesAvailable]);
+    }, [firestore, userId, subjectId]);
     const { data: resources, isLoading: areResourcesLoading } = useCollection(resourcesCollectionRef);
 
-    const isLoading = !areServicesAvailable || areNotesLoading || areQuestionsLoading || areResourcesLoading;
+    const isLoading = areNotesLoading || areQuestionsLoading || areResourcesLoading;
 
     const allContent = [
         ...(notes || []).map(n => ({ ...n, type: 'Note' })),
