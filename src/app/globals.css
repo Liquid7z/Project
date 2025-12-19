@@ -145,4 +145,8 @@
       background-color: hsl(var(--sidebar-accent) / 0.9);
       box-shadow: 0 0 8px hsl(var(--sidebar-accent) / 0.7), 0 0 15px hsl(var(--sidebar-accent) / 0.5);
   }
+  
+  .touch-none {
+    touch-action: none;
+  }
 }

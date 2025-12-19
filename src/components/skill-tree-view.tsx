@@ -207,6 +207,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         if (node.id === id) return node;
         if (Array.isArray(node.children)) {
             for (const child of node.children) {
+                if (!isValidNode(child)) continue;
                 const found = findNodeById(child, id);
                 if (found) return found;
             }
@@ -359,6 +360,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         if ((e.target as SVGElement).closest('foreignObject')) return;
         setIsDragging(true);
         setDragStart({ x: e.clientX, y: e.clientY });
+        e.currentTarget.style.cursor = 'grabbing';
     };
 
     const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -382,13 +384,15 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         setDragStart({ x: e.clientX, y: e.clientY });
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
         setIsDragging(false);
+        e.currentTarget.style.cursor = 'grab';
     };
     
-    const handleMouseLeave = () => {
+    const handleMouseLeave = (e: React.MouseEvent<SVGSVGElement>) => {
         if(isDragging) {
            setIsDragging(false);
+           e.currentTarget.style.cursor = 'grab';
         }
     };
     
@@ -399,6 +403,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
             setIsDragging(true);
             setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
         } else if (e.touches.length === 2) {
+            e.preventDefault(); // Prevent page zoom
             setIsDragging(false); // Stop panning if two fingers are down
             const dx = e.touches[0].clientX - e.touches[1].clientX;
             const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -407,7 +412,6 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     };
     
     const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
-        e.preventDefault();
         if (isDragging && e.touches.length === 1) {
             const dx = e.touches[0].clientX - dragStart.x;
             const dy = e.touches[0].clientY - dragStart.y;
@@ -421,6 +425,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
             }));
             setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
         } else if (e.touches.length === 2 && pinchStartDistance.current !== null) {
+            e.preventDefault(); // Prevent page zoom
             const dx = e.touches[0].clientX - e.touches[1].clientX;
             const dy = e.touches[0].clientY - e.touches[1].clientY;
             const newDist = Math.sqrt(dx * dx + dy * dy);
@@ -491,7 +496,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                 </div>
                  <svg 
                      ref={svgRef} 
-                     className={cn("w-full h-full", isDragging ? 'cursor-grabbing' : 'cursor-grab')}
+                     className={cn("w-full h-full touch-none", isDragging ? 'cursor-grabbing' : 'cursor-grab')}
                      viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
                      onWheel={handleWheel}
                      onMouseDown={handleMouseDown}
