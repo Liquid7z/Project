@@ -84,27 +84,27 @@ service cloud.firestore {
       
       match /subjects/{subjectId} {
         allow create, update, delete: if isOwner(userId);
-        allow get, list: if isOwner(userId);
+        allow get, list: if isAdminOrOwner(userId); // Admins can read user subjects
 
         match /notes/{noteId} {
           allow create, update, delete: if isOwner(userId);
-          allow get, list: if isOwner(userId);
+          allow get, list: if isAdminOrOwner(userId); // Admins can read user notes
         }
         
         match /examQuestions/{questionId} {
           allow create, update, delete: if isOwner(userId);
-          allow get, list: if isOwner(userId);
+          allow get, list: if isAdminOrOwner(userId); // Admins can read user exam questions
         }
 
         match /resources/{resourceId} {
           allow create, update, delete: if isOwner(userId);
-          allow get, list: if isOwner(userId);
+          allow get, list: if isAdminOrOwner(userId); // Admins can read user resources
         }
       }
 
       match /stickyNotes/{noteId} {
         allow create, update, delete: if isOwner(userId);
-        allow get, list: if isOwner(userId);
+        allow get, list: if isAdminOrOwner(userId); // Admins can read user sticky notes
       }
 
       match /notifications/{notificationId} {

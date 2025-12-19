@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote, SendHorizontal, Trash2, History, BrainCircuit } from 'lucide-react';
+import { Loader, User, Shield, AlertTriangle, Wrench, Coffee, Bot, StickyNote, Notebook, ScanLine, DollarSign, Settings, Save, CheckCircle, XCircle, Banknote, SendHorizontal, Trash2, History, BrainCircuit, Eye } from 'lucide-react';
 import { formatDistanceToNow, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -34,6 +34,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { FileUploader } from '@/components/file-uploader';
 import Image from 'next/image';
+import Link from 'next/link';
 
 
 type PlanConfig = {
@@ -703,6 +704,7 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                                             <TableHead>Joined</TableHead>
                                             <TableHead className="text-center"><Shield className="inline-block" /> Admin</TableHead>
                                             <TableHead className="text-center">Suspended</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -743,6 +745,14 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
                                                         disabled={u.id === user?.uid}
                                                         aria-label={`Toggle suspension for ${u.displayName}`}
                                                     />
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="outline" size="sm" asChild>
+                                                        <Link href={`/liquid/users/${u.id}`}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            View Data
+                                                        </Link>
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
