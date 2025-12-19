@@ -72,14 +72,16 @@ export default function Home() {
         }
     }, [isUserLoading, user, router]);
 
+    // Show loading state while checking for user, or if user exists and we are about to redirect.
     if (isUserLoading || user) {
         return (
-            <div className="flex h-screen w-full items-center justify-center">
+            <div className="flex h-screen w-full items-center justify-center bg-background">
                 <Loader className="h-16 w-16 animate-spin text-primary" />
             </div>
         );
     }
     
+    // Only render the landing page if the user is not logged in and the check is complete.
     return (
         <div className="flex flex-col min-h-dvh">
           <Header />
