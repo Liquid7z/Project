@@ -216,7 +216,6 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         setActiveNodeId(nodeId);
         
         const activeNode = findNodeById(tree, nodeId);
-
         if (activeNode) {
             const validChildren = Array.isArray(activeNode.children) ? activeNode.children.filter(isValidNode) : [];
             const childIds = new Set(validChildren.map(child => child.id));

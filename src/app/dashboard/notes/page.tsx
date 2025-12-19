@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Folder, Plus, Loader, AlertTriangle, MoreVertical, Sparkles, BrainCircuit } from 'lucide-react';
@@ -282,6 +282,7 @@ function SkillTreeChatView({
   setInput,
   isLoading,
   setIsLoading,
+  handleSendMessage
 }: {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -289,37 +290,8 @@ function SkillTreeChatView({
   setInput: React.Dispatch<React.SetStateAction<string>>;
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  handleSendMessage: (e?: React.FormEvent, messageText?: string) => Promise<void>;
 }) {
-  const handleSendMessage = async (e: React.FormEvent, messageText?: string) => {
-    e.preventDefault();
-    const currentInput = messageText || input;
-    if (!currentInput.trim()) return;
-
-    const newUserMessage: Message = { role: 'user', content: currentInput };
-    setMessages(prev => [...prev, newUserMessage]);
-    if (!messageText) {
-      setInput('');
-    }
-    setIsLoading(true);
-
-    try {
-      const result = await explainTopicAction({
-        topic: currentInput,
-        history: messages,
-      });
-      const newModelMessage: Message = { role: 'model', content: result.response };
-      setMessages(prev => [...prev, newModelMessage]);
-    } catch (error) {
-      console.error("Error explaining topic:", error);
-      const errorMessage: Message = {
-        role: 'model',
-        content: 'Sorry, I encountered an error trying to respond.',
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <Card className="glass-pane h-full flex flex-col">
@@ -375,10 +347,45 @@ export default function NotesDashboardPage() {
     const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
     const isNotesWip = siteConfig?.notesWip === false && userProfile?.isAdmin !== true;
     const isSkillTreeWip = siteConfig?.skillTreeWip === false && userProfile?.isAdmin !== true;
+    
+    const handleSendMessage = async (e?: React.FormEvent, messageText?: string) => {
+        if (e) e.preventDefault();
+        const currentInput = messageText || chatInput;
+        if (!currentInput.trim()) return;
+
+        const newUserMessage: Message = { role: 'user', content: currentInput };
+        
+        const newMessages = [...chatMessages, newUserMessage];
+        setChatMessages(newMessages);
+
+        if (!messageText) {
+          setInput('');
+        }
+        setIsChatLoading(true);
+
+        try {
+          const result = await explainTopicAction({
+            topic: currentInput,
+            history: chatMessages,
+          });
+          const newModelMessage: Message = { role: 'model', content: result.response };
+          setChatMessages(prev => [...prev, newModelMessage]);
+        } catch (error) {
+          console.error("Error explaining topic:", error);
+          const errorMessage: Message = {
+            role: 'model',
+            content: 'Sorry, I encountered an error trying to respond.',
+          };
+          setChatMessages(prev => [...prev, errorMessage]);
+        } finally {
+          setIsChatLoading(false);
+        }
+    };
+
 
     const startChatWithTopic = (topic: string) => {
-        setChatInput(topic);
         setActiveTab('chat');
+        handleSendMessage(undefined, topic);
     };
 
     if (isLoading) {
@@ -410,6 +417,7 @@ export default function NotesDashboardPage() {
                     setInput={setChatInput}
                     isLoading={isChatLoading}
                     setIsLoading={setIsChatLoading}
+                    handleSendMessage={handleSendMessage}
                  />
             </TabsContent>
         </Tabs>
