@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader, AlertTriangle, Folder, FileText } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -15,15 +15,21 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import React from 'react';
 
 function UserDataViewer({ userId }: { userId: string }) {
-    const { firestore } = useFirestore();
+    const { firestore, areServicesAvailable } = useFirebase();
 
-    const userProfileRef = useMemoFirebase(() => doc(firestore, 'users', userId), [firestore, userId]);
+    const userProfileRef = useMemoFirebase(() => {
+        if (!areServicesAvailable) return null;
+        return doc(firestore, 'users', userId);
+    }, [firestore, userId, areServicesAvailable]);
     const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useDoc(userProfileRef);
 
-    const subjectsCollectionRef = useMemoFirebase(() => collection(firestore, 'users', userId, 'subjects'), [firestore, userId]);
+    const subjectsCollectionRef = useMemoFirebase(() => {
+        if (!areServicesAvailable) return null;
+        return collection(firestore, 'users', userId, 'subjects');
+    }, [firestore, userId, areServicesAvailable]);
     const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
 
-    const isLoading = isProfileLoading || areSubjectsLoading;
+    const isLoading = !areServicesAvailable || isProfileLoading || areSubjectsLoading;
     const error = profileError || subjectsError;
 
     if (isLoading) {
@@ -113,18 +119,27 @@ function UserDataViewer({ userId }: { userId: string }) {
 }
 
 function SubjectContentViewer({ userId, subjectId }: { userId: string, subjectId: string }) {
-    const { firestore } = useFirestore();
+    const { firestore, areServicesAvailable } = useFirebase();
 
-    const notesCollectionRef = useMemoFirebase(() => collection(firestore, 'users', userId, 'subjects', subjectId, 'notes'), [firestore, userId, subjectId]);
+    const notesCollectionRef = useMemoFirebase(() => {
+        if (!areServicesAvailable) return null;
+        return collection(firestore, 'users', userId, 'subjects', subjectId, 'notes');
+    }, [firestore, userId, subjectId, areServicesAvailable]);
     const { data: notes, isLoading: areNotesLoading } = useCollection(notesCollectionRef);
 
-    const questionsCollectionRef = useMemoFirebase(() => collection(firestore, 'users', userId, 'subjects', subjectId, 'examQuestions'), [firestore, userId, subjectId]);
+    const questionsCollectionRef = useMemoFirebase(() => {
+        if (!areServicesAvailable) return null;
+        return collection(firestore, 'users', userId, 'subjects', subjectId, 'examQuestions');
+    }, [firestore, userId, subjectId, areServicesAvailable]);
     const { data: questions, isLoading: areQuestionsLoading } = useCollection(questionsCollectionRef);
     
-    const resourcesCollectionRef = useMemoFirebase(() => collection(firestore, 'users', userId, 'subjects', subjectId, 'resources'), [firestore, userId, subjectId]);
+    const resourcesCollectionRef = useMemoFirebase(() => {
+        if (!areServicesAvailable) return null;
+        return collection(firestore, 'users', userId, 'subjects', subjectId, 'resources');
+    }, [firestore, userId, subjectId, areServicesAvailable]);
     const { data: resources, isLoading: areResourcesLoading } = useCollection(resourcesCollectionRef);
 
-    const isLoading = areNotesLoading || areQuestionsLoading || areResourcesLoading;
+    const isLoading = !areServicesAvailable || areNotesLoading || areQuestionsLoading || areResourcesLoading;
 
     const allContent = [
         ...(notes || []).map(n => ({ ...n, type: 'Note' })),
