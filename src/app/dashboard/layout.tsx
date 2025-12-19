@@ -54,9 +54,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const navItems = [
   { href: '/dashboard', icon: StickyNote, label: 'Sticky Notes', configFlag: 'stickyNotesWip' },
-  { href: '/dashboard/generate', icon: Bot, label: 'Generate', configFlag: 'generateWip' },
   { href: '/dashboard/notes', icon: Notebook, label: 'Notes', configFlag: 'notesWip' },
-  { href: '/dashboard/analyze', icon: ScanLine, label: 'Analyze Style', configFlag: 'analyzeWip' },
   { href: '/dashboard/account', icon: User, label: 'Account', configFlag: 'accountWip' },
 ];
 
