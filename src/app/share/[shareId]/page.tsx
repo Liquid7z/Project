@@ -114,7 +114,7 @@ export default function SharePage({ params, searchParams }: { params: { shareId:
                 <AlertTriangle className="h-12 w-12 text-destructive" />
                 <h2 className="mt-4 text-2xl font-bold">Note Not Found</h2>
                 <p className="text-muted-foreground">This share link is either invalid or has expired.</p>
-                <Button asChild variant="outline" className="mt-6"><Link href="/">Go to Homepage</Link></Button>
+                <Button asChild variant="outline" className="mt-6"><Link href="/landing">Go to Homepage</Link></Button>
             </div>
         );
     }
@@ -125,7 +125,7 @@ export default function SharePage({ params, searchParams }: { params: { shareId:
         <div className="min-h-screen bg-background">
             <header className="sticky top-0 z-50 bg-background/50 backdrop-blur-lg border-b">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-                    <Link href="/" aria-label="LiqAI Home"><Logo /></Link>
+                    <Link href="/landing" aria-label="LiqAI Home"><Logo /></Link>
                     {user ? (
                         <Button onClick={handleSaveNote}><Save className="mr-2"/> Save to My Notes</Button>
                     ) : (

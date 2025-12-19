@@ -18,7 +18,7 @@ export function Header() {
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
-      router.push('/');
+      router.push('/landing');
     }
   };
 
@@ -53,7 +53,7 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-lg border-b border-border">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="/" aria-label="LiqAI Home">
+        <Link href="/landing" aria-label="LiqAI Home">
           <Logo />
         </Link>
         <nav className="hidden md:flex items-center gap-6">

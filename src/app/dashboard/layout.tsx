@@ -255,7 +255,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                     </DropdownMenuItem>
                     <DropdownMenuItem>Billing</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/') }}>
+                    <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/landing') }}>
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Log out</span>
                     </DropdownMenuItem>
@@ -299,7 +299,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                                  <GlowModeToggle id="glow-mode-mobile" />
                               </div>
                           </div>
-                          <Button variant="ghost" onClick={async () => { if(auth) await signOut(auth); router.push('/')}} className="w-full justify-start">
+                          <Button variant="ghost" onClick={async () => { if(auth) await signOut(auth); router.push('/landing')}} className="w-full justify-start">
                               <LogOut className="mr-2 h-4 w-4" />
                               Log out
                           </Button>
@@ -330,7 +330,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                   </DropdownMenuItem>
                   <DropdownMenuItem>Billing</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/')}}>
+                  <DropdownMenuItem onClick={async () => { if(auth) await signOut(auth); router.push('/landing')}}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
