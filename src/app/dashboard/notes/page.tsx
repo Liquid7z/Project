@@ -379,44 +379,6 @@ export default function NotesDashboardPage() {
     const startChatWithTopic = (topic: string) => {
         setChatInput(topic);
         setActiveTab('chat');
-        // We can't directly call handleSendMessage here because of state updates,
-        // so we can trigger it with an effect in the chat component or pass a one-time start message.
-        // For simplicity, we'll let the user send the pre-filled message.
-        const syntheticEvent = { preventDefault: () => {} } as React.FormEvent;
-        // This is a bit of a hack, but it works to trigger the send.
-        setTimeout(() => {
-            const sendButton = document.querySelector('form button[type="submit"]') as HTMLButtonElement | null;
-            if(sendButton) {
-               // We need to set input state first, then simulate a click
-               setChatInput(currentInput => {
-                   // Callback to ensure we are using the latest state
-                   const messageToSend = topic;
-                   const newUserMessage: Message = { role: 'user', content: messageToSend };
-                   setChatMessages(prev => [...prev, newUserMessage]);
-                   setChatInput(''); // Clear input after "sending"
-                   setIsChatLoading(true);
-
-                   explainTopicAction({
-                       topic: messageToSend,
-                       history: chatMessages,
-                   }).then(result => {
-                       const newModelMessage: Message = { role: 'model', content: result.response };
-                       setChatMessages(prev => [...prev, newModelMessage]);
-                   }).catch(error => {
-                       console.error("Error explaining topic:", error);
-                       const errorMessage: Message = {
-                           role: 'model',
-                           content: 'Sorry, I encountered an error trying to respond.',
-                       };
-                       setChatMessages(prev => [...prev, errorMessage]);
-                   }).finally(() => {
-                        setIsChatLoading(false);
-                   });
-
-                   return ''; // return new state for chatInput
-               });
-            }
-        }, 0);
     };
 
     if (isLoading) {
