@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import React from 'react';
 
 function UserDataViewer({ userId }: { userId: string }) {
     const { firestore } = useFirestore();
@@ -158,7 +159,8 @@ function SubjectContentViewer({ userId, subjectId }: { userId: string, subjectId
 }
 
 export default function AdminUserDetailPage({ params }: { params: { userId: string } }) {
-    const { userId } = params;
+    const resolvedParams = React.use(params);
+    const { userId } = resolvedParams;
 
     return (
         <div className="space-y-6">
