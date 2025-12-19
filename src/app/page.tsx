@@ -16,8 +16,8 @@ export default function RootPage() {
         }
 
         if (user) {
-            // If user is logged in, redirect to the dashboard
-            router.replace('/dashboard');
+            // If user is logged in, redirect to the notes page
+            router.replace('/dashboard/notes');
         } else {
             // If user is not logged in, redirect to the landing page
             router.replace('/landing');
