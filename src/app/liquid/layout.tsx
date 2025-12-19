@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, ReactNode } from 'react';
@@ -17,15 +18,12 @@ import {
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import {
-  ScanLine,
   User,
   LogOut,
   Menu,
   Loader,
   Notebook,
   Sun,
-  LayoutDashboard,
-  Bot,
   Shield,
   StickyNote
 } from 'lucide-react';

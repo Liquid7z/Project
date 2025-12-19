@@ -18,20 +18,15 @@ import {
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import {
-  ScanLine,
   User,
   LogOut,
   Menu,
   Loader,
   Notebook,
   Sun,
-  LayoutDashboard,
-  Bot,
   Shield,
   StickyNote,
   Bell,
-  Feather,
-  BrainCircuit
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
