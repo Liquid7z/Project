@@ -279,24 +279,19 @@ function SkillTreeInteractiveView() {
     const [chatMessages, setChatMessages] = useState<Message[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
-     const { toast } = useToast();
+    const { toast } = useToast();
 
-    const handleSendMessage = async (e?: React.FormEvent, messageText?: string) => {
-        if (e) e.preventDefault();
-        const currentInput = messageText || chatInput;
-        if (!currentInput.trim()) return;
+    const handleSendMessage = async (messageText: string) => {
+        if (!messageText.trim()) return;
 
-        const newUserMessage: Message = { role: 'user', content: currentInput };
+        const newUserMessage: Message = { role: 'user', content: messageText };
         setChatMessages(prev => [...prev, newUserMessage]);
         
-        if (!messageText) {
-          setChatInput('');
-        }
         setIsChatLoading(true);
 
         try {
           const result = await explainTopicAction({
-            topic: currentInput,
+            topic: messageText,
             history: chatMessages.filter(m => m.role === 'user' || m.role === 'model'),
           });
           const newModelMessage: Message = { role: 'model', content: result.response };
@@ -317,6 +312,12 @@ function SkillTreeInteractiveView() {
           setIsChatLoading(false);
         }
     };
+    
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        handleSendMessage(chatInput);
+        setChatInput('');
+    }
 
     return (
         <div className="grid lg:grid-cols-2 gap-6 h-full">
@@ -328,7 +329,7 @@ function SkillTreeInteractiveView() {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col p-0">
                 <ChatView messages={chatMessages} isLoading={isChatLoading} />
-                <form onSubmit={handleSendMessage} className="p-4 border-t">
+                <form onSubmit={handleFormSubmit} className="p-4 border-t">
                   <div className="relative">
                     <Input
                       value={chatInput}
