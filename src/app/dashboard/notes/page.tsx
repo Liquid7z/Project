@@ -275,65 +275,88 @@ function SubjectsView() {
     );
 }
 
-function SkillTreeChatView({
-  messages,
-  setMessages,
-  input,
-  setInput,
-  isLoading,
-  setIsLoading,
-  handleSendMessage
-}: {
-  messages: Message[];
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  input: string;
-  setInput: React.Dispatch<React.SetStateAction<string>>;
-  isLoading: boolean;
-  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  handleSendMessage: (e?: React.FormEvent, messageText?: string) => Promise<void>;
-}) {
+function SkillTreeInteractiveView() {
+    const [chatMessages, setChatMessages] = useState<Message[]>([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isChatLoading, setIsChatLoading] = useState(false);
+     const { toast } = useToast();
 
-  return (
-    <Card className="glass-pane h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="font-headline">AI Chat</CardTitle>
-        <CardDescription>Ask for more details about any topic.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0">
-        <ChatView messages={messages} isLoading={isLoading} />
-        <form onSubmit={handleSendMessage} className="p-4 border-t">
-          <div className="relative">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a follow-up question..."
-              className="pr-12"
-              disabled={isLoading}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              variant="ghost"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-              disabled={isLoading || !input.trim()}
-            >
-              <Plus />
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  );
+    const handleSendMessage = async (e?: React.FormEvent, messageText?: string) => {
+        if (e) e.preventDefault();
+        const currentInput = messageText || chatInput;
+        if (!currentInput.trim()) return;
+
+        const newUserMessage: Message = { role: 'user', content: currentInput };
+        setChatMessages(prev => [...prev, newUserMessage]);
+        
+        if (!messageText) {
+          setChatInput('');
+        }
+        setIsChatLoading(true);
+
+        try {
+          const result = await explainTopicAction({
+            topic: currentInput,
+            history: chatMessages.filter(m => m.role === 'user' || m.role === 'model'),
+          });
+          const newModelMessage: Message = { role: 'model', content: result.response };
+          setChatMessages(prev => [...prev, newModelMessage]);
+        } catch (error) {
+          console.error("Error explaining topic:", error);
+          const errorMessage: Message = {
+            role: 'model',
+            content: 'Sorry, I encountered an error trying to respond.',
+          };
+          setChatMessages(prev => [...prev, errorMessage]);
+          toast({
+            variant: "destructive",
+            title: "AI Chat Error",
+            description: "Could not get a response from the AI assistant.",
+          });
+        } finally {
+          setIsChatLoading(false);
+        }
+    };
+
+    return (
+        <div className="grid lg:grid-cols-2 gap-6 h-full">
+            <SkillTreeView onExplainInChat={handleSendMessage} />
+            <Card className="glass-pane h-full flex flex-col">
+              <CardHeader>
+                <CardTitle className="font-headline">AI Chat</CardTitle>
+                <CardDescription>Ask for more details about any topic.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col p-0">
+                <ChatView messages={chatMessages} isLoading={isChatLoading} />
+                <form onSubmit={handleSendMessage} className="p-4 border-t">
+                  <div className="relative">
+                    <Input
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Ask a follow-up question..."
+                      className="pr-12"
+                      disabled={isChatLoading}
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      variant="ghost"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                      disabled={isChatLoading || !chatInput.trim()}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+        </div>
+    )
 }
 
 export default function NotesDashboardPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
-
-    const [activeTab, setActiveTab] = useState('subjects');
-    const [chatMessages, setChatMessages] = useState<Message[]>([]);
-    const [chatInput, setChatInput] = useState('');
-    const [isChatLoading, setIsChatLoading] = useState(false);
 
     const userProfileRef = useMemoFirebase(() => {
       if (!user) return null;
@@ -348,46 +371,6 @@ export default function NotesDashboardPage() {
     const isNotesWip = siteConfig?.notesWip === false && userProfile?.isAdmin !== true;
     const isSkillTreeWip = siteConfig?.skillTreeWip === false && userProfile?.isAdmin !== true;
     
-    const handleSendMessage = async (e?: React.FormEvent, messageText?: string) => {
-        if (e) e.preventDefault();
-        const currentInput = messageText || chatInput;
-        if (!currentInput.trim()) return;
-
-        const newUserMessage: Message = { role: 'user', content: currentInput };
-        
-        const newMessages = [...chatMessages, newUserMessage];
-        setChatMessages(newMessages);
-
-        if (!messageText) {
-          setInput('');
-        }
-        setIsChatLoading(true);
-
-        try {
-          const result = await explainTopicAction({
-            topic: currentInput,
-            history: chatMessages,
-          });
-          const newModelMessage: Message = { role: 'model', content: result.response };
-          setChatMessages(prev => [...prev, newModelMessage]);
-        } catch (error) {
-          console.error("Error explaining topic:", error);
-          const errorMessage: Message = {
-            role: 'model',
-            content: 'Sorry, I encountered an error trying to respond.',
-          };
-          setChatMessages(prev => [...prev, errorMessage]);
-        } finally {
-          setIsChatLoading(false);
-        }
-    };
-
-
-    const startChatWithTopic = (topic: string) => {
-        setActiveTab('chat');
-        handleSendMessage(undefined, topic);
-    };
-
     if (isLoading) {
         return <div className="flex justify-center items-center h-full"><Loader className="animate-spin" /></div>;
     }
@@ -397,29 +380,19 @@ export default function NotesDashboardPage() {
     }
 
     return (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+        <Tabs defaultValue="subjects" className="h-full flex flex-col">
             <TabsList>
                 <TabsTrigger value="subjects">Subjects</TabsTrigger>
                 <TabsTrigger value="skill-tree" disabled={isSkillTreeWip}><BrainCircuit className="w-4 h-4 mr-2"/> Skill Tree {isSkillTreeWip ? '(WIP)' : ''}</TabsTrigger>
-                 <TabsTrigger value="chat">AI Chat</TabsTrigger>
             </TabsList>
             <TabsContent value="subjects" className="mt-6">
                 <SubjectsView />
             </TabsContent>
             <TabsContent value="skill-tree" className="mt-6 flex-grow">
-                 {isSkillTreeWip ? <WipPage /> : <SkillTreeView onExplainInChat={startChatWithTopic} />}
-            </TabsContent>
-            <TabsContent value="chat" className="mt-6 flex-grow">
-                 <SkillTreeChatView 
-                    messages={chatMessages}
-                    setMessages={setChatMessages}
-                    input={chatInput}
-                    setInput={setChatInput}
-                    isLoading={isChatLoading}
-                    setIsLoading={setIsChatLoading}
-                    handleSendMessage={handleSendMessage}
-                 />
+                 {isSkillTreeWip ? <WipPage /> : <SkillTreeInteractiveView />}
             </TabsContent>
         </Tabs>
     );
 }
+
+    
