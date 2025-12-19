@@ -20,12 +20,13 @@ interface Node {
   id: string;
   label: string;
   type: 'root' | 'pillar' | 'concept' | 'detail' | 'sub-detail';
-  children?: Node[];
+  children?: Node[] | null;
   x?: number;
   y?: number;
   width?: number;
   height?: number;
   definition?: string;
+  isDefinitionLoading?: boolean;
 }
 
 interface Edge {
@@ -76,6 +77,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
         const validChildren = Array.isArray(node.children) ? node.children.filter(Boolean) : [];
         if (validChildren.length === 0) {
+            (node as any).subtreeHeight = node.height;
             return node.height;
         }
         
@@ -195,19 +197,6 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     }
   };
   
-    const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
-        e.stopPropagation();
-        setActiveNodeId(nodeId);
-        
-        const activeNode = findNodeById(tree, nodeId);
-        if (activeNode && Array.isArray(activeNode.children)) {
-            const childIds = new Set(activeNode.children.filter(Boolean).map(child => child.id));
-            setActiveChildIds(childIds);
-        } else {
-            setActiveChildIds(new Set());
-        }
-    };
-
     const findNodeById = (node: Node | null, id: string): Node | null => {
         if (!node) return null;
         if (node.id === id) return node;
@@ -219,6 +208,45 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         }
         return null;
     };
+
+    const handleNodeClick = async (e: React.MouseEvent, nodeId: string) => {
+        e.stopPropagation();
+        setActiveNodeId(nodeId);
+        
+        const activeNode = findNodeById(tree, nodeId);
+
+        if (activeNode) {
+            const validChildren = Array.isArray(activeNode.children) ? activeNode.children.filter(Boolean) : [];
+            const childIds = new Set(validChildren.map(child => child.id));
+            setActiveChildIds(childIds);
+
+            // Fetch definition if it doesn't exist and isn't already loading
+            if (!activeNode.definition && !activeNode.isDefinitionLoading) {
+                setLayout(prev => ({
+                    ...prev,
+                    nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isDefinitionLoading: true } : n)
+                }));
+
+                try {
+                    const res = await getShortDefinitionAction({ topic: activeNode.label, context: tree?.label || topic });
+                    setLayout(prev => ({
+                        ...prev,
+                        nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, definition: res.definition, isDefinitionLoading: false } : n)
+                    }));
+                } catch (error) {
+                    console.error("Failed to get definition", error);
+                    toast({variant: 'destructive', title: "Could not get definition."});
+                    setLayout(prev => ({
+                        ...prev,
+                        nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isDefinitionLoading: false } : n)
+                    }));
+                }
+            }
+        } else {
+            setActiveChildIds(new Set());
+        }
+    };
+
     
     const handleNodeToggle = (nodeId: string, isChecked: boolean) => {
         const newSelectedIds = new Set(selectedIds);
@@ -254,7 +282,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                 markdown += `> ${fullNode.definition}\n\n`;
             }
 
-            if (node.children) {
+            if (Array.isArray(node.children)) {
                 const childrenMarkdown = node.children
                     .filter(Boolean)
                     .map(child => buildMarkdown(child, depth + 1))
@@ -440,25 +468,13 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                                      <div className="space-y-4">
                                          <div className="space-y-1">
                                             <h4 className="font-medium leading-none">{node.label}</h4>
-                                            <p className="text-sm text-muted-foreground">{node.definition || 'Click "Get Definition" for a quick summary.'}</p>
+                                            {node.isDefinitionLoading ? (
+                                                <div className="flex items-center text-sm text-muted-foreground"><Loader className="w-4 h-4 mr-2 animate-spin" /> Fetching definition...</div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">{node.definition || 'Click a node to see its definition.'}</p>
+                                            )}
                                          </div>
                                          <div className="flex items-center justify-between gap-2">
-                                            <Button 
-                                                variant="outline" size="sm" 
-                                                onClick={async () => {
-                                                    if (node.definition) return;
-                                                    toast({ title: "Getting definition..." });
-                                                    const res = await getShortDefinitionAction({ topic: node.label, context: tree.label });
-                                                    setLayout(prev => ({
-                                                        ...prev,
-                                                        nodes: prev.nodes.map(n => n.id === node.id ? { ...n, definition: res.definition } : n)
-                                                    }));
-                                                }}
-                                                disabled={!!node.definition}
-                                            >
-                                               {node.definition ? <CheckCircle className="mr-2 text-green-500" /> : <BookOpen className="mr-2"/> }
-                                               {node.definition ? 'Defined' : 'Get Definition' }
-                                            </Button>
                                              <Button variant="secondary" size="sm" onClick={() => onExplainInChat(node.label)}>
                                                  <MessageSquare className="mr-2" />
                                                  Explain in Chat
@@ -494,3 +510,5 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
+
+    
