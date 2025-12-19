@@ -363,6 +363,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
 
     const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
         if (!isDragging) return;
+        e.preventDefault();
         
         const dx = e.clientX - dragStart.x;
         const dy = e.clientY - dragStart.y;
@@ -406,6 +407,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     };
     
     const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+        e.preventDefault();
         if (isDragging && e.touches.length === 1) {
             const dx = e.touches[0].clientX - dragStart.x;
             const dy = e.touches[0].clientY - dragStart.y;
