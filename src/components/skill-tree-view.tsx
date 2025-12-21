@@ -232,7 +232,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                         return { ...node, children: newChildren };
                     }
                     if (node.children) {
-                        return { ...node, children: node.children.map(updateChildren).filter(isValidNode) };
+                        return { ...node, children: node.children.map(updateChildren).filter((n): n is Node => n !== null) };
                     }
                     return node;
                 };
