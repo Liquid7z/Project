@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -132,7 +133,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
     secondPass(rootNode, 0, 0);
 
-    return { nodes: allNodes, edges: edges };
+    return { nodes: allNodes, edges: [] };
 };
 
 
@@ -159,7 +160,11 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
   useEffect(() => {
     if (tree) {
       const { nodes: newNodes, edges: newEdges } = calculateLayout(tree);
-      setLayout({ nodes: newNodes, edges: newEdges });
+      // Re-calculate layout on tree change, but only set if it has nodes
+      if(newNodes.length > 0) {
+        const uniqueNodes = Array.from(new Map(newNodes.map(n => [n.id, n])).values());
+        setLayout({ nodes: uniqueNodes, edges: newEdges });
+      }
 
       if (newNodes.length > 0) {
         const rootNode = newNodes.find(n => n.type === 'root');
@@ -224,7 +229,19 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         try {
             const result = await generateSkillTreeAction({ topic: nodeToExpand.label });
             if (result && result.tree && result.tree.children) {
-                const newChildren = result.tree.children;
+                
+                const assignNewIds = (nodes: Node[], parentId: string): Node[] => {
+                    return nodes.map((node, index) => {
+                        const newId = `${parentId}.${index + 1}`;
+                        const newNode: Node = { ...node, id: newId };
+                        if (newNode.children) {
+                            newNode.children = assignNewIds(newNode.children, newId);
+                        }
+                        return newNode;
+                    });
+                };
+                
+                const newChildren = assignNewIds(result.tree.children, nodeId);
 
                 const updateChildren = (node: Node | null): Node | null => {
                     if (!node) return null;
@@ -639,3 +656,5 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
+
+    
