@@ -81,6 +81,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
         const validChildren = Array.isArray(node.children) ? node.children.filter(isValidNode) : [];
         if (validChildren.length === 0) {
+            (node as any).subtreeHeight = node.height;
             return node.height;
         }
         
@@ -106,7 +107,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         const validChildren = Array.isArray(node.children) ? node.children.filter(isValidNode) : [];
         if (validChildren.length === 0) return;
 
-        const totalSubtreeHeight = (node as any).subtreeHeight || node.height!;
+        const totalSubtreeHeight = (node as any).subtreeHeight || 0;
         let currentY = y - totalSubtreeHeight / 2;
 
         validChildren.forEach(child => {
@@ -115,7 +116,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
             secondPass(child, depth + 1, childY);
 
             // Create edge
-            const startX = node.x! + node.width!;
+            const startX = node.x! + node.width! / 2;
             const startY = node.y! + node.height! / 2;
             const endX = child.x!;
             const endY = child.y! + child.height! / 2;
@@ -125,7 +126,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
             edges.push({
                 source: node.id,
                 target: child.id,
-                path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`,
+                path: `M ${node.x! + node.width!},${startY} C ${midX},${startY} ${midX},${endY} ${endX},${endY}`,
             });
 
             currentY += childSubtreeHeight + ySpacing;
