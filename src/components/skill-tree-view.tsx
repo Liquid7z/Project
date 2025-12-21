@@ -70,68 +70,107 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     const allNodes: Node[] = [];
     const edges: Edge[] = [];
     const xSpacing = 220;
-    const ySpacing = 60;
+    const ySpacing = 20;
 
-    function firstPass(node: Node): number {
-        if (!isValidNode(node)) return 0;
+    const nodeMap = new Map<string, Node>();
+    
+    // First pass: Traverse tree to set dimensions and gather all nodes
+    const queue: Node[] = [rootNode];
+    while(queue.length > 0) {
+        const node = queue.shift()!;
+        if (!isValidNode(node) || nodeMap.has(node.id)) continue;
+        
         const dims = nodeDimensions[node.type] || nodeDimensions.detail;
         node.width = dims.width;
         node.height = dims.height;
-
-        const validChildren = Array.isArray(node.children) ? node.children.filter(isValidNode) : [];
-        if (validChildren.length === 0) {
-            (node as any).subtreeHeight = node.height;
-            return node.height;
+        
+        nodeMap.set(node.id, node);
+        allNodes.push(node);
+        
+        if (Array.isArray(node.children)) {
+            for (const child of node.children) {
+                if (isValidNode(child)) {
+                    queue.push(child);
+                }
+            }
         }
-        
-        const childrenHeight = validChildren.reduce((acc, child) => acc + firstPass(child), 0);
-        const totalHeight = childrenHeight + (validChildren.length - 1) * ySpacing;
-        
-        (node as any).subtreeHeight = totalHeight;
-        
-        return totalHeight;
+    }
+
+    // Second pass: Calculate positions
+    const levels: Node[][] = [];
+    const visited = new Set<string>();
+    
+    const root = nodeMap.get(rootNode.id);
+    if (root) {
+        levels.push([root]);
+        visited.add(root.id);
     }
     
-    firstPass(rootNode);
-
-    function secondPass(node: Node, depth: number, y: number) {
-        if (!isValidNode(node)) return;
-        
-        node.x = depth * xSpacing;
-        node.y = y;
-        allNodes.push(node);
-
-        const validChildren = Array.isArray(node.children) ? node.children.filter(isValidNode) : [];
-        if (validChildren.length === 0) return;
-
-        let yOffset = y - ((node as any).subtreeHeight - node.height!) / 2;
-        
-        validChildren.forEach((child) => {
-            const childSubtreeHeight = (child as any).subtreeHeight || child.height!;
-            const childY = yOffset + childSubtreeHeight / 2;
-            
-            secondPass(child, depth + 1, childY);
-            
-            const startX = node.x! + node.width!;
-            const startY = childY;
-            const endX = child.x!;
-            const endY = childY + child.height! / 2;
-            const midX = startX + (endX - startX) / 2;
-
-            edges.push({
-                source: node.id,
-                target: child.id,
-                path: `M ${node.x! + node.width! / 2},${node.y! + node.height! / 2} L ${midX},${node.y! + node.height! / 2} L ${midX},${endY} L ${endX},${endY}`
-            });
-
-            yOffset += childSubtreeHeight + ySpacing;
-        });
+    let currentLevel = 0;
+    while(levels[currentLevel]) {
+        const nextLevel: Node[] = [];
+        for(const node of levels[currentLevel]) {
+            if (Array.isArray(node.children)) {
+                for (const childNode of node.children) {
+                    if (isValidNode(childNode) && !visited.has(childNode.id)) {
+                        const child = nodeMap.get(childNode.id);
+                        if (child) {
+                           nextLevel.push(child);
+                           visited.add(child.id);
+                        }
+                    }
+                }
+            }
+        }
+        if (nextLevel.length > 0) {
+            levels.push(nextLevel);
+        }
+        currentLevel++;
     }
 
-    secondPass(rootNode, 0, 0);
+    let totalHeight = 0;
+    const levelHeights = levels.map(level => {
+        const height = level.reduce((acc, node) => acc + node.height!, 0) + (level.length - 1) * ySpacing;
+        totalHeight = Math.max(totalHeight, height);
+        return height;
+    });
 
-    const uniqueNodes = Array.from(new Map(allNodes.map(n => [n.id, n])).values());
-    return { nodes: uniqueNodes, edges };
+    levels.forEach((level, i) => {
+        const levelHeight = level.reduce((acc, node) => acc + node.height!, 0) + (level.length - 1) * ySpacing;
+        let yOffset = -levelHeight / 2;
+        
+        level.forEach(node => {
+            node.x = i * xSpacing;
+            node.y = yOffset + node.height! / 2;
+            yOffset += node.height! + ySpacing;
+        });
+    });
+
+    // Third pass: Create edges
+    allNodes.forEach(node => {
+        if (Array.isArray(node.children)) {
+            node.children.forEach(childNode => {
+                if (!isValidNode(childNode)) return;
+                
+                const child = nodeMap.get(childNode.id);
+                if (child && node.x !== undefined && node.y !== undefined && child.x !== undefined && child.y !== undefined) {
+                    const startX = node.x + node.width! / 2;
+                    const startY = node.y;
+                    const endX = child.x - child.width! / 2;
+                    const endY = child.y;
+                    const midX = startX + (endX - startX) / 2;
+
+                    edges.push({
+                        source: node.id,
+                        target: child.id,
+                        path: `M ${startX},${startY} L ${midX},${startY} L ${midX},${endY} L ${endX},${endY}`
+                    });
+                }
+            });
+        }
+    });
+
+    return { nodes: allNodes, edges };
 };
 
 
@@ -225,7 +264,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
             if (result && result.tree && result.tree.children) {
                 
                 const assignNewIds = (nodes: Node[], parentId: string): Node[] => {
-                    return nodes.map((node, index) => {
+                     return nodes.map((node, index) => {
                         const newId = `${parentId}.${index + 1}`;
                         const newNode: Node = { ...node, id: newId };
                         if (Array.isArray(newNode.children)) {
@@ -586,7 +625,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                             return (
                                <Popover key={node.id} onOpenChange={(open) => handlePopoverOpenChange(open, node.id)}>
                                 <PopoverTrigger asChild>
-                                   <foreignObject x={node.x} y={node.y} width={node.width} height={node.height} className="overflow-visible cursor-pointer" onClick={(e) => handleNodeClick(e, node.id)}>
+                                   <foreignObject x={node.x! - node.width! / 2} y={node.y! - node.height! / 2} width={node.width} height={node.height} className="overflow-visible cursor-pointer" onClick={(e) => handleNodeClick(e, node.id)}>
                                      <motion.div
                                          initial={{ opacity: 0, scale: 0.8 }}
                                          animate={{ opacity: 1, scale: 1 }}
@@ -650,3 +689,4 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
+
