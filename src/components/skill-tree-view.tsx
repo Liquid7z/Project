@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader, Send, Save, BookOpen, CheckCircle, MessageSquare } from 'lucide-react';
+import { Loader, Send, Save, BookOpen, CheckCircle, MessageSquare, Plus } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { generateSkillTreeAction, getShortDefinitionAction } from '@/actions/generation';
 import { useToast } from '@/hooks/use-toast';
@@ -214,6 +213,45 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
         }
         return null;
     };
+    
+    const handleExpandTopic = async (nodeId: string) => {
+        const nodeToExpand = findNodeById(tree, nodeId);
+        if (!nodeToExpand) return;
+
+        toast({ title: "Expanding Topic...", description: `Generating more details for "${nodeToExpand.label}".`});
+        setIsLoading(true);
+
+        try {
+            const result = await generateSkillTreeAction({ topic: nodeToExpand.label });
+            if (result && result.tree && result.tree.children) {
+                const newChildren = result.tree.children;
+
+                const updateChildren = (node: Node | null): Node | null => {
+                    if (!node) return null;
+                    if (node.id === nodeId) {
+                        return { ...node, children: newChildren };
+                    }
+                    if (node.children) {
+                        return { ...node, children: node.children.map(updateChildren).filter(isValidNode) };
+                    }
+                    return node;
+                };
+
+                const newTree = updateChildren(tree);
+                if(newTree) {
+                    setTree(newTree);
+                }
+            } else {
+                 toast({ variant: 'destructive', title: 'Expansion Failed', description: 'Could not generate sub-topics.' });
+            }
+        } catch (error) {
+             console.error("Error expanding topic:", error);
+             toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while expanding the topic.' });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
 
     const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
         e.stopPropagation();
@@ -565,6 +603,10 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                                              <Button variant="secondary" size="sm" onClick={() => onExplainInChat(node.label)}>
                                                  <MessageSquare className="mr-2" />
                                                  Explain in Chat
+                                             </Button>
+                                             <Button variant="outline" size="sm" onClick={() => handleExpandTopic(node.id)}>
+                                                 <Plus className="mr-2" />
+                                                 Expand Topic
                                              </Button>
                                          </div>
                                           <div className="flex items-center space-x-2 pt-4 border-t">
