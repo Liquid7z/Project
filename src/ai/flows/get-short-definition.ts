@@ -35,7 +35,8 @@ const getShortDefinitionFlow = ai.defineFlow(
     inputSchema: GetShortDefinitionInputSchema,
     outputSchema: GetShortDefinitionOutputSchema,
   },
-  async ({topic, context}) => {
+  async (input) => {
+    const { topic, context } = input;
     const prompt = `In a single, concise sentence, define "${topic}" within the context of "${context}".`;
     
     const llmResponse = await ai.generate({
