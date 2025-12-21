@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -133,7 +134,7 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
     secondPass(rootNode, 0, 0);
 
-    return { nodes: allNodes, edges: [] };
+    return { nodes: allNodes, edges };
 };
 
 
@@ -234,7 +235,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                     return nodes.map((node, index) => {
                         const newId = `${parentId}.${index + 1}`;
                         const newNode: Node = { ...node, id: newId };
-                        if (Array.isArray(newNode.children)) { // Ensure children is an array before recurring
+                        if (Array.isArray(newNode.children)) {
                             newNode.children = assignNewIds(newNode.children, newId);
                         }
                         return newNode;
