@@ -234,7 +234,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                     return nodes.map((node, index) => {
                         const newId = `${parentId}.${index + 1}`;
                         const newNode: Node = { ...node, id: newId };
-                        if (newNode.children) {
+                        if (Array.isArray(newNode.children)) { // Ensure children is an array before recurring
                             newNode.children = assignNewIds(newNode.children, newId);
                         }
                         return newNode;
@@ -248,7 +248,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
                     if (node.id === nodeId) {
                         return { ...node, children: newChildren };
                     }
-                    if (node.children) {
+                    if (Array.isArray(node.children)) {
                         return { ...node, children: node.children.map(updateChildren).filter((n): n is Node => n !== null) };
                     }
                     return node;
@@ -656,5 +656,3 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
-
-    
