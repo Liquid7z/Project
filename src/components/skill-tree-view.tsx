@@ -61,7 +61,7 @@ const activeNodeColors = {
 };
 
 const isValidNode = (node: any): node is Node => {
-    return node && typeof node === 'object' && typeof node.id === 'string';
+    return node && typeof node === 'object' && typeof node.id === 'string' && typeof node.label === 'string';
 }
 
 const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] } => {
@@ -70,9 +70,8 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     const allNodes: Node[] = [];
     const edges: Edge[] = [];
     const xSpacing = 220;
-    const ySpacing = 60; // Vertical gap between nodes
+    const ySpacing = 60;
 
-    // 1. First pass: set dimensions and compute subtree heights for each node
     function firstPass(node: Node): number {
         if (!isValidNode(node)) return 0;
         const dims = nodeDimensions[node.type] || nodeDimensions.detail;
@@ -88,7 +87,6 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         const childrenHeight = validChildren.reduce((acc, child) => acc + firstPass(child), 0);
         const totalHeight = childrenHeight + (validChildren.length - 1) * ySpacing;
         
-        // Store subtree height on the node for the next pass
         (node as any).subtreeHeight = totalHeight;
         
         return totalHeight;
@@ -96,7 +94,6 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
     
     firstPass(rootNode);
 
-    // 2. Second pass: calculate x, y positions
     function secondPass(node: Node, depth: number, y: number) {
         if (!isValidNode(node)) return;
         
@@ -109,31 +106,32 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
 
         let yOffset = y - ((node as any).subtreeHeight - node.height!) / 2;
         
-        validChildren.forEach((child, index) => {
+        validChildren.forEach((child) => {
             const childSubtreeHeight = (child as any).subtreeHeight || child.height!;
-            const childY = yOffset + childSubtreeHeight / 2 - child.height! / 2;
-            secondPass(child, depth + 1, childY);
-            yOffset += childSubtreeHeight + ySpacing;
+            const childY = yOffset + childSubtreeHeight / 2;
             
-            // Create edge
-            const startX = node.x! + node.width! / 2;
-            const startY = node.y! + node.height!;
-            const endX = child.x! + child.width! / 2;
-            const endY = child.y!;
-
-            const midY = startY + (endY - startY) / 2;
+            secondPass(child, depth + 1, childY);
+            
+            const startX = node.x! + node.width!;
+            const startY = childY;
+            const endX = child.x!;
+            const endY = childY + child.height! / 2;
+            const midX = startX + (endX - startX) / 2;
 
             edges.push({
                 source: node.id,
                 target: child.id,
-                path: `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`
+                path: `M ${node.x! + node.width! / 2},${node.y! + node.height! / 2} L ${midX},${node.y! + node.height! / 2} L ${midX},${endY} L ${endX},${endY}`
             });
+
+            yOffset += childSubtreeHeight + ySpacing;
         });
     }
 
     secondPass(rootNode, 0, 0);
 
-    return { nodes: allNodes, edges };
+    const uniqueNodes = Array.from(new Map(allNodes.map(n => [n.id, n])).values());
+    return { nodes: uniqueNodes, edges };
 };
 
 
@@ -160,11 +158,7 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
   useEffect(() => {
     if (tree) {
       const { nodes: newNodes, edges: newEdges } = calculateLayout(tree);
-      // Re-calculate layout on tree change, but only set if it has nodes
-      if(newNodes.length > 0) {
-        const uniqueNodes = Array.from(new Map(newNodes.map(n => [n.id, n])).values());
-        setLayout({ nodes: uniqueNodes, edges: newEdges });
-      }
+      setLayout({ nodes: newNodes, edges: newEdges });
 
       if (newNodes.length > 0) {
         const rootNode = newNodes.find(n => n.type === 'root');
@@ -656,5 +650,3 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
-
-    
