@@ -116,17 +116,17 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
             secondPass(child, depth + 1, childY);
 
             // Create edge
-            const startX = node.x! + node.width! / 2;
+            const startX = node.x! + node.width!;
             const startY = node.y! + node.height! / 2;
             const endX = child.x!;
             const endY = child.y! + child.height! / 2;
             
-            const midX = startX + (endX - startX) / 2;
+            const midX = startX + 30; // Horizontal distance for the "elbow"
 
             edges.push({
                 source: node.id,
                 target: child.id,
-                path: `M ${node.x! + node.width!},${startY} C ${midX},${startY} ${midX},${endY} ${endX},${endY}`,
+                path: `M ${startX},${startY} H ${midX} V ${endY} H ${endX}`,
             });
 
             currentY += childSubtreeHeight + ySpacing;
