@@ -107,29 +107,27 @@ const calculateLayout = (rootNode: Node | null): { nodes: Node[]; edges: Edge[] 
         const validChildren = Array.isArray(node.children) ? node.children.filter(isValidNode) : [];
         if (validChildren.length === 0) return;
 
-        const totalSubtreeHeight = (node as any).subtreeHeight || 0;
-        let currentY = y - totalSubtreeHeight / 2;
-
-        validChildren.forEach(child => {
+        let yOffset = y - ((node as any).subtreeHeight - node.height!) / 2;
+        
+        validChildren.forEach((child, index) => {
             const childSubtreeHeight = (child as any).subtreeHeight || child.height!;
-            const childY = currentY + childSubtreeHeight / 2;
+            const childY = yOffset + childSubtreeHeight / 2 - child.height! / 2;
             secondPass(child, depth + 1, childY);
-
-            // Create edge
-            const startX = node.x! + node.width!;
-            const startY = node.y! + node.height! / 2;
-            const endX = child.x!;
-            const endY = child.y! + child.height! / 2;
+            yOffset += childSubtreeHeight + ySpacing;
             
-            const midX = startX + 30; // Horizontal distance for the "elbow"
+            // Create edge
+            const startX = node.x! + node.width! / 2;
+            const startY = node.y! + node.height!;
+            const endX = child.x! + child.width! / 2;
+            const endY = child.y!;
+
+            const midY = startY + (endY - startY) / 2;
 
             edges.push({
                 source: node.id,
                 target: child.id,
-                path: `M ${startX},${startY} H ${midX} V ${endY} H ${endX}`,
+                path: `M ${startX},${startY} L ${startX},${midY} L ${endX},${midY} L ${endX},${endY}`
             });
-
-            currentY += childSubtreeHeight + ySpacing;
         });
     }
 
@@ -658,3 +656,5 @@ export function SkillTreeView({ onExplainInChat }: { onExplainInChat: (topic: st
     </div>
   );
 }
+
+    
