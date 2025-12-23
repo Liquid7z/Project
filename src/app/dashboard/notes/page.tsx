@@ -47,14 +47,14 @@ function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading,
     const [isNewSubjectDialogOpen, setIsNewSubjectDialogOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<any | null>(null);
     const { toast } = useToast();
-    const { user, firestore } = useUser();
+    const { user, firestore } = useFirebase();
     const router = useRouter();
 
     const subjectsCollectionRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return collection(firestore, 'users', user.uid, 'subjects');
     }, [user, firestore]);
-
+    
     const form = useForm<z.infer<typeof subjectFormSchema>>({
         resolver: zodResolver(subjectFormSchema),
         defaultValues: { name: '' },
