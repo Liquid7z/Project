@@ -43,9 +43,8 @@ const subjectFormSchema = z.object({
     name: z.string().min(1, 'Subject name is required.'),
 });
 
-function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading, error: subjectsError }: { subjects: any[] | null, isLoading: boolean, error: Error | null }) {
+function SubjectsView({ subjects, isLoading: areSubjectsLoading, error: subjectsError }: { subjects: any[] | null, isLoading: boolean, error: Error | null }) {
     const [isNewSubjectDialogOpen, setIsNewSubjectDialogOpen] = useState(false);
-    const [subjects, setSubjects] = useState<any[]>([]);
     const [editingSubject, setEditingSubject] = useState<any | null>(null);
     const { toast } = useToast();
     const { user, firestore } = useFirebase();
@@ -55,12 +54,6 @@ function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading,
         if (!user || !firestore) return null;
         return collection(firestore, 'users', user.uid, 'subjects');
     }, [user, firestore]);
-    
-    useEffect(() => {
-        if (serverSubjects) {
-            setSubjects(serverSubjects);
-        }
-    }, [serverSubjects]);
 
     const form = useForm<z.infer<typeof subjectFormSchema>>({
         resolver: zodResolver(subjectFormSchema),
@@ -105,8 +98,6 @@ function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading,
         try {
             await deleteDoc(subjectDocRef);
             toast({ title: 'Subject Deleted', description: 'The subject and all its content have been deleted.' });
-            // Immediately update the local state to reflect the deletion
-            setSubjects(prevSubjects => prevSubjects.filter(s => s.id !== subjectId));
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete subject.' });
             console.error("Error deleting subject: ", error);
@@ -411,5 +402,3 @@ export default function NotesDashboardPage() {
         </Tabs>
     );
 }
-
-    
