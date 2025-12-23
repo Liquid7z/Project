@@ -17,8 +17,8 @@ export default function RootPage() {
         }
 
         if (user) {
-            // If user is logged in, redirect to the notes page
-            router.replace('/dashboard/notes');
+            // If user is logged in, redirect to the sticky notes page
+            router.replace('/dashboard/sticky-notes');
         } else {
             // If user is not logged in, redirect to the landing page
             router.replace('/');

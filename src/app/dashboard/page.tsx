@@ -14,8 +14,8 @@ export default function DashboardRootPage() {
         if (isUserLoading) {
             return;
         }
-        // Always redirect from the root dashboard page to the notes page
-        router.replace('/dashboard/notes');
+        // Always redirect from the root dashboard page to the sticky notes page
+        router.replace('/dashboard/sticky-notes');
     }, [isUserLoading, user, router]);
 
     return (
