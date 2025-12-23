@@ -35,6 +35,7 @@ import { SkillTreeView } from '@/components/skill-tree-view';
 import { explainTopicAction } from '@/actions/generation';
 import { ChatView } from '@/components/chat-view';
 import type { Message } from '@/components/chat-view';
+import { useRouter } from 'next/navigation';
 
 
 const subjectFormSchema = z.object({
@@ -47,6 +48,7 @@ function SubjectsView() {
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
 
     const subjectsCollectionRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -74,7 +76,7 @@ function SubjectsView() {
         } else {
             if (!subjectsCollectionRef) return;
             try {
-                await addDoc(subjectsCollectionRef, {
+                const newDoc = await addDoc(subjectsCollectionRef, {
                     ...values,
                     description: '',
                     noteCount: 0,
@@ -83,6 +85,7 @@ function SubjectsView() {
                     lastUpdated: serverTimestamp(),
                 });
                 toast({ title: 'Subject Created', description: `Subject "${values.name}" has been created.` });
+                router.push(`/dashboard/notes/${newDoc.id}`);
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Failed to create subject.' });
                 console.error("Error creating subject: ", error);
