@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, ReactNode, useState } from 'react';
@@ -47,7 +46,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const navItems = [
-  { href: '/dashboard', icon: StickyNote, label: 'Sticky Notes', configFlag: 'stickyNotesWip' },
+  { href: '/dashboard/sticky-notes', icon: StickyNote, label: 'Sticky Notes', configFlag: 'stickyNotesWip' },
   { href: '/dashboard/notes', icon: Notebook, label: 'Notes', configFlag: 'notesWip' },
   { href: '/dashboard/account', icon: User, label: 'Account', configFlag: 'accountWip' },
 ];
@@ -219,7 +218,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                 <SidebarMenuItem key={item.label}>
                   <Link href={item.href}>
                     <SidebarMenuButton
-                      isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
+                      isActive={pathname.startsWith(item.href) && (item.href === '/dashboard/notes' ? pathname.startsWith('/dashboard/notes') : pathname === item.href)}
                       tooltip={{ children: item.label }}
                     >
                         <item.icon />
@@ -359,5 +358,3 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
-
-    
