@@ -39,38 +39,7 @@ const generateAssignmentPrompt = ai.definePrompt({
   name: 'generateAssignmentPrompt',
   input: {schema: GenerateAssignmentInputSchema},
   output: {schema: GenerateAssignmentOutputSchema},
-  prompt: `You are an expert educator and note-taker AI. Your task is to transform the user's input content into a single, comprehensive, and visually organized study note page. The output must be a single image data URI that looks like a digital, handwritten note on a white page.
-
-The note page must follow a clear hierarchical structure (Parent → Child Flow).
-
-1.  **Main Concept:** Start with a main key point that represents the high-level concept.
-2.  **Child Points:** Under each main key point, list its related child points, such as Types, Properties, Characteristics, Functions, Uses, Advantages, Disadvantages, or Examples.
-3.  **Sub-Child Points:** If a child point requires further explanation, expand it into sub-child points under that child heading.
-4.  **Flow:** Follow a top-down explanation flow in this order: Main Concept → Sub-Concept → Detailed Points.
-5.  **Conciseness:** Keep all text short, crisp, and easy to scan. Avoid long paragraphs.
-6.  **Visuals:** Where appropriate, create simple diagrams or visuals that fit within this hierarchy.
-7.  **Summary:** At the bottom, write a concise summary paragraph.
-
-The structure should visually resemble a skill tree or an outline.
-
-**Expected Structure Example:**
-
-**Main Concept**
-- **Types**
-  - Type 1
-  - Type 2
-- **Properties**
-  - Property A
-  - Property B
-- **Examples**
-  - Example 1
-  - Example 2
-
-**Output Behavior Guidelines:**
-- Never mix child points across different main concepts.
-- Maintain consistent indentation and nesting.
-- Use bullet or tree-style formatting.
-- Prioritize clarity and logical flow.
+  prompt: `You are an AI that generates a single, comprehensive, and visually organized study note page from the user's input content. The output must be a single image data URI that looks like a digital, handwritten note on a white page.
 
 Use the handwriting style model ID provided: {{{handwritingStyleModelId}}}
 
