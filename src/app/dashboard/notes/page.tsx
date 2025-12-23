@@ -51,7 +51,7 @@ function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading,
     const router = useRouter();
 
     const subjectsCollectionRef = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !firestore) return null;
         return collection(firestore, 'users', user.uid, 'subjects');
     }, [user, firestore]);
 
@@ -370,7 +370,7 @@ export default function NotesDashboardPage() {
     const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
 
     const subjectsCollectionRef = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !firestore) return null;
         return collection(firestore, 'users', user.uid, 'subjects');
     }, [user, firestore]);
     const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
@@ -402,5 +402,3 @@ export default function NotesDashboardPage() {
         </Tabs>
     );
 }
-
-    
