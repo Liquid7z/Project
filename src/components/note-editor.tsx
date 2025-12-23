@@ -5,7 +5,12 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
-import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, ImageIcon } from 'lucide-react';
+import Table from '@tiptap/extension-table';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TableRow from '@tiptap/extension-table-row';
+
+import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, ImageIcon, Pilcrow, Table as TableIcon } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 import React, { useCallback } from 'react';
 
@@ -33,6 +38,9 @@ const TipTapToolbar = ({ editor }: { editor: any }) => {
       <Toggle size="sm" pressed={editor.isActive('underline')} onPressedChange={() => editor.chain().focus().toggleUnderline().run()}>
         <UnderlineIcon className="h-4 w-4" />
       </Toggle>
+       <Toggle size="sm" pressed={editor.isActive('paragraph')} onPressedChange={() => editor.chain().focus().setParagraph().run()}>
+        <Pilcrow className="h-4 w-4" />
+      </Toggle>
       <Toggle size="sm" pressed={editor.isActive('heading', { level: 2 })} onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
         <Heading2 className="h-4 w-4" />
       </Toggle>
@@ -45,6 +53,9 @@ const TipTapToolbar = ({ editor }: { editor: any }) => {
        <Toggle size="sm" onPressedChange={addImage}>
         <ImageIcon className="h-4 w-4" />
       </Toggle>
+      <Toggle size="sm" onPressedChange={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+        <TableIcon className="h-4 w-4" />
+      </Toggle>
     </div>
   );
 };
@@ -52,9 +63,27 @@ const TipTapToolbar = ({ editor }: { editor: any }) => {
 export const NoteEditor = ({value, onChange}: {value: string; onChange: (value:string) => void}) => {
   const editor = useEditor({
     extensions: [
-        StarterKit, 
+        StarterKit.configure({
+            // Disable heading to customize it
+            heading: false,
+        }),
+        StarterKit.extend({
+             addKeyboardShortcuts() {
+                return {
+                'Mod-p': () => this.editor.chain().focus().setParagraph().run(),
+                }
+            }
+        }).configure({
+            heading: false,
+        }),
         Underline, 
         Image,
+        Table.configure({
+            resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
         Placeholder.configure({
             placeholder: 'Start writing your note here...',
         })

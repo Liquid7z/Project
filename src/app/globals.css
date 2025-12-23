@@ -77,6 +77,22 @@
     background-image: radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 40%), radial-gradient(circle at bottom right, hsl(var(--accent) / 0.1), transparent 40%);
   }
 
+  /* Tiptap Table Styles */
+  .prose {
+    table {
+      @apply table-auto w-full my-4 border-collapse border border-border;
+    }
+    th {
+      @apply border border-border px-4 py-2 font-bold text-left bg-muted/50;
+    }
+    td {
+      @apply border border-border px-4 py-2;
+    }
+    tr:nth-child(even) {
+       @apply bg-background/30;
+    }
+  }
+
   .prose pre {
     white-space: pre-wrap;
     word-wrap: break-word;
