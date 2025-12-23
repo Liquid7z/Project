@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -42,20 +43,17 @@ const subjectFormSchema = z.object({
     name: z.string().min(1, 'Subject name is required.'),
 });
 
-function SubjectsView() {
+function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading, error: subjectsError }: { subjects: any[] | null, isLoading: boolean, error: Error | null }) {
     const [isNewSubjectDialogOpen, setIsNewSubjectDialogOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<any | null>(null);
     const { toast } = useToast();
-    const { user } = useUser();
-    const firestore = useFirestore();
+    const { user, firestore } = useUser();
     const router = useRouter();
 
     const subjectsCollectionRef = useMemoFirebase(() => {
         if (!user) return null;
         return collection(firestore, 'users', user.uid, 'subjects');
     }, [user, firestore]);
-
-    const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
 
     const form = useForm<z.infer<typeof subjectFormSchema>>({
         resolver: zodResolver(subjectFormSchema),
@@ -99,7 +97,7 @@ function SubjectsView() {
         const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', subjectId);
         try {
             await deleteDoc(subjectDocRef);
-            toast({ title: 'Subject Deleted', description: 'The subject and all its notes have been deleted.' });
+            toast({ title: 'Subject Deleted', description: 'The subject and all its content have been deleted.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete subject.' });
             console.error("Error deleting subject: ", error);
@@ -175,7 +173,7 @@ function SubjectsView() {
                     <p className="mt-1 text-sm text-muted-foreground">{subjectsError.message}</p>
                 </Card>
             )}
-            {!areSubjectsLoading && !subjectsError && subjects && subjects.length === 0 && (
+            {!areSubjectsLoading && !subjectsError && serverSubjects && serverSubjects.length === 0 && (
                 <Card className="flex flex-col items-center justify-center p-12 text-center glass-pane border-dashed">
                     <Folder className="w-16 h-16 text-muted-foreground/50" />
                     <h3 className="mt-4 text-lg font-semibold">No Subjects Yet</h3>
@@ -183,7 +181,7 @@ function SubjectsView() {
                 </Card>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {!areSubjectsLoading && !subjectsError && subjects && subjects.map((subject) => (
+                {!areSubjectsLoading && !subjectsError && serverSubjects && serverSubjects.map((subject) => (
                     <Card key={subject.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", subject.isImportant && 'important-glow' )}>
                         <Link href={`/dashboard/notes/${subject.id}`} className="flex-grow flex flex-col justify-between">
                             <CardHeader>
@@ -371,7 +369,13 @@ export default function NotesDashboardPage() {
     const siteConfigRef = useMemoFirebase(() => doc(firestore, 'site_config', 'maintenance'), [firestore]);
     const { data: siteConfig, isLoading: isConfigLoading } = useDoc(siteConfigRef);
 
-    const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
+    const subjectsCollectionRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return collection(firestore, 'users', user.uid, 'subjects');
+    }, [user, firestore]);
+    const { data: subjects, isLoading: areSubjectsLoading, error: subjectsError } = useCollection(subjectsCollectionRef);
+
+    const isLoading = isUserLoading || isProfileLoading || isConfigLoading || areSubjectsLoading;
     const isNotesWip = siteConfig?.notesWip === false && userProfile?.isAdmin !== true;
     const isSkillTreeWip = siteConfig?.skillTreeWip === false && userProfile?.isAdmin !== true;
     
@@ -390,7 +394,7 @@ export default function NotesDashboardPage() {
                 <TabsTrigger value="skill-tree" disabled={isSkillTreeWip}><BrainCircuit className="w-4 h-4 mr-2"/> Skill Tree {isSkillTreeWip ? '(WIP)' : ''}</TabsTrigger>
             </TabsList>
             <TabsContent value="subjects" className="mt-6">
-                <SubjectsView />
+                <SubjectsView subjects={subjects} isLoading={areSubjectsLoading} error={subjectsError} />
             </TabsContent>
             <TabsContent value="skill-tree" className="mt-6 flex-grow">
                  {isSkillTreeWip ? <WipPage /> : <SkillTreeInteractiveView />}
