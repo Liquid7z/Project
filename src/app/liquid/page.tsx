@@ -503,13 +503,13 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
             
              <Tabs defaultValue="payments" className="w-full">
                 <ScrollArea className="w-full whitespace-nowrap">
-                    <TabsList className="inline-flex w-auto">
-                        <TabsTrigger value="payments"><Banknote className="w-4 h-4 mr-2"/> Payment Verification</TabsTrigger>
-                        <TabsTrigger value="broadcast"><SendHorizontal className="w-4 h-4 mr-2"/> Broadcast</TabsTrigger>
-                        <TabsTrigger value="history"><History className="w-4 h-4 mr-2"/> Broadcast History</TabsTrigger>
-                        <TabsTrigger value="plans"><DollarSign className="w-4 h-4 mr-2"/> Plan Management</TabsTrigger>
-                        <TabsTrigger value="users"><User className="w-4 h-4 mr-2"/> User Management</TabsTrigger>
-                        <TabsTrigger value="site"><Wrench className="w-4 h-4 mr-2"/> Site Settings</TabsTrigger>
+                    <TabsList className="inline-flex w-auto sm:w-full">
+                        <TabsTrigger value="payments" className="flex-1"><Banknote className="w-4 h-4 mr-2"/> Payment Verification</TabsTrigger>
+                        <TabsTrigger value="broadcast" className="flex-1"><SendHorizontal className="w-4 h-4 mr-2"/> Broadcast</TabsTrigger>
+                        <TabsTrigger value="history" className="flex-1"><History className="w-4 h-4 mr-2"/> Broadcast History</TabsTrigger>
+                        <TabsTrigger value="plans" className="flex-1"><DollarSign className="w-4 h-4 mr-2"/> Plan Management</TabsTrigger>
+                        <TabsTrigger value="users" className="flex-1"><User className="w-4 h-4 mr-2"/> User Management</TabsTrigger>
+                        <TabsTrigger value="site" className="flex-1"><Wrench className="w-4 h-4 mr-2"/> Site Settings</TabsTrigger>
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>

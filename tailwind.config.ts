@@ -17,10 +17,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
-        code: ['Source Code Pro', 'monospace'],
-        handwriting: ['Caveat', 'cursive'],
+        body: ['var(--font-body)', 'sans-serif'],
+        headline: ['var(--font-headline)', 'sans-serif'],
+        code: ['var(--font-code)', 'monospace'],
+        handwriting: ['var(--font-handwriting)', 'cursive'],
       },
       colors: {
         background: 'hsl(var(--background))',

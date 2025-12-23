@@ -75,6 +75,7 @@ export default function LandingPage() {
                         className="object-cover opacity-10"
                         data-ai-hint={heroImage.imageHint}
                         priority
+                        quality={80}
                     />}
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
                 </div>

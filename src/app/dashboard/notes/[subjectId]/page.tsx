@@ -360,10 +360,10 @@ export default function SubjectPage({ params, searchParams }: { params: { subjec
             
             <Tabs defaultValue="notes" className="w-full">
                 <ScrollArea className="w-full whitespace-nowrap">
-                    <TabsList className="inline-flex w-auto">
-                        <TabsTrigger value="notes"><Notebook className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Notes</span></TabsTrigger>
-                        <TabsTrigger value="examQuestions"><FileQuestion className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Questions & Syllabus</span></TabsTrigger>
-                        <TabsTrigger value="resources"><Package className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Resources</span></TabsTrigger>
+                    <TabsList className="inline-flex w-auto sm:w-full">
+                        <TabsTrigger value="notes" className="flex-1"><Notebook className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Notes</span></TabsTrigger>
+                        <TabsTrigger value="examQuestions" className="flex-1"><FileQuestion className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Questions & Syllabus</span></TabsTrigger>
+                        <TabsTrigger value="resources" className="flex-1"><Package className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Resources</span></TabsTrigger>
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
