@@ -15,7 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { collection, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -45,6 +45,7 @@ const subjectFormSchema = z.object({
 
 function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading, error: subjectsError }: { subjects: any[] | null, isLoading: boolean, error: Error | null }) {
     const [isNewSubjectDialogOpen, setIsNewSubjectDialogOpen] = useState(false);
+    const [subjects, setSubjects] = useState<any[]>([]);
     const [editingSubject, setEditingSubject] = useState<any | null>(null);
     const { toast } = useToast();
     const { user, firestore } = useFirebase();
@@ -55,6 +56,12 @@ function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading,
         return collection(firestore, 'users', user.uid, 'subjects');
     }, [user, firestore]);
     
+    useEffect(() => {
+        if (serverSubjects) {
+            setSubjects(serverSubjects);
+        }
+    }, [serverSubjects]);
+
     const form = useForm<z.infer<typeof subjectFormSchema>>({
         resolver: zodResolver(subjectFormSchema),
         defaultValues: { name: '' },
@@ -98,6 +105,8 @@ function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading,
         try {
             await deleteDoc(subjectDocRef);
             toast({ title: 'Subject Deleted', description: 'The subject and all its content have been deleted.' });
+            // Immediately update the local state to reflect the deletion
+            setSubjects(prevSubjects => prevSubjects.filter(s => s.id !== subjectId));
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete subject.' });
             console.error("Error deleting subject: ", error);
@@ -173,7 +182,7 @@ function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading,
                     <p className="mt-1 text-sm text-muted-foreground">{subjectsError.message}</p>
                 </Card>
             )}
-            {!areSubjectsLoading && !subjectsError && serverSubjects && serverSubjects.length === 0 && (
+            {!areSubjectsLoading && !subjectsError && subjects && subjects.length === 0 && (
                 <Card className="flex flex-col items-center justify-center p-12 text-center glass-pane border-dashed">
                     <Folder className="w-16 h-16 text-muted-foreground/50" />
                     <h3 className="mt-4 text-lg font-semibold">No Subjects Yet</h3>
@@ -181,7 +190,7 @@ function SubjectsView({ subjects: serverSubjects, isLoading: areSubjectsLoading,
                 </Card>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {!areSubjectsLoading && !subjectsError && serverSubjects && serverSubjects.map((subject) => (
+                {!areSubjectsLoading && !subjectsError && subjects && subjects.map((subject) => (
                     <Card key={subject.id} className={cn("flex flex-col glass-pane hover:border-accent transition-colors group", subject.isImportant && 'important-glow' )}>
                         <Link href={`/dashboard/notes/${subject.id}`} className="flex-grow flex flex-col justify-between">
                             <CardHeader>
@@ -402,3 +411,5 @@ export default function NotesDashboardPage() {
         </Tabs>
     );
 }
+
+    
