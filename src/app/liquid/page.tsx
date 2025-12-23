@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -32,7 +31,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { FileUploader } from '@/components/file-uploader';
+import { FileUploader } from '@/components/ui/file-uploader';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -283,22 +282,20 @@ function AdminPageContent({ user, userProfile, isProfileLoading }: { user: any, 
     const [broadcastLink, setBroadcastLink] = useState('');
     const [isBroadcasting, setIsBroadcasting] = useState(false);
 
-
-    useEffect(() => {
+    const paymentVerificationsQuery = useMemoFirebase(() => {
         if (userProfile?.isAdmin) {
             const paymentVerificationsRef = collection(firestore, 'paymentVerifications');
-            const q = query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setPendingPayments(payments);
-                setArePaymentsLoading(false);
-            }, (error) => {
-                console.error("Error fetching pending payments:", error);
-                setArePaymentsLoading(false);
-            });
-            return () => unsubscribe();
+            return query(paymentVerificationsRef, where('status', '==', 'pending'), orderBy('submittedAt', 'asc'));
         }
+        return null;
     }, [userProfile?.isAdmin, firestore]);
+
+    const { data: fetchedPendingPayments, isLoading: areFetchedPaymentsLoading } = useCollection(paymentVerificationsQuery);
+    
+    useEffect(() => {
+        setPendingPayments(fetchedPendingPayments);
+        setArePaymentsLoading(areFetchedPaymentsLoading);
+    }, [fetchedPendingPayments, areFetchedPaymentsLoading]);
     
     const handleAdminToggle = async (targetUser: any) => {
         const userRef = doc(firestore, "users", targetUser.id);

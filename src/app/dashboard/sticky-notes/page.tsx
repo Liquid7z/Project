@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Loader } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { StickyNote } from '@/components/sticky-note';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, setDoc } from 'firebase/firestore';
 import type { WithId } from '@/firebase';
 import { v4 as uuidv4 } from 'uuid';
@@ -108,7 +108,6 @@ export default function StickyNotesPage() {
         return;
       }
       
-      if (!notesCollectionRef) return;
       const { isNew, ...noteToSave } = note;
       const finalNote = {
         ...noteToSave,
@@ -117,13 +116,10 @@ export default function StickyNotesPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }
-      try {
-        // Use the client-generated ID to create the document
-        const noteRef = doc(firestore, 'users', user.uid, 'stickyNotes', id);
-        await setDoc(noteRef, finalNote);
-      } catch (error) {
-         console.error("Error adding note:", error);
-      }
+
+      // Use the client-generated ID to create the document non-blockingly
+      const noteRef = doc(firestore, 'users', user.uid, 'stickyNotes', id);
+      setDocumentNonBlocking(noteRef, finalNote, {});
 
     } else { // It's an existing note, so update it
       const noteRef = doc(firestore, 'users', user.uid, 'stickyNotes', id);
