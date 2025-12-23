@@ -1,14 +1,17 @@
 
 'use client';
 
+import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/header';
-import { CheckCircle, FolderKanban, Bot, Network } from 'lucide-react';
+import { CheckCircle, FolderKanban, Bot, Network, Loader } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images'
 import { Logo } from '@/components/logo';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 const features = [
   {
@@ -60,8 +63,38 @@ const pricingTiers = [
 ]
 
 export default function LandingPage() {
+    const { user, isUserLoading } = useUser();
+    const router = useRouter();
     const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
     
+    useEffect(() => {
+        if (isUserLoading) {
+            return;
+        }
+
+        if (user) {
+            router.replace('/dashboard/sticky-notes');
+        }
+        // If no user, remain on the landing page, which is this component.
+    }, [isUserLoading, user, router]);
+    
+    if (isUserLoading) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-background">
+                <Loader className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        );
+    }
+    
+    // If there's a user, we'll be redirecting, so we can render a loader to avoid a flash of content.
+    if (user) {
+         return (
+            <div className="flex h-screen w-full items-center justify-center bg-background">
+                <Loader className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col min-h-dvh">
           <Header />

@@ -1,31 +1,21 @@
 
 'use client';
 
+// This page is now deprecated. 
+// The logic has been moved to src/app/page.tsx to handle the root routing.
+// This file can be safely deleted. For now, it will just show a loader and redirect.
+
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
 import { Loader } from 'lucide-react';
 
-export default function RootPage() {
-    const { user, isUserLoading } = useUser();
+export default function DeprecatedLandingPage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (isUserLoading) {
-            // Wait until the user status is resolved
-            return;
-        }
+        router.replace('/');
+    }, [router]);
 
-        if (user) {
-            // If user is logged in, redirect to the sticky notes page
-            router.replace('/dashboard/sticky-notes');
-        } else {
-            // If user is not logged in, redirect to the landing page
-            router.replace('/landing');
-        }
-    }, [isUserLoading, user, router]);
-
-    // Show a full-page loader while determining the user's status
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <Loader className="h-16 w-16 animate-spin text-primary" />
