@@ -43,12 +43,17 @@ const subjectFormSchema = z.object({
     name: z.string().min(1, 'Subject name is required.'),
 });
 
-function SubjectsView({ subjects, subjectsCollectionRef, isLoading: areSubjectsLoading, error: subjectsError }: { subjects: any[] | null, subjectsCollectionRef: any, isLoading: boolean, error: Error | null }) {
+function SubjectsView({ subjects, isLoading: areSubjectsLoading, error: subjectsError }: { subjects: any[] | null, isLoading: boolean, error: Error | null }) {
     const [isNewSubjectDialogOpen, setIsNewSubjectDialogOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<any | null>(null);
     const { toast } = useToast();
     const { user, firestore } = useFirebase();
     const router = useRouter();
+
+    const subjectsCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'subjects');
+    }, [user, firestore]);
 
     const form = useForm<z.infer<typeof subjectFormSchema>>({
         resolver: zodResolver(subjectFormSchema),
@@ -92,7 +97,8 @@ function SubjectsView({ subjects, subjectsCollectionRef, isLoading: areSubjectsL
         const subjectDocRef = doc(firestore, 'users', user.uid, 'subjects', subjectId);
         try {
             await deleteDoc(subjectDocRef);
-            toast({ title: 'Subject Deleted', description: 'The subject and all its content have been deleted.' });
+            toast({ title: 'Subject Deleted', description: 'The subject has been removed.' });
+            window.location.reload();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete subject.' });
             console.error("Error deleting subject: ", error);
@@ -389,7 +395,7 @@ export default function NotesDashboardPage() {
                 <TabsTrigger value="skill-tree" disabled={isSkillTreeWip}><BrainCircuit className="w-4 h-4 mr-2"/> Skill Tree {isSkillTreeWip ? '(WIP)' : ''}</TabsTrigger>
             </TabsList>
             <TabsContent value="subjects" className="mt-6">
-                <SubjectsView subjects={subjects} subjectsCollectionRef={subjectsCollectionRef} isLoading={areSubjectsLoading} error={subjectsError} />
+                <SubjectsView subjects={subjects} isLoading={areSubjectsLoading} error={subjectsError} />
             </TabsContent>
             <TabsContent value="skill-tree" className="mt-6 flex-grow">
                  {isSkillTreeWip ? <WipPage /> : <SkillTreeInteractiveView />}
