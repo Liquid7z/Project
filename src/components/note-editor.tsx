@@ -9,6 +9,8 @@ import Table from '@tiptap/extension-table';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
+import Heading from '@tiptap/extension-heading';
+
 
 import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, ImageIcon, Pilcrow, Table as TableIcon } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
@@ -64,17 +66,11 @@ export const NoteEditor = ({value, onChange}: {value: string; onChange: (value:s
   const editor = useEditor({
     extensions: [
         StarterKit.configure({
-            // Disable heading to customize it
+            // The Heading extension is provided separately
             heading: false,
         }),
-        StarterKit.extend({
-             addKeyboardShortcuts() {
-                return {
-                'Mod-p': () => this.editor.chain().focus().setParagraph().run(),
-                }
-            }
-        }).configure({
-            heading: false,
+        Heading.configure({
+            levels: [2], // Only allow H2
         }),
         Underline, 
         Image,
