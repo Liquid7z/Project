@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, ReactNode, useState } from 'react';
@@ -173,14 +174,6 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   }, [isUserLoading, user, userError, router]);
 
   const isLoading = isUserLoading || isProfileLoading || isConfigLoading;
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
   
   // Site-wide maintenance check
   if (siteConfig?.siteWideMaintenance && !isAdmin) {
@@ -189,6 +182,14 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
   
   const currentNavItems = isAdmin ? [...navItems, ...adminNavItems] : navItems;
   
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -275,7 +276,7 @@ function DashboardNav({ children }: { children: React.ReactNode }) {
                   <SheetContent side="left" className="flex flex-col glass-pane !border-l-0">
                       <SheetHeader>
                           <SheetTitle>
-                            <Link href="/dashboard">
+                            <Link href="/dashboard/sticky-notes">
                                 <Logo />
                             </Link>
                           </SheetTitle>
@@ -358,3 +359,5 @@ export default function DashboardLayout({
     <DashboardNav>{children}</DashboardNav>
   )
 }
+
+    

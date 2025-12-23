@@ -21,7 +21,7 @@ export default function RootPage() {
             router.replace('/dashboard/sticky-notes');
         } else {
             // If user is not logged in, redirect to the landing page
-            router.replace('/');
+            router.replace('/landing');
         }
     }, [isUserLoading, user, router]);
 
